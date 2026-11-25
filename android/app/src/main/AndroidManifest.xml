@@ -56,6 +56,14 @@
         <service android:name=".notifications.InCittaMessagingService" android:exported="false">
             <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>
         </service>
+        <!-- I file della gestione (CSV e PDF della biglietteria) verso «Apri con» e «Condividi»: solo dalla cache, permesso a tempo. -->
+        <provider
+            android:name=".data.management.ManagementFileProvider"
+            android:authorities="${applicationId}.management.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/management_file_paths" />
+        </provider>
         <!-- Lo scanner del check-in con FLAG_SECURE: stessi attributi della CaptureActivity della libreria. -->
         <activity
             android:name=".ui.SecureCaptureActivity"

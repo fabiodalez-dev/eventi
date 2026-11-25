@@ -17359,6 +17359,15 @@
                                                                 "type": "string"
                                                             }
                                                         ]
+                                                    },
+                                                    "booking_enabled": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "ticketing_enabled": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "ended": {
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "required": [
@@ -17369,7 +17378,10 @@
                                                     "can_manage",
                                                     "can_check_in",
                                                     "poster",
-                                                    "counts"
+                                                    "counts",
+                                                    "booking_enabled",
+                                                    "ticketing_enabled",
+                                                    "ended"
                                                 ]
                                             }
                                         },
@@ -17597,6 +17609,15 @@
                                                 },
                                                 "counts": {
                                                     "type": "string"
+                                                },
+                                                "booking_enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "ticketing_enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "ended": {
+                                                    "type": "string"
                                                 }
                                             },
                                             "required": [
@@ -17607,7 +17628,10 @@
                                                 "can_manage",
                                                 "can_check_in",
                                                 "poster",
-                                                "counts"
+                                                "counts",
+                                                "booking_enabled",
+                                                "ticketing_enabled",
+                                                "ended"
                                             ]
                                         }
                                     },
@@ -17681,7 +17705,7 @@
         "/management/dates/{occurrence}/bookings": {
             "get": {
                 "operationId": "mobileManagement.bookings",
-                "description": "Per chi gestisce la data: le stesse della pagina\n`/gestione-biglietti/{data}`, con gli stessi filtri (`status`, `q`) e lo\nstesso ordine (le pi\u00f9 recenti prima), trenta per pagina.\n\nIl codice di un biglietto compare solo finch\u00e9 \u00e8 valido: serve a\nregistrare l'ingresso dalla riga (`POST /ticketing/{data}/check-in`), come\nil pulsante della pagina web. Chi pu\u00f2 solo fare il controllo ingressi non\narriva qui: ha l'elenco di `manifest`, con le impronte e mai i codici.",
+                "description": "Per chi gestisce la data: le stesse della pagina\n`/gestione-biglietti/{data}`, con gli stessi filtri (`status`, `q`) e lo\nstesso ordine (le pi\u00f9 recenti prima), trenta per pagina. La forma di\nogni riga \u00e8 `ManagedBookingResource`.",
                 "summary": "Prenotazioni di una data",
                 "tags": [
                     "MobileManagement"
@@ -17792,6 +17816,12 @@
                                                             "null"
                                                         ]
                                                     },
+                                                    "cancellation_reason": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
                                                     "tickets_count": {
                                                         "type": "integer",
                                                         "minimum": 0
@@ -17857,6 +17887,7 @@
                                                     "booker",
                                                     "answers",
                                                     "privacy_accepted_at",
+                                                    "cancellation_reason",
                                                     "tickets_count",
                                                     "tickets"
                                                 ]
@@ -18170,6 +18201,806 @@
                     },
                     "403": {
                         "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/dates/{occurrence}/settings": {
+            "patch": {
+                "operationId": "v1.management.dates.settings",
+                "summary": "Salva le impostazioni delle prenotazioni e risponde con la scheda della\ndata aggiornata. \u00c8 una sostituzione come il modulo del sito: le tre ore\nche mancano tornano vuote. `booking_instructions`, `booking_fields` e\n`booking_questions` che mancano restano come sono",
+                "tags": [
+                    "DateTicketing"
+                ],
+                "parameters": [
+                    {
+                        "name": "occurrence",
+                        "in": "path",
+                        "required": true,
+                        "description": "The occurrence ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BookingSettingsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "title": {
+                                                    "type": "string"
+                                                },
+                                                "starts_at": {
+                                                    "type": "string"
+                                                },
+                                                "venue": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "can_manage": {
+                                                    "type": "boolean"
+                                                },
+                                                "can_check_in": {
+                                                    "type": "boolean"
+                                                },
+                                                "poster": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": "string"
+                                                                },
+                                                                "card": {
+                                                                    "type": "string"
+                                                                },
+                                                                "full": {
+                                                                    "type": "string"
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "width": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "height": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "card": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "full": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": "null"
+                                                                },
+                                                                "width": {
+                                                                    "type": "null"
+                                                                },
+                                                                "height": {
+                                                                    "type": "null"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "counts": {
+                                                    "type": "string"
+                                                },
+                                                "booking_enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "ticketing_enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "ended": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "title",
+                                                "starts_at",
+                                                "venue",
+                                                "can_manage",
+                                                "can_check_in",
+                                                "poster",
+                                                "counts",
+                                                "booking_enabled",
+                                                "ticketing_enabled",
+                                                "ended"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/dates/{occurrence}/messages": {
+            "get": {
+                "operationId": "v1.management.dates.messages",
+                "summary": "Gli ultimi dieci messaggi scritti a chi ha prenotato, i pi\u00f9 recenti\nprima: lo storico che la scheda della data mostra sotto il modulo. Di\nchi li ha mandati solo il nome, come sul sito",
+                "tags": [
+                    "DateTicketing"
+                ],
+                "parameters": [
+                    {
+                        "name": "occurrence",
+                        "in": "path",
+                        "required": true,
+                        "description": "The occurrence ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "subject": {
+                                                        "type": "string"
+                                                    },
+                                                    "body": {
+                                                        "type": "string"
+                                                    },
+                                                    "include_waitlisted": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "recipients_count": {
+                                                        "type": "integer"
+                                                    },
+                                                    "sender": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "subject",
+                                                    "body",
+                                                    "include_waitlisted",
+                                                    "recipients_count",
+                                                    "sender",
+                                                    "created_at"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "daily_limit": {
+                                                    "type": "string"
+                                                },
+                                                "sent_last_24h": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "daily_limit",
+                                                "sent_last_24h"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/dates/{occurrence}/bookings/{booking}/cancel": {
+            "post": {
+                "operationId": "v1.management.dates.bookings.cancel",
+                "summary": "Annulla una prenotazione intera o un solo biglietto (`ticket_id`) a nome\ndel locale, con un motivo facoltativo che arriva a chi ha prenotato.\nCome dal sito valgono anche oltre il termine di annullamento e per le\nprenotazioni prese al banco. La prenotazione si cerca solo fra quelle\ndella data (404 altrimenti)",
+                "tags": [
+                    "DateTicketing"
+                ],
+                "parameters": [
+                    {
+                        "name": "occurrence",
+                        "in": "path",
+                        "required": true,
+                        "description": "The occurrence ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "booking",
+                        "in": "path",
+                        "required": true,
+                        "description": "The booking ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CancelRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "confirmed",
+                                                        "waitlisted",
+                                                        "cancelled"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "staff_booking": {
+                                                    "type": "boolean"
+                                                },
+                                                "email": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "booker": {
+                                                    "type": [
+                                                        "array",
+                                                        "null"
+                                                    ],
+                                                    "items": {}
+                                                },
+                                                "answers": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "privacy_accepted_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "cancellation_reason": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "tickets_count": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "tickets": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "attendee_name": {
+                                                                "type": "string"
+                                                            },
+                                                            "first_name": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "last_name": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "const": "expired"
+                                                            },
+                                                            "checked_in_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "code": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "attendee_name",
+                                                            "first_name",
+                                                            "last_name",
+                                                            "status",
+                                                            "checked_in_at",
+                                                            "code"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "status",
+                                                "created_at",
+                                                "staff_booking",
+                                                "email",
+                                                "booker",
+                                                "answers",
+                                                "privacy_accepted_at",
+                                                "cancellation_reason",
+                                                "tickets_count",
+                                                "tickets"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/dates/{occurrence}/export.csv": {
+            "get": {
+                "operationId": "v1.management.dates.export",
+                "tags": [
+                    "Ticketing"
+                ],
+                "parameters": [
+                    {
+                        "name": "occurrence",
+                        "in": "path",
+                        "required": true,
+                        "description": "The occurrence ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "text/csv; charset=UTF-8": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Transfer-Encoding": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string",
+                                    "enum": [
+                                        "chunked"
+                                    ]
+                                }
+                            },
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/dates/{occurrence}/list.pdf": {
+            "get": {
+                "operationId": "v1.management.dates.print",
+                "summary": "La lista d'ingresso da stampare, per una porta senza telefono: i biglietti\nvalidi e quelli gi\u00e0 passati, in ordine di cognome, con le risposte alle\ndomande del gestore e la nota del banco. Chi \u00e8 in lista d'attesa non\nentra e compare solo nel conteggio",
+                "tags": [
+                    "Ticketing"
+                ],
+                "parameters": [
+                    {
+                        "name": "occurrence",
+                        "in": "path",
+                        "required": true,
+                        "description": "The occurrence ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -32153,6 +32984,206 @@
                 ]
             }
         },
+        "/management/venues/{venue}/events/{event}/ticketing": {
+            "get": {
+                "operationId": "v1.management.venues.events.ticketing",
+                "tags": [
+                    "EventTicketing"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "event_id": {
+                                                    "type": "integer"
+                                                },
+                                                "title": {
+                                                    "type": "string"
+                                                },
+                                                "ticketing_enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "timezone": {
+                                                    "type": "string"
+                                                },
+                                                "dates_count": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "dates": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "starts_at": {
+                                                                "type": "string"
+                                                            },
+                                                            "venue": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "booking_enabled": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "ticketing_enabled": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "ended": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "counts": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "confirmed": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "checked_in": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "waitlisted": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "cancelled": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "no_show": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "capacity": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "confirmed",
+                                                                    "checked_in",
+                                                                    "waitlisted",
+                                                                    "cancelled",
+                                                                    "no_show",
+                                                                    "capacity"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "starts_at",
+                                                            "venue",
+                                                            "booking_enabled",
+                                                            "ticketing_enabled",
+                                                            "ended",
+                                                            "counts"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "event_id",
+                                                "title",
+                                                "ticketing_enabled",
+                                                "timezone",
+                                                "dates_count",
+                                                "dates"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
         "/management/organizers/{organizer}/events/{event}/poster": {
             "post": {
                 "operationId": "v1.management.organizers.events.poster.store",
@@ -36573,6 +37604,157 @@
                     "ids"
                 ],
                 "title": "VenueMediaRequest"
+            },
+            "BookingQuestionType": {
+                "type": "string",
+                "description": "Come si risponde a una domanda del gestore al momento della prenotazione.\n",
+                "enum": [
+                    "text",
+                    "choice",
+                    "yes_no"
+                ],
+                "title": "BookingQuestionType"
+            },
+            "BookingSettingsRequest": {
+                "type": "object",
+                "description": "Le impostazioni delle prenotazioni di una data dall'app\n(`PATCH /api/v1/management/dates/{data}/settings`). Le regole sono quelle\ndel modulo del sito (`ManageRequest::settingsRules()`); il permesso \u00e8\n`BookingPolicy::manage`, come la pagina `/gestione-biglietti/{data}`: il\ncollaboratore del locale e il personale d'ingresso ricevono 403.",
+                "properties": {
+                    "booking_enabled": {
+                        "type": "boolean"
+                    },
+                    "booking_capacity": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 1000000
+                    },
+                    "booking_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                    },
+                    "booking_waitlist": {
+                        "type": "boolean"
+                    },
+                    "booking_opens_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "booking_closes_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "cancellation_closes_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "booking_instructions": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 3000
+                    },
+                    "booking_fields": {
+                        "type": "object",
+                        "properties": {
+                            "phone": {
+                                "type": "string",
+                                "enum": [
+                                    "hidden",
+                                    "optional",
+                                    "required"
+                                ]
+                            },
+                            "address": {
+                                "type": "string",
+                                "enum": [
+                                    "hidden",
+                                    "optional",
+                                    "required"
+                                ]
+                            },
+                            "city": {
+                                "type": "string",
+                                "enum": [
+                                    "hidden",
+                                    "optional",
+                                    "required"
+                                ]
+                            },
+                            "postal_code": {
+                                "type": "string",
+                                "enum": [
+                                    "hidden",
+                                    "optional",
+                                    "required"
+                                ]
+                            },
+                            "country": {
+                                "type": "string",
+                                "enum": [
+                                    "hidden",
+                                    "optional",
+                                    "required"
+                                ]
+                            }
+                        }
+                    },
+                    "booking_questions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 20
+                                },
+                                "label": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 160
+                                },
+                                "type": {
+                                    "$ref": "#/components/schemas/BookingQuestionType"
+                                },
+                                "options": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 1000
+                                },
+                                "required": {
+                                    "type": "boolean"
+                                }
+                            }
+                        },
+                        "maxItems": 10
+                    }
+                },
+                "required": [
+                    "booking_enabled",
+                    "booking_limit",
+                    "booking_waitlist",
+                    "booking_fields"
+                ],
+                "title": "BookingSettingsRequest"
             }
         },
         "responses": {

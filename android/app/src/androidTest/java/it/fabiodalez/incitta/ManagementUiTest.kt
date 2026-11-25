@@ -31,6 +31,7 @@ class ManagementUiTest {
 
     private fun show(manager: Boolean) {
         val date = """{"id":41,"title":"Concerto della sera","starts_at":"2026-09-25T20:00:00Z","can_manage":$manager,"can_check_in":true,"staff":[],"statistics":{"checked_in":3},"practical_details":{},"cost_breakdown":{}}"""
+        val booking = """{"id":5,"status":"confirmed","email":"ada@example.test","tickets_count":1,"tickets":[{"id":7,"attendee_name":"Ada Rossi","status":"valid","code":"${"A".repeat(64)}"}]}"""
         val client = ApiClient("management-ui-test", OkHttpClient.Builder().addInterceptor { chain ->
             val request = chain.request()
             request.body?.let { body -> val buffer = okio.Buffer(); body.writeTo(buffer); bodies += buffer.readUtf8() }
@@ -38,6 +39,8 @@ class ManagementUiTest {
                 request.url.encodedPath.endsWith("/config") -> """{"data":{"features":{}}}"""
                 request.url.encodedPath.endsWith("/check-in") -> """{"data":{"id":1,"attendee_name":"Ada Rossi","status":"checked_in"}}"""
                 request.url.encodedPath.endsWith("/staff") || request.url.encodedPath.endsWith("/details") -> """{"data":{"message":"Salvato"}}"""
+                request.url.encodedPath.endsWith("/bookings") -> """{"data":[$booking],"meta":{"next_page":null,"counts":{"all":1,"confirmed":1,"checked_in":0,"waitlisted":0,"cancelled":0}}}"""
+                request.url.encodedPath.endsWith("/cancel") -> """{"data":${booking.replace("\"confirmed\"", "\"cancelled\"")}}"""
                 request.url.encodedPath.endsWith("/manifest") -> """{"data":{"generated_at":"2026-09-25T18:00:00Z","tickets":[]}}"""
                 request.url.encodedPath.endsWith("/dates") -> """{"data":[$date],"meta":{"next_page":null}}"""
                 else -> """{"data":$date}"""
@@ -73,15 +76,27 @@ class ManagementUiTest {
     }
     @Test fun managerCanAssignStaffAndSaveDeclaredCosts() {
         show(true)
+        compose.onNodeWithText(text(R.string.management_tab_staff)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.management_email)).performScrollTo().performTextInput("porta@example.test")
         compose.onNodeWithText(text(R.string.management_assign)).performScrollTo().performClick()
         compose.waitUntil(10000) { bodies.any { it.contains("porta@example.test") } }
         compose.waitUntil(10000) { compose.onAllNodesWithText(text(R.string.management_saved)).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(text(R.string.management_tab_details)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.management_edit_details)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.management_admission)).performScrollTo().performTextInput("12,50")
         compose.onNodeWithText(text(R.string.management_save)).performScrollTo().performClick()
         compose.waitUntil(10000) { bodies.any { it.contains("cost_breakdown") && it.contains("12.50") } }
         screenshot("management-owner")
         assertTrue(bodies.any { it.contains("\"remove\":false") })
+    }
+    @Test fun managerCancelsABookingWithAReason() {
+        show(true)
+        compose.onNodeWithText(text(R.string.management_tab_bookings)).performScrollTo().performClick()
+        compose.waitUntil(10000) { compose.onAllNodesWithText(text(R.string.management_booking_number, 5)).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(text(R.string.management_cancel_booking)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.management_cancel_reason)).performTextInput("Serata annullata")
+        compose.onAllNodesWithText(text(R.string.management_cancel_booking)).onLast().performClick()
+        compose.waitUntil(10000) { bodies.any { it.contains("Serata annullata") } }
+        compose.waitUntil(10000) { compose.onAllNodesWithText(text(R.string.management_booking_cancelled)).fetchSemanticsNodes().isNotEmpty() }
     }
 }

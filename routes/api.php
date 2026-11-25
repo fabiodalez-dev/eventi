@@ -90,6 +90,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', TicketingPrivacy::class])->grou
         Route::get('/campaigns', 'campaigns');
         Route::get('/campaigns/{campaign}', 'economics')->whereNumber('campaign');
     });
+    require __DIR__.'/management/ticketing-dates.php';
     Route::get('/me/bookings', [TicketingController::class, 'index']);
     // Come sul sito: prenotare e spedire biglietti richiede l'indirizzo confermato (403 EMAIL_VERIFICATION_REQUIRED).
     Route::post('/me/bookings/{booking}/email', [TicketingController::class, 'resend'])->middleware([RequireConfirmedAccount::class, 'throttle:3,60,tickets-resend']);

@@ -12,8 +12,8 @@ use App\Http\Controllers\TicketingController;
 use App\Http\Requests\Ticketing\DecisionDetailsRequest;
 use App\Http\Requests\Ticketing\MobileManagementRequest;
 use App\Http\Requests\Ticketing\StaffRequest;
+use App\Http\Resources\V1\Management\ManagedBookingResource;
 use App\Http\Resources\V1\SponsorshipProgressResource;
-use App\Models\AdmissionTicket;
 use App\Models\Booking;
 use App\Models\EventOccurrence;
 use App\Services\Sponsorship\CampaignEconomics;
@@ -32,7 +32,7 @@ final class MobileManagementController extends Controller
         $search = $request->validated('q');
         $dates = $management->dates($request->user())->with(['event.venue', 'event.media', 'venue'])
             ->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) '.($past ? '<' : '>=').' ?', [now()])
-            ->when($search, fn ($q) => $q->whereHas('event', fn ($e) => $e->where('title', 'like', '%'.addcslashes($search, '%_\\').'%')))
+            ->when($search, fn ($q) => $management->search($q, (string) $search))
             ->orderBy('starts_at', $past ? 'desc' : 'asc')->orderBy('id')->paginate(30);
 
         $counts = $service->counts($dates->getCollection());
@@ -53,12 +53,8 @@ final class MobileManagementController extends Controller
      *
      * Per chi gestisce la data: le stesse della pagina
      * `/gestione-biglietti/{data}`, con gli stessi filtri (`status`, `q`) e lo
-     * stesso ordine (le più recenti prima), trenta per pagina.
-     *
-     * Il codice di un biglietto compare solo finché è valido: serve a
-     * registrare l'ingresso dalla riga (`POST /ticketing/{data}/check-in`), come
-     * il pulsante della pagina web. Chi può solo fare il controllo ingressi non
-     * arriva qui: ha l'elenco di `manifest`, con le impronte e mai i codici.
+     * stesso ordine (le più recenti prima), trenta per pagina. La forma di
+     * ogni riga è `ManagedBookingResource`.
      */
     public function bookings(Request $request, EventOccurrence $occurrence): JsonResponse
     {
@@ -85,26 +81,7 @@ final class MobileManagementController extends Controller
             'data' => $bookings->getCollection()->map(function (Booking $booking) use ($occurrence): array {
                 $booking->setRelation('occurrence', $occurrence);
 
-                return [
-                    'id' => $booking->id,
-                    'status' => $booking->status->value,
-                    'created_at' => $booking->created_at?->toIso8601String(),
-                    'staff_booking' => $booking->isStaffBooking(),
-                    'email' => $booking->contactEmail(),
-                    'booker' => $booking->booker_data,
-                    'answers' => array_map(fn (array $answer): array => ['question' => (string) $answer['question'], 'answer' => (string) $answer['answer']], (array) ($booking->booking_answers ?? [])),
-                    'privacy_accepted_at' => $booking->privacy_accepted_at?->toIso8601String(),
-                    'tickets_count' => $booking->tickets->count(),
-                    'tickets' => $booking->tickets->map(fn (AdmissionTicket $ticket): array => [
-                        'id' => $ticket->id,
-                        'attendee_name' => $ticket->attendee_name,
-                        'first_name' => $ticket->first_name,
-                        'last_name' => $ticket->last_name,
-                        'status' => $ticket->displayStatus()->value,
-                        'checked_in_at' => $ticket->checked_in_at?->toIso8601String(),
-                        'code' => $ticket->displayStatus() === AdmissionStatus::Valid ? $ticket->code : null,
-                    ])->values()->all(),
-                ];
+                return ManagedBookingResource::toArray($booking);
             })->values(),
             'meta' => [
                 'next_page' => $bookings->hasMorePages() ? $bookings->currentPage() + 1 : null,

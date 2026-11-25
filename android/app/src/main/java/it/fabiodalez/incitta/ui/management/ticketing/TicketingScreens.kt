@@ -22,6 +22,7 @@ import it.fabiodalez.incitta.ui.Paper
 import it.fabiodalez.incitta.ui.SecureCaptureActivity
 import it.fabiodalez.incitta.ui.SecureWindow
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
+import it.fabiodalez.incitta.ui.management.managementViewModel
 import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
@@ -49,30 +50,52 @@ internal fun TicketingDatesScreen(viewModel: TicketingDatesViewModel, context: M
             FilterChip(!state.reports, { viewModel.showReports(false) }, label = { Text(stringResource(R.string.management_dates)) }, modifier = Modifier.heightIn(min = 48.dp))
             FilterChip(state.reports, { viewModel.showReports(true) }, label = { Text(stringResource(R.string.management_reports)) }, modifier = Modifier.heightIn(min = 48.dp))
         }
-        if (!state.reports) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(!state.past, { viewModel.showPast(false) }, label = { Text(stringResource(R.string.management_upcoming)) }, modifier = Modifier.heightIn(min = 48.dp))
-            FilterChip(state.past, { viewModel.showPast(true) }, label = { Text(stringResource(R.string.management_past)) }, modifier = Modifier.heightIn(min = 48.dp))
+        if (!state.reports) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(!state.past, { viewModel.showPast(false) }, label = { Text(stringResource(R.string.management_upcoming)) }, modifier = Modifier.heightIn(min = 48.dp))
+                FilterChip(state.past, { viewModel.showPast(true) }, label = { Text(stringResource(R.string.management_past)) }, modifier = Modifier.heightIn(min = 48.dp))
+            }
+            SearchField(state.query, stringResource(R.string.management_dates_search), stringResource(R.string.management_dates_search_action), enabled = !state.busy, onSearch = viewModel::search)
         }
         OutlinedButton(enabled = !state.busy, onClick = viewModel::refresh, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_refresh)) }
-        if (!state.busy && state.loaded && (if (state.reports) state.campaigns.isEmpty() else state.dates.isEmpty())) Text(stringResource(R.string.management_empty), color = Muted)
+        if (!state.busy && state.loaded && (if (state.reports) state.campaigns.isEmpty() else state.dates.isEmpty())) {
+            Text(stringResource(if (!state.reports && state.query.isNotEmpty()) R.string.management_dates_empty_search else R.string.management_empty), color = Muted)
+        }
         if (state.reports) state.campaigns.forEach { item ->
             TextButton(onClick = { onOpenCampaign(item.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("#${item.id} · ${item.title}") }
             HorizontalDivider()
         } else state.dates.forEach { item ->
-            TextButton(onClick = { onOpenDate(item.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Column(Modifier.fillMaxWidth()) {
-                    Text(item.title, style = MaterialTheme.typography.titleMedium)
-                    Text(managementDate(item.startsAt), color = Muted)
-                    Text(stringResource(if (item.canManage) R.string.management_manager_role else R.string.management_staff_role), color = Muted)
-                }
-            }
+            DateRow(item, onClick = { onOpenDate(item.id) })
             HorizontalDivider()
         }
         state.nextPage?.let { OutlinedButton(enabled = !state.busy, onClick = viewModel::more, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_more)) } }
     }
 }
 
-/** La scheda di una data: controllo ingressi per chi può, e per chi gestisce staff, messaggio, prenotazione al banco, informazioni e costi. */
+/** Una data nell'elenco, come la card del riepilogo del sito: locandina, data, locale, prenotazioni, posti, ruolo. */
+@Composable
+private fun DateRow(item: ManagedDate, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PosterThumb(item.poster?.thumb ?: item.poster?.card)
+            Column(Modifier.weight(1f)) {
+                Text(item.title, style = MaterialTheme.typography.titleMedium)
+                Text(managementDate(item.startsAt), color = Muted)
+                item.venue?.let { Text(it, color = Muted) }
+                Text(stringResource(if (item.bookingEnabled) R.string.management_booking_on else R.string.management_booking_off), color = if (item.bookingEnabled) Acid else Muted)
+                item.counts?.let { counts -> Text(seatsLine(counts), color = Muted) }
+                Text(stringResource(if (item.canManage) R.string.management_manager_role else R.string.management_staff_role), color = Muted)
+            }
+        }
+    }
+}
+
+/**
+ * La scheda di una data. Chi controlla solo gli ingressi vede lo scanner;
+ * chi gestisce la data vede in cima i numeri e sotto le schede del sito:
+ * Ingressi, Prenotazioni, Impostazioni, Messaggi, Staff, Informazioni e
+ * costi, Esporta. A data finita, come sul sito, i moduli spariscono.
+ */
 @Composable
 internal fun TicketingDateScreen(viewModel: TicketingDateViewModel, context: ManagementGraphContext) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -90,10 +113,33 @@ internal fun TicketingDateScreen(viewModel: TicketingDateViewModel, context: Man
         LoadState(state.date, onRetry = viewModel::load) { date ->
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 DateHeader(date, state.busy, viewModel::refresh)
-                if (date.canCheckIn) CheckinBlock(date, state, queue, onScan = {
-                    scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt(scanPrompt).setBeepEnabled(false).setOrientationLocked(false).setCaptureActivity(SecureCaptureActivity::class.java))
-                }, onManual = { viewModel.addCode(it, isOnline(android), texts) }, onRefreshList = viewModel::refreshManifest)
-                if (date.canManage) ManagerBlock(date, state, viewModel, onRemoveStaff = { removeStaff = it })
+                val checkin: @Composable () -> Unit = {
+                    if (date.canCheckIn) CheckinBlock(date, state, queue, onScan = {
+                        scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt(scanPrompt).setBeepEnabled(false).setOrientationLocked(false).setCaptureActivity(SecureCaptureActivity::class.java))
+                    }, onManual = { viewModel.addCode(it, isOnline(android), texts) }, onRefreshList = viewModel::refreshManifest)
+                }
+                if (!date.canManage) checkin() else {
+                DateNumbers(date)
+                if (date.ended) Notice(stringResource(R.string.management_ended_title), stringResource(R.string.management_ended_hint))
+                else if (!date.ticketingEnabled) Notice(stringResource(R.string.management_disabled_title), stringResource(R.string.management_disabled_hint), alert = true)
+                DateTabs(state.tab, viewModel::selectTab)
+                when (state.tab) {
+                    DateTab.Checkin -> checkin()
+                    DateTab.Bookings -> {
+                        val bookings = managementViewModel { BookingsViewModel(context.repository, it) }
+                        BookingsSection(bookings, date, onCheckedIn = viewModel::markUsedLocally)
+                        if (!date.ended) {
+                            HorizontalDivider()
+                            key(date.id) { GuestBookingForm(state.busy) { names, email, phone, note, saved -> viewModel.addGuestBooking(names, email, phone, note) { saved(); bookings.reload() } } }
+                        }
+                    }
+                    DateTab.Settings -> SettingsSection(date, state, viewModel)
+                    DateTab.Messages -> MessagesSection(date, state, viewModel)
+                    DateTab.Staff -> StaffSection(date, state.busy, onInvite = { email, done -> viewModel.inviteStaff(email, done) }, onRemove = { removeStaff = it })
+                    DateTab.Details -> key(date) { DecisionDetailsForm(date, state.busy, viewModel::saveDetails) }
+                    DateTab.Export -> ExportSection(date, state, viewModel)
+                }
+                }
             }
         }
     }
@@ -112,8 +158,18 @@ internal fun TicketingDateScreen(viewModel: TicketingDateViewModel, context: Man
 
 @Composable
 private fun DateHeader(date: ManagedDate, busy: Boolean, onRefresh: () -> Unit) {
-    Text(managementDate(date.startsAt))
-    date.venue?.let { Text(it, color = Muted) }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        PosterThumb(date.poster?.card ?: date.poster?.thumb)
+        Column(Modifier.weight(1f)) {
+            Text(managementDate(date.startsAt))
+            listOfNotNull(date.venue, date.address).joinToString(" · ").takeIf { it.isNotBlank() }?.let { Text(it, color = Muted) }
+            if (date.canManage) Text(
+                stringResource(if (date.ended) R.string.management_ended_title else if (date.bookingEnabled) R.string.management_booking_on else R.string.management_booking_off),
+                color = if (!date.ended && date.bookingEnabled) Acid else Muted,
+            )
+        }
+    }
+    if (date.canManage) Text(stringResource(R.string.management_payment_note), color = Muted)
     OutlinedButton(enabled = !busy, onClick = onRefresh, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_refresh)) }
 }
 
@@ -147,40 +203,6 @@ private fun CheckinBlock(date: ManagedDate, state: TicketingDateUiState, queue: 
     queue.outcomes.filter { it.occurrenceId == date.id }.take(8).forEach { outcome ->
         Text(stringResource(if (outcome.accepted) R.string.management_accepted else R.string.management_rejected, outcome.message), color = if (outcome.accepted) Acid else MaterialTheme.colorScheme.error)
     }
-}
-
-@Composable
-private fun ManagerBlock(date: ManagedDate, state: TicketingDateUiState, viewModel: TicketingDateViewModel, onRemoveStaff: (CheckinStaff) -> Unit) {
-    val busy = state.busy
-    HorizontalDivider()
-    Text(stringResource(R.string.management_capacity), style = MaterialTheme.typography.titleLarge)
-    Text(stringResource(R.string.management_attended, date.statistics["checked_in"] ?: 0))
-    Text(date.availability?.remaining?.let { stringResource(R.string.ticket_remaining, it) } ?: stringResource(R.string.management_capacity_unknown))
-    HorizontalDivider()
-    Text(stringResource(R.string.management_staff), style = MaterialTheme.typography.titleLarge)
-    Text(stringResource(R.string.management_staff_help), color = Muted)
-    date.staff.forEach { member ->
-        Text(if (member.pending) stringResource(R.string.management_staff_pending, member.email) else member.email)
-        TextButton(enabled = !busy, onClick = { onRemoveStaff(member) }, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(stringResource(if (member.pending) R.string.management_withdraw else R.string.management_revoke))
-        }
-    }
-    var email by rememberSaveable(date.id) { mutableStateOf("") }
-    OutlinedTextField(email, { email = it.take(255) }, label = { Text(stringResource(R.string.management_email)) }, singleLine = true,
-        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email), modifier = Modifier.fillMaxWidth())
-    OutlinedButton(enabled = !busy && email.isNotBlank(), onClick = { viewModel.inviteStaff(email) { email = "" } }, modifier = Modifier.heightIn(min = 48.dp)) {
-        Text(stringResource(R.string.management_assign))
-    }
-    HorizontalDivider()
-    key(date.id) {
-        AttendeeMessageForm(busy, state.messageDailyLimit) { subject, body, waitlisted, sent -> viewModel.sendMessage(subject, body, waitlisted, sent) }
-    }
-    HorizontalDivider()
-    key(date.id) {
-        GuestBookingForm(busy) { names, email, phone, note, saved -> viewModel.addGuestBooking(names, email, phone, note, saved) }
-    }
-    HorizontalDivider()
-    key(date) { DecisionDetailsForm(date, busy, viewModel::saveDetails) }
 }
 
 /** La scheda di una campagna, in sola lettura. */
