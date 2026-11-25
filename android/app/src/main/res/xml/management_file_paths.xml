@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- I file scaricati dalla gestione (CSV e PDF della biglietteria): solo nella cache dell'app. -->
+<paths>
+    <cache-path name="management_exports" path="management-exports/" />
+</paths>

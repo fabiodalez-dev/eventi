@@ -196,11 +196,14 @@ internal class ManagementRepository(
 internal object ManagementGraph {
     private var current: ManagementRepository? = null
     private var currentClient: ApiClient? = null
+    private var cacheDir: java.io.File? = null
 
     @Synchronized
     fun repository(context: android.content.Context, session: Session, client: ApiClient? = null): ManagementRepository {
         current?.takeIf { it.token == session.token && it.userId == session.user.id && (client == null || client === currentClient) }?.let { return it }
         current?.close()
+        // I file scaricati dalla sessione di prima (nomi e recapiti) non restano alla nuova.
+        cacheDir = context.applicationContext.cacheDir.also { runCatching { ManagementFiles.purge(it, maxAgeMillis = 0) } }
         val store = LocalStore(context.applicationContext)
         val api = client ?: ApiClient(store.installationId)
         return ManagementRepository.create(session, api, LocalManagementStore(store), CoroutineScope(SupervisorJob() + Dispatchers.IO)).also {
@@ -213,6 +216,7 @@ internal object ManagementGraph {
     @Synchronized
     fun retain(token: String?) {
         if (current != null && current?.token != token) {
+            cacheDir?.let { runCatching { ManagementFiles.purge(it, maxAgeMillis = 0) } }
             current?.close()
             current = null
             currentClient = null

@@ -1,6 +1,7 @@
 package it.fabiodalez.incitta.data
 
 import it.fabiodalez.incitta.BuildConfig
+import it.fabiodalez.incitta.data.management.DownloadedFile
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -203,6 +204,39 @@ internal class ApiClient(
             .header("Authorization", "Bearer $token")
             .post(multipart.build())
             .build()
+    }
+
+    /**
+     * Scarica un file prodotto dal server (il CSV dei partecipanti, la lista
+     * d'ingresso in PDF) dentro `target`, a pezzi e senza tenerlo in memoria.
+     * Gli errori passano dalla stessa lettura di `execute`; se il download si
+     * interrompe il file a metà si cancella.
+     */
+    suspend fun download(path: String, token: String, target: java.io.File): DownloadedFile = withContext(Dispatchers.IO) {
+        val response = try {
+            client.newCall(request(path, "GET", null, token, false)).execute()
+        } catch (error: IOException) {
+            throw IOException("Connessione non disponibile. Riprova tra poco.", error)
+        }
+        response.use {
+            if (!it.isSuccessful) {
+                val problem = try {
+                    json.decodeFromString<ApiErrorEnvelope>(it.body.string()).error
+                } catch (_: SerializationException) {
+                    null
+                }
+                throw ApiException(it.code, problem)
+            }
+            val mime = it.body.contentType()?.let { type -> "${type.type}/${type.subtype}" } ?: "application/octet-stream"
+            target.parentFile?.mkdirs()
+            try {
+                it.body.byteStream().use { input -> target.outputStream().use { output -> input.copyTo(output) } }
+            } catch (error: IOException) {
+                target.delete()
+                throw IOException("Connessione non disponibile. Riprova tra poco.", error)
+            }
+            DownloadedFile(target, mime)
+        }
     }
 
     companion object {

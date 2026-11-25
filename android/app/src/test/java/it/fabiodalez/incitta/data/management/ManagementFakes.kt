@@ -33,8 +33,8 @@ internal class FakeTicketing(
     val calls = mutableListOf<String>()
     var failDates: Exception? = null
     var checkInFailure: Exception? = null
-    override suspend fun dates(past: Boolean, page: Int): ApiEnvelope<List<ManagedDate>> {
-        calls += "dates:${if (past) "past" else "upcoming"}:$page"
+    override suspend fun dates(past: Boolean, page: Int, query: String): ApiEnvelope<List<ManagedDate>> {
+        calls += "dates:${if (past) "past" else "upcoming"}:$page" + (if (query.isNotEmpty()) ":$query" else "")
         failDates?.let { throw it }
         return ApiEnvelope(listOf(date.copy(id = date.id + page - 1)), PageMeta(nextPage = if (page == 1) 2 else null))
     }
@@ -54,6 +54,40 @@ internal class FakeTicketing(
         return CheckedInTicket(1, "Ada Rossi", "checked_in")
     }
     override suspend fun manifest(id: Long): ManifestPayload { calls += "manifest:$id"; return ManifestPayload("2026-09-25T18:00:00Z", tickets = manifestTickets) }
+
+    /* Biglietteria completa (P3). */
+    var bookingRows: List<ManagedBooking> = emptyList()
+    var bookingCounts: BookingCounts = BookingCounts()
+    var settingsFailure: Exception? = null
+    var history: MessageHistory = MessageHistory()
+    var box: EventTicketing = EventTicketing()
+    var lastSettings: JsonObject? = null
+    override suspend fun bookings(id: Long, status: String?, query: String, page: Int): BookingsPage {
+        calls += "bookings:$id:${status ?: "all"}:$query:$page"
+        return BookingsPage(bookingRows, BookingsMeta(nextPage = null, status = status, counts = bookingCounts))
+    }
+    override suspend fun cancelBooking(id: Long, bookingId: Long, ticketId: Long?, reason: String?): ManagedBooking {
+        calls += "cancel:$id:$bookingId:${ticketId ?: "all"}:${reason.orEmpty()}"
+        val booking = bookingRows.first { it.id == bookingId }
+        val tickets = booking.tickets.map { if (ticketId == null || it.id == ticketId) it.copy(status = "cancelled", code = null) else it }
+        val updated = booking.copy(tickets = tickets, status = if (tickets.all { it.status == "cancelled" }) "cancelled" else booking.status, cancellationReason = reason)
+        bookingRows = bookingRows.map { if (it.id == bookingId) updated else it }
+        return updated
+    }
+    override suspend fun settings(id: Long, body: JsonObject): ManagedDate {
+        calls += "settings:$id"
+        lastSettings = body
+        settingsFailure?.let { throw it }
+        return date.copy(id = id)
+    }
+    override suspend fun messages(id: Long): MessageHistory { calls += "messages:$id"; return history }
+    override suspend fun eventTicketing(venueId: Long, eventId: Long): EventTicketing { calls += "event:$venueId:$eventId"; return box }
+    override suspend fun export(id: Long, kind: ExportKind, directory: java.io.File): DownloadedFile {
+        calls += "export:$id:${kind.name}"
+        directory.mkdirs()
+        val file = java.io.File(directory, kind.fileName(id)).apply { writeText("ok") }
+        return DownloadedFile(file, kind.mime)
+    }
 }
 
 internal class FakeIdentity(
