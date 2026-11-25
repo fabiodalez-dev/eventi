@@ -61,6 +61,8 @@ internal data class ManagedEventOccurrence(
     @SerialName("ticketing_date_id") val ticketingDateId: Long? = null,
     @SerialName("poster_pdf") val posterPdf: Boolean = false,
     @SerialName("poster_pdf_url") val posterPdfUrl: String? = null,
+    /* «Grafica social» (W-DT-12, P10): l'anteprima JPEG della grafica; c'è nell'elenco delle date dell'organizzazione. */
+    @SerialName("social_preview") val socialPreview: Boolean = false,
     val abilities: DateAbilities = DateAbilities(),
 ) {
     val cancelled: Boolean get() = status.value == "cancelled"

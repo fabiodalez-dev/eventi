@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Concerns;
 
-use App\Enums\OccurrenceStatus;
 use App\Enums\SocialFormat;
 use App\Enums\SocialPublicationStatus;
 use App\Filament\Support\PanelDate;
@@ -15,18 +14,21 @@ use App\Models\EventOccurrence;
 use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
+use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
 use App\Services\Social\SocialCatalog;
 use App\Services\Social\SocialPublisher;
-use App\Services\Social\SocialStudio;
+use App\Services\Social\SocialStudioDesk;
 use App\Support\RequestMemo;
 use Carbon\CarbonImmutable;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Lo studio delle grafiche social, uguale nel pannello della redazione e in
@@ -42,10 +44,10 @@ use Livewire\Attributes\Url;
 trait InteractsWithSocialStudio
 {
     /** I periodi dell'elenco, nell'ordine in cui compaiono. */
-    public const PERIODS = ['today', 'week', 'next30', 'custom'];
+    public const PERIODS = SocialStudioDesk::PERIODS;
 
     /** Quante card si mostrano per volta. */
-    public const PAGE_SIZE = 24;
+    public const PAGE_SIZE = SocialStudioDesk::PAGE_SIZE;
 
     #[Url]
     public ?int $event = null;
@@ -92,25 +94,15 @@ trait InteractsWithSocialStudio
         $venue = $this->socialVenue();
         $city = $venue !== null ? $venue->city : (City::query()->where('is_active', true)->first() ?? City::query()->firstOrFail());
         $this->cityId = $city->id;
-        $this->date = EventOccurrenceQuery::for($city)->currentBusinessDate();
         if ($this->event !== null) {
             $event = $this->studioEvent();
             Gate::authorize('update', $event);
             abort_if($this->socialVenue() !== null && $event->venue_id !== $this->socialVenue()->id, 403);
             $this->cityId = $event->city_id;
-            $next = EventOccurrenceQuery::managementFor($event)->upcoming()->get()->first();
-            if ($next !== null) {
-                $this->date = $next->business_date->format('Y-m-d');
-            }
         }
         $this->applyPeriod('next30');
-        // Oggi non c'è niente da preparare: si apre già sulla prima serata in arrivo.
-        if ($this->dates()->isEmpty()) {
-            $first = $this->catalog()->first(fn (EventOccurrence $date): bool => $date->status === OccurrenceStatus::Scheduled);
-            if ($first !== null) {
-                $this->date = $first->business_date->format('Y-m-d');
-            }
-        }
+        // Con l'evento la sua prossima data; se lì non c'è niente da preparare, la prima serata in arrivo.
+        $this->date = app(SocialStudioDesk::class)->initialDate($this->socialCity(), $this->socialVenue()?->id, $this->event !== null ? $this->studioEvent() : null, $this->includesDemo());
         $this->month = substr($this->date, 0, 7);
         $this->selectAll();
     }
@@ -180,9 +172,8 @@ trait InteractsWithSocialStudio
         if (! $this->isDay($this->from) || ! $this->isDay($this->until)) {
             $this->applyPeriod('next30');
         }
-        [$from, $until] = $this->from <= $this->until ? [$this->from, $this->until] : [$this->until, $this->from];
 
-        return [$from, min($until, CarbonImmutable::parse($from)->addYear()->format('Y-m-d'))];
+        return SocialStudioDesk::clampRange($this->from, $this->until);
     }
 
     /** @return Collection<int, EventOccurrence> */
@@ -217,19 +208,8 @@ trait InteractsWithSocialStudio
         if ($this->event !== null) {
             Gate::authorize('update', $this->studioEvent());
         }
-        $city = $this->socialCity();
-        $first = CarbonImmutable::parse($this->month.'-01', $city->timezone);
-        $start = $first->startOfWeek(CarbonImmutable::MONDAY);
-        $end = $start->addDays(41);
-        $counts = app(SocialCatalog::class)->counts($city, $start->format('Y-m-d'), $end->format('Y-m-d'), $this->socialVenue()?->id, $this->event, $this->includesDemo(), $this->searchTerm());
-        $today = EventOccurrenceQuery::for($city)->currentBusinessDate();
-        $days = [];
-        for ($day = $start; $day <= $end; $day = $day->addDay()) {
-            $key = $day->format('Y-m-d');
-            $days[] = ['date' => $key, 'day' => $day->day, 'count' => $counts[$key] ?? 0, 'inMonth' => $day->month === $first->month, 'today' => $key === $today, 'selected' => $key === $this->date];
-        }
 
-        return $days;
+        return app(SocialStudioDesk::class)->calendar($this->socialCity(), $this->month, $this->date, $this->socialVenue()?->id, $this->event, $this->includesDemo(), $this->searchTerm());
     }
 
     /**
@@ -286,7 +266,7 @@ trait InteractsWithSocialStudio
 
     public function showMore(): void
     {
-        $this->limit = min($this->limit + self::PAGE_SIZE, 240);
+        $this->limit = min($this->limit + self::PAGE_SIZE, SocialStudioDesk::MAX_CARDS);
     }
 
     public function shiftMonth(int $step): void
@@ -367,18 +347,22 @@ trait InteractsWithSocialStudio
 
     public function generate(): void
     {
-        $this->validate(['format' => ['required', 'in:portrait,square,story'], 'imageFit' => ['required', 'in:cover,contain'], 'selected' => ['required', 'array', 'min:1', 'max:100'], 'selected.*' => ['integer'], 'graphicTitle' => ['string', 'max:300']]);
-        $dates = $this->dates()->whereIn('id', $this->selected)->values();
-        abort_unless($dates->count() === count(array_unique($this->selected)), 403);
-        if ($dates->count() !== 1 && $this->graphicTitle !== '') {
-            $this->addError('graphicTitle', __('social.title_single'));
-
-            return;
+        $this->validate(['format' => ['required', 'in:portrait,square,story'], 'imageFit' => ['required', 'in:cover,contain'], 'selected' => ['required', 'array', 'min:1', 'max:'.SocialStudioDesk::MAX_SELECTION], 'selected.*' => ['integer'], 'graphicTitle' => ['string', 'max:'.SocialStudioDesk::TITLE_MAX]]);
+        Validator::make(['date' => $this->date], ['date' => ['required', 'date_format:Y-m-d']])->validate();
+        if ($this->event !== null) {
+            Gate::authorize('update', $this->studioEvent());
         }
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
         try {
-            $batch = app(SocialStudio::class)->generate($this->socialCity(), $this->date, $dates, SocialFormat::from($this->format), ['monochrome' => $this->monochrome, 'show_address' => $this->showAddress, 'show_price' => $this->showPrice, 'image_fit' => $this->imageFit, 'title' => $this->graphicTitle], auth()->user(), $this->socialVenue()?->id);
+            $batch = app(SocialStudioDesk::class)->prepare($this->socialCity(), $this->date, array_map('intval', $this->selected), SocialFormat::from($this->format), ['monochrome' => $this->monochrome, 'show_address' => $this->showAddress, 'show_price' => $this->showPrice, 'image_fit' => $this->imageFit, 'title' => $this->graphicTitle], $user, $this->socialVenue()?->id, $this->event, $this->includesDemo());
             $this->batchId = $batch->id;
             Notification::make()->title(__('social.ready'))->success()->send();
+        } catch (ValidationException $e) {
+            $this->addError('graphicTitle', (string) collect($e->errors())->flatten()->first());
+        } catch (HttpExceptionInterface $e) {
+            // Una serata di un altro giorno o di un altro locale resta un 403, come prima.
+            throw $e;
         } catch (\RuntimeException $e) {
             $this->addError('generate', $e->getMessage());
         }
@@ -399,7 +383,7 @@ trait InteractsWithSocialStudio
     /** @return \Illuminate\Database\Eloquent\Collection<int, SocialBatch> */
     public function recentBatches(): \Illuminate\Database\Eloquent\Collection
     {
-        return SocialBatch::where('city_id', $this->socialCity()->id)->where('venue_id', $this->socialVenue()?->id)->latest()->limit(12)->get();
+        return app(SocialStudioDesk::class)->recent($this->socialCity(), $this->socialVenue()?->id);
     }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, SocialPublication> */
@@ -504,17 +488,9 @@ trait InteractsWithSocialStudio
 
     private function applyPeriod(string $period): void
     {
-        $today = CarbonImmutable::parse(EventOccurrenceQuery::for($this->socialCity())->currentBusinessDate());
         $this->period = $period;
         $this->limit = self::PAGE_SIZE;
-        [$from, $until] = match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today, $today->endOfWeek(CarbonImmutable::SUNDAY)],
-            'custom' => [$this->from !== '' ? CarbonImmutable::parse($this->from) : $today, $this->until !== '' ? CarbonImmutable::parse($this->until) : $today->addDays(29)],
-            default => [$today, $today->addDays(29)],
-        };
-        $this->from = $from->format('Y-m-d');
-        $this->until = $until->format('Y-m-d');
+        [$this->from, $this->until] = SocialStudioDesk::periodBounds($this->socialCity(), $period, $this->from, $this->until);
     }
 
     private function isDay(string $value): bool

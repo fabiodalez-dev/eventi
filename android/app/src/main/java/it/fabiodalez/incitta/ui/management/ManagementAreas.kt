@@ -12,6 +12,7 @@ import it.fabiodalez.incitta.ui.management.registration.ApplicationsRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import it.fabiodalez.incitta.ui.management.calendarimport.CalendarImportRoute
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
 
 /**
  * Le aree della gestione, una per pacchetto del piano. `entry` è la rotta
@@ -29,7 +30,7 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
     Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help, FeedbackRoute()),
     Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help, CollaboratorsRoute),
     Import(R.string.management_area_import, R.string.management_area_import_help, CalendarImportRoute),
-    Social(R.string.management_area_social, R.string.management_area_social_help),
+    Social(R.string.management_area_social, R.string.management_area_social_help, SocialStudioRoute()),
     Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help),
     Registration(R.string.management_area_registration, R.string.management_area_registration_help, ApplicationsRoute());
 

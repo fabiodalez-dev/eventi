@@ -53,6 +53,16 @@ la preparazione di un evento non ancora pubblicato. I locali non possono
 configurare i token della piattaforma o pubblicare sui suoi account.
 I controlli lato server verificano il locale anche modificando gli ID.
 
+Lo stesso studio c'è nell'app Android, nella gestione del locale (P10): stesse
+regole (`SocialStudioDesk`), immagini disegnate dal server, «Salva nella
+galleria» e «Condividi» dal telefono.
+
+Si tengono i dodici pacchetti più recenti di ogni locale e della redazione di
+ogni città, quelli che lo studio mostra fra «Grafiche già preparate»: ogni notte
+`model:prune` cancella i più vecchi, con le loro immagini, salvo quelli che una
+pubblicazione usa ancora (programmata, in coda, fallita o da verificare, oppure
+di oggi o di ieri). La regola sta in `SocialBatch::prunable()`.
+
 ## Collegare Facebook e Instagram
 
 Da Social aprire «Collega account e programma». La configurazione riguarda

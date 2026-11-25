@@ -17,6 +17,7 @@ import it.fabiodalez.incitta.data.management.ManagementSubject
 import it.fabiodalez.incitta.data.management.SubjectKind
 import it.fabiodalez.incitta.data.management.VenueLookup
 import it.fabiodalez.incitta.data.requestFailureMessage
+import it.fabiodalez.incitta.ui.management.social.socialApi
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.UiText
@@ -74,6 +75,8 @@ internal data class EventDatesUiState(
     val error: UiText? = null,
     /* La locandina appena scaricata: la schermata la apre e poi la consuma. */
     val poster: DownloadedFile? = null,
+    /* La grafica social di una data appena scaricata (W-DT-12, P10), con il titolo dell'evento: la schermata la mostra. */
+    val socialPreview: DownloadedFile? = null,
 )
 
 internal class EventDatesViewModel(private val repository: ManagementRepository, private val saved: SavedStateHandle) : ViewModel() {
@@ -153,6 +156,16 @@ internal class EventDatesViewModel(private val repository: ManagementRepository,
     }
 
     fun consumePoster() { state.update { it.copy(poster = null) } }
+
+    /** «Grafica social» (organizzazione): l'anteprima JPEG della grafica della data, da guardare, salvare o condividere. */
+    fun downloadSocialPreview(date: ManagedEventOccurrence, cacheDir: File) = act(reload = false) {
+        runCatching { ManagementFiles.purge(cacheDir) }
+        val file = repository.socialApi().preview(it, eventId, date.id, ManagementFiles.directory(cacheDir))
+        state.update { current -> current.copy(socialPreview = file) }
+        null
+    }
+
+    fun consumeSocialPreview() { state.update { it.copy(socialPreview = null) } }
     fun consumeMessage() { state.update { it.copy(message = null, error = null) } }
 
     private fun act(reload: Boolean = true, block: suspend (ManagementSubject) -> UiText?) {
