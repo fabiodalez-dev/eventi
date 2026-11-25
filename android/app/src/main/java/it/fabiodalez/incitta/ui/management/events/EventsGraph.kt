@@ -6,6 +6,7 @@ import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.dates.EventDatesRoute
 import it.fabiodalez.incitta.ui.management.managementViewModel
 import it.fabiodalez.incitta.ui.management.analytics.SubjectAnalyticsRoute
+import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.EventTicketingRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
 import kotlinx.serialization.Serializable
@@ -37,6 +38,7 @@ internal fun NavGraphBuilder.eventsGraph(context: ManagementGraphContext) {
             onEventTicketing = { venueId, eventId -> context.navController.navigate(EventTicketingRoute(venueId, eventId)) },
             onDates = { id -> context.navController.navigate(EventDatesRoute(id)) },
             onStatistics = { subject, eventId -> context.navController.navigate(SubjectAnalyticsRoute(subject = subject, type = "event", id = eventId)) },
+            onSponsor = { key, eventId -> context.navController.navigate(SponsorshipsRoute(subject = key, event = eventId)) },
             onOpenCopy = { id ->
                 context.navController.navigate(EventEditorRoute(id)) { popUpTo<EventsListRoute>() }
             })

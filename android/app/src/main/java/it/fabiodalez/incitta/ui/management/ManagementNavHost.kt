@@ -33,7 +33,9 @@ import it.fabiodalez.incitta.ui.management.profile.profileGraph
 import it.fabiodalez.incitta.ui.management.registration.registrationGraph
 import it.fabiodalez.incitta.ui.management.registration.registrationRouteFor
 import it.fabiodalez.incitta.ui.management.social.socialGraph
+import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.sponsorshipsGraph
+import it.fabiodalez.incitta.ui.management.sponsorships.sponsorshipsRouteFor
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import it.fabiodalez.incitta.ui.management.ticketing.ticketingGraph
@@ -99,8 +101,13 @@ internal fun ManagementNavHost(
         notificationsGraph(context)
         registrationGraph(context)
     }
-    /* Un avviso o un collegamento che porta a una schermata precisa: una volta sola, anche dopo una rotazione. */
-    var handled by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    /*
+     * Un avviso o un collegamento che porta a una schermata precisa: una volta
+     * sola, anche dopo una rotazione. La chiave è la destinazione, così un
+     * secondo collegamento con la gestione già aperta (il ritorno da Stripe)
+     * porta anche lui alla sua schermata.
+     */
+    var handled by androidx.compose.runtime.saveable.rememberSaveable(destination) { mutableStateOf(false) }
     LaunchedEffect(destination) {
         if (handled || destination == null) return@LaunchedEffect
         handled = true
@@ -110,6 +117,9 @@ internal fun ManagementNavHost(
             is ManagementDestination.Feedback -> navController.navigate(feedbackRouteFor(destination))
             ManagementDestination.Invitations -> navController.navigate(InvitationsRoute(fromOutside = true))
             is ManagementDestination.Registration -> navController.navigate(registrationRouteFor(destination))
+            is ManagementDestination.SponsorshipCheckout -> navController.navigate(sponsorshipsRouteFor(destination)) {
+                popUpTo<SponsorshipsRoute> { inclusive = true }
+            }
         }
     }
 }

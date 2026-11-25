@@ -28,6 +28,7 @@ use App\Models\EventOccurrence;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -51,6 +52,35 @@ Route::get('/app/auth/magic', function () {
         ->header('Referrer-Policy', 'no-referrer')
         ->header('X-Robots-Tag', 'noindex, nofollow');
 })->name('app.magic-link');
+
+/*
+ * Il ritorno da Stripe per le sponsorizzazioni pagate dall'app (P6): un App
+ * Link che riapre l'app sulla schermata delle sponsorizzazioni; se il browser
+ * lo mostra lo stesso, la pagina ha il pulsante «Torna all'app». Non tocca
+ * l'ordine: lo riconcilia l'app con il suo token.
+ */
+Route::get('/app/sponsorizzazioni/ritorno', function (Request $request) {
+    $subject = $request->query('subject');
+    $id = $request->query('id');
+    $order = $request->query('order');
+    $valid = in_array($subject, ['venue', 'organizer'], true)
+        && is_string($id) && preg_match('/^[1-9][0-9]{0,17}$/', $id) === 1
+        && is_string($order) && preg_match('/^[1-9][0-9]{0,17}$/', $order) === 1;
+    $cancelled = $request->boolean('cancelled');
+    $intent = null;
+    if ($valid) {
+        $base = parse_url((string) config('app.url'));
+        $query = http_build_query(array_filter(['subject' => $subject, 'id' => $id, 'order' => $order, 'cancelled' => $cancelled ? '1' : null]));
+        $intent = 'intent://'.($base['host'] ?? 'localhost').(isset($base['port']) ? ':'.$base['port'] : '').'/app/sponsorizzazioni/ritorno?'.$query
+            .'#Intent;scheme='.($base['scheme'] ?? 'https').';package='.config('account.android_package')
+            .';S.browser_fallback_url='.rawurlencode(url('/')).';end';
+    }
+
+    return response()->view('sponsorships.app-return', ['intent' => $intent, 'cancelled' => $cancelled])
+        ->header('Cache-Control', 'no-store, private')
+        ->header('Referrer-Policy', 'no-referrer')
+        ->header('X-Robots-Tag', 'noindex, nofollow');
+})->name('app.sponsorship-return');
 
 /*
  * La conferma del recapito del modulo contatti (doppio opt-in). Sta prima del

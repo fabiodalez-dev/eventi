@@ -121,6 +121,17 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/venue-applications/lookup']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/venue-applications/lookup']['get']['responses'])->not->toHaveKey('304');
 
+    // Le sponsorizzazioni (P6): pagina, scelta, ordini, campagne e statistiche, per i due soggetti.
+    foreach (['/management/venues/{venue}', '/management/organizers/{organizer}'] as $subject) {
+        expect($document['paths'])->toHaveKeys(array_map(fn (string $path): string => $subject.'/sponsorships'.$path, [
+            '', '/events', '/catalog', '/campaigns', '/campaigns/{campaign}', '/campaigns/{campaign}/stop',
+            '/orders', '/orders/{order}', '/orders/{order}/retry', '/orders/{order}/cancel', '/orders/{order}/reconcile',
+            '/grants/{grant}/events', '/analytics', '/analytics/clicks', '/analytics/campaigns',
+        ]));
+    }
+    expect($document['paths']['/management/venues/{venue}/sponsorships/orders'])->toHaveKey('post')
+        ->and($document['paths']['/management/venues/{venue}/sponsorships/orders/{order}'])->toHaveKey('delete');
+
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')

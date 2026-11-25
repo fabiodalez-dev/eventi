@@ -63,6 +63,8 @@ internal fun EventOverviewScreen(
     onDates: (Long) -> Unit = {},
     /* «Statistiche» (P5): la pagina delle statistiche dell'evento, con il soggetto della scheda. */
     onStatistics: (subjectKey: String, eventId: Long) -> Unit = { _, _ -> },
+    /* «Sponsorizza» (P6): la pagina delle sponsorizzazioni con l'evento già scelto. */
+    onSponsor: (subjectKey: String, eventId: Long) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Tornando dalle date (P2) la scheda rilegge le serate in breve.
@@ -104,6 +106,7 @@ internal fun EventOverviewScreen(
                 onEventTicketing = state.subject?.takeIf { showsEventTicketing(it, detail) }?.let { subject -> { onEventTicketing(subject.id, detail.id) } },
                 onDates = { onDates(detail.id) },
                 onStatistics = state.subject?.takeIf { detail.links.statistics }?.let { subject -> { onStatistics(subject.key, detail.id) } },
+                onSponsor = state.subject?.takeIf { detail.links.sponsor && it.permissions.sponsorshipsView }?.let { subject -> { onSponsor(subject.key, detail.id) } },
                 onSite = { detail.publicUrl?.let(uriHandler::openUri) },
                 onPickPoster = pickPoster,
                 onCancelSchedule = viewModel::cancelSchedule)
@@ -141,6 +144,7 @@ private fun Overview(
     onTickets: (Long) -> Unit,
     onEventTicketing: (() -> Unit)?,
     onStatistics: (() -> Unit)?,
+    onSponsor: (() -> Unit)?,
     onSite: () -> Unit,
     onPickPoster: () -> Unit,
     onCancelSchedule: () -> Unit,
@@ -188,6 +192,7 @@ private fun Overview(
             detail.links.ticketsOccurrenceId?.let { id -> OutlinedButton(onClick = { onTickets(id) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_tickets)) } }
             onEventTicketing?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_event_ticketing_title)) } }
             onStatistics?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.analytics_hub_title)) } }
+            onSponsor?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sponsorships_event_link)) } }
             if (detail.publicUrl != null) OutlinedButton(onClick = onSite, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_site)) }
             if (can.schedule) OutlinedButton(enabled = !busy, onClick = { onAction(PendingAction.Schedule) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule)) }
             if (can.cancelSchedule) OutlinedButton(enabled = !busy, onClick = onCancelSchedule, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule_cancel)) }

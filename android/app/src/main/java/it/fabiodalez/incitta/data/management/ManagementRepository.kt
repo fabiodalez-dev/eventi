@@ -95,6 +95,8 @@ internal class ManagementRepository(
     val dates: ManagementDatesApi? = null,
     /* Le statistiche (P5); `null` nei test che non le usano. */
     val analytics: ManagementAnalyticsSource? = null,
+    /* Le sponsorizzazioni (P6). */
+    val sponsorships: ManagementSponsorshipsSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -202,6 +204,7 @@ internal class ManagementRepository(
             applications = ManagementApplicationsApi(client, session.token),
             dates = ManagementDatesApi(client, session.token),
             analytics = ManagementAnalyticsApi(client, session.token),
+            sponsorships = ManagementSponsorshipsApi(client, session.token),
         )
     }
 }
