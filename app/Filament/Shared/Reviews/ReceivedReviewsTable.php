@@ -8,6 +8,7 @@ use App\Models\CatalogReview;
 use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Management\ManagedContent;
 use App\Services\Reviews\CatalogReviews;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -33,7 +34,8 @@ final class ReceivedReviewsTable
      */
     public static function scope(Builder $query, Venue|Organizer $subject): Builder
     {
-        return app(CatalogReviews::class)->onlyPublished($query, $subject);
+        // La regola sta in `ManagedContent`, la stessa che usa l'API di gestione.
+        return ManagedContent::for($subject)->reviews($query);
     }
 
     public static function table(Table $table): Table

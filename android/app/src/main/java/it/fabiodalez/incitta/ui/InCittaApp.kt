@@ -75,7 +75,11 @@ fun InCittaApp(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     InCittaTheme(light = state.appearance == "light") {
     androidx.compose.runtime.CompositionLocalProvider(LocalCardLayout provides state.cardLayout, LocalCardLayoutChange provides viewModel::setCardLayout) {
-        var managementOpen by remember(state.session?.token) { mutableStateOf(false) }
+        /* Salvato: una rotazione o la chiusura dell'app da parte del sistema riportano nella gestione, non nel profilo. */
+        var managementOpen by androidx.compose.runtime.saveable.rememberSaveable(state.session?.token) { mutableStateOf(false) }
+        var managementDestination by remember(state.session?.token) { mutableStateOf<it.fabiodalez.incitta.data.management.ManagementDestination?>(null) }
+        /* Cambiando account il repository della gestione (e il ritentativo delle letture) della sessione vecchia si chiude. */
+        LaunchedEffect(state.session?.token) { it.fabiodalez.incitta.data.management.ManagementGraph.retain(state.session?.token) }
         var collectionsOpen by remember(state.session?.token) { mutableStateOf(false) }
         var organizerSlug by remember { mutableStateOf<String?>(null) }
         var communityRoute by remember { mutableStateOf<String?>(null) }
@@ -87,7 +91,12 @@ fun InCittaApp(viewModel: MainViewModel) {
         val appUri = androidx.compose.ui.platform.LocalUriHandler.current
         fun openDestination(url: String) {
             val target = it.fabiodalez.incitta.data.CommunityDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
-            if(target != null) {
+            val management = if (target == null && state.session != null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
+            if (management != null) {
+                organizerSlug = null; carpoolRoute = null; communityRoute = null
+                managementDestination = management
+                managementOpen = true
+            } else if(target != null) {
                 organizerSlug = null
                 if(target.area == "carpool") { communityRoute = null; carpoolRoute = target.route }
                 else { carpoolRoute = null; communityRoute = target.route }
@@ -299,7 +308,7 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
-                managementOpen -> androidx.compose.runtime.key(state.session?.token) { ManagementScreen(state.session, padding) { managementOpen = false } }
+                managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
                     onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
@@ -485,7 +494,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onLogout = viewModel::logout,
                         onDeleteAccount = viewModel::deleteAccount,
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
-                        onManagement = { managementOpen = true },
+                        onManagement = { managementDestination = null; managementOpen = true },
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,

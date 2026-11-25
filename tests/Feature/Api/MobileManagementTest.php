@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Organizer;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipGrant;
 use App\Models\User;
 use App\Services\Ticketing\TicketingService;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -92,4 +94,54 @@ it('adds the delivery progress to the managed campaigns without changing the old
         ->assertJsonPath('data.goal', 1000)
         ->assertJsonPath('data.delivered', 1000)
         ->assertJsonPath('data.pacing_state', 'completed');
+});
+
+it('replaces the whole date details on every PATCH, so an empty key means inherit', function (): void {
+    /* Il comportamento voluto (piano android-gestione, 3.5): `PATCH …/details`
+       è una sostituzione. Una chiave non mandata torna a «eredita dall'evento»,
+       e le due chiavi principali devono esserci sempre. Le versioni dell'app
+       già installate mandano sempre tutto: non si cambia. */
+    Sanctum::actingAs($this->owner);
+    $this->patchJson($this->base.'/details', ['practical_details' => ['food_notes' => 'Cucina fino alle 22', 'start_notes' => 'Si comincia puntuali'], 'cost_breakdown' => ['admission' => 10, 'drink' => 5]])->assertOk();
+    $this->patchJson($this->base.'/details', ['practical_details' => ['food_notes' => 'Cucina fino alle 23'], 'cost_breakdown' => []])->assertOk();
+
+    $this->getJson($this->base)->assertOk()
+        ->assertJsonPath('data.practical_details.food_notes', 'Cucina fino alle 23')
+        ->assertJsonMissingPath('data.practical_details.start_notes')
+        ->assertJsonMissingPath('data.cost_breakdown.admission')
+        ->assertJsonMissingPath('data.cost_breakdown.drink');
+    $this->patchJson($this->base.'/details', ['practical_details' => ['food_notes' => 'Senza costi']])->assertUnprocessable();
+});
+
+it('lists the campaigns of the managed organizers as well, with the same rule as the sponsorship report', function (): void {
+    $organizerOwner = User::factory()->create();
+    $member = User::factory()->create();
+    $organizer = Organizer::create(['name' => 'Collettivo Portici', 'city_id' => $this->date->event->city_id, 'owner_id' => $organizerOwner->id, 'is_active' => true]);
+    $organizer->users()->attach($member);
+    $this->date->event->update(['organizer_id' => $organizer->id]);
+
+    // Della redazione, pagata con un'abilitazione dell'organizzazione, pagata dal locale.
+    $editorial = Sponsorship::factory()->create(['event_id' => $this->date->event_id, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay()]);
+    $ownGrant = SponsorshipGrant::factory()->forOrganizer($organizer)->create();
+    $paidByOrganizer = Sponsorship::factory()->forGrant($ownGrant)->create(['event_id' => $this->date->event_id, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay()]);
+    $venueGrant = SponsorshipGrant::factory()->create(['venue_id' => $this->date->event->venue_id]);
+    $paidByVenue = Sponsorship::factory()->forGrant($venueGrant)->create(['event_id' => $this->date->event_id, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay()]);
+
+    foreach ([$organizerOwner, $member] as $person) {
+        Sanctum::actingAs($person);
+        $ids = collect($this->getJson('/api/v1/management/campaigns')->assertOk()->json('data'))->pluck('id')->all();
+        expect($ids)->toContain($editorial->id, $paidByOrganizer->id)->not->toContain($paidByVenue->id);
+        $this->getJson('/api/v1/management/campaigns/'.$paidByOrganizer->id)->assertOk()->assertJsonPath('data.id', $paidByOrganizer->id);
+        $this->getJson('/api/v1/management/campaigns/'.$paidByVenue->id)->assertNotFound();
+    }
+
+    // Il referente del locale continua a vedere le campagne del locale, e non quelle pagate dall'organizzazione.
+    Sanctum::actingAs($this->owner);
+    $ids = collect($this->getJson('/api/v1/management/campaigns')->assertOk()->json('data'))->pluck('id')->all();
+    expect($ids)->toContain($editorial->id, $paidByVenue->id)->not->toContain($paidByOrganizer->id);
+
+    // Un'organizzazione spenta non gestisce più niente.
+    $organizer->update(['is_active' => false]);
+    Sanctum::actingAs($organizerOwner);
+    $this->getJson('/api/v1/management/campaigns')->assertOk()->assertJsonCount(0, 'data');
 });

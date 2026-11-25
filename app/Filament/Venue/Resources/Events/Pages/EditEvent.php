@@ -8,16 +8,18 @@ use App\Enums\EventStatus;
 use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Filament\Support\PublicationActions;
 use App\Filament\Venue\Resources\Events\EventResource;
+use App\Filament\Venue\Support\CurrentVenue;
 use App\Filament\Venue\Support\EventActions;
 use App\Filament\Venue\Support\EventPublication;
 use App\Models\Event;
+use App\Models\User;
+use App\Services\Events\EventReviewRule;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * La scheda di un evento già inserito.
@@ -82,7 +84,9 @@ class EditEvent extends EditRecord
          * categoria restano liberi: sono correzioni, non contenuto nuovo.
          */
         $record = $this->getRecord();
-        if ($record instanceof Event && $record->status === EventStatus::Published && Gate::denies('publish', $record)
+        $user = auth()->user();
+        // La regola «torna in revisione» è in `EventReviewRule`, la stessa della locandina caricata dall'app.
+        if ($record instanceof Event && $user instanceof User && app(EventReviewRule::class)->sendsToReview($record, CurrentVenue::get(), $user)
             && ($this->contentChanged($record, $filtered) || $this->posterUploaded)) {
             $filtered['status'] = EventStatus::Pending;
             $this->sentToReview = true;

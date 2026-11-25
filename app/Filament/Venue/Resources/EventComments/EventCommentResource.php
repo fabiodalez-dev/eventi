@@ -12,6 +12,7 @@ use App\Filament\Venue\Support\CurrentVenue;
 use App\Models\EventComment;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Management\ManagedContent;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
@@ -81,10 +82,8 @@ class EventCommentResource extends Resource
         $tenant ??= CurrentVenue::get();
         abort_unless($tenant instanceof Venue, 403);
 
-        return $query->whereHas(
-            'event',
-            fn (Builder $query) => $query->where('venue_id', $tenant->id)
-        );
+        // La regola sta in `ManagedContent`, la stessa che usa l'API di gestione.
+        return ManagedContent::for($tenant)->comments($query);
     }
 
     public static function canCreate(): bool

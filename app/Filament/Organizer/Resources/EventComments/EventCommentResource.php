@@ -11,6 +11,7 @@ use App\Filament\Organizer\Resources\EventComments\Pages\ListEventComments;
 use App\Models\EventComment;
 use App\Models\Organizer;
 use App\Models\User;
+use App\Services\Management\ManagedContent;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -81,10 +82,8 @@ class EventCommentResource extends Resource
         $tenant ??= Filament::getTenant();
         abort_unless($tenant instanceof Organizer, 403);
 
-        return $query->whereHas(
-            'event',
-            fn (Builder $query) => $query->where('organizer_id', $tenant->id)
-        );
+        // La regola sta in `ManagedContent`, la stessa che usa l'API di gestione.
+        return ManagedContent::for($tenant)->comments($query);
     }
 
     public static function canCreate(): bool

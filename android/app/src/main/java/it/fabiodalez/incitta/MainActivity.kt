@@ -46,7 +46,9 @@ class MainActivity : ComponentActivity() {
         if (intent?.hasExtra("notification_user_id") == true &&
             intent.getLongExtra("notification_user_id", -1) != it.fabiodalez.incitta.data.LocalStore(this).readSession()?.user?.id) return
         val uri = intent?.data ?: return
-        if(it.fabiodalez.incitta.data.CommunityDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null) {
+        /* Un avviso della gestione (per ora la biglietteria) apre la schermata nativa invece del browser. */
+        if(it.fabiodalez.incitta.data.CommunityDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null ||
+            it.fabiodalez.incitta.data.management.ManagementDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null) {
             viewModel.openCommunityDestination(uri.toString())
             return
         }

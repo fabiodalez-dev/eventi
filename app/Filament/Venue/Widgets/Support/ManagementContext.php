@@ -32,6 +32,7 @@ use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
@@ -53,11 +54,10 @@ final class ManagementContext
         return Filament::getCurrentPanel()?->getId() === 'organizer';
     }
 
+    /** Il soggetto del pannello: lo stesso `ManagementSubject` dei servizi condivisi con l'API. */
     public static function tenant(): Venue|Organizer|null
     {
-        $tenant = Filament::getTenant();
-
-        return $tenant instanceof Venue || $tenant instanceof Organizer ? $tenant : null;
+        return ManagementSubject::current()?->model;
     }
 
     /**

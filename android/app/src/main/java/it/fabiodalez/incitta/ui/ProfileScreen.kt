@@ -56,7 +56,10 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     ProfileRow(cpText("messages"), cpText("chat_context"), Icons.Outlined.People, onCarpoolMessages)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_inbox), cpText("notice_summary", "count" to communityTotal), Icons.Outlined.People, onCommunityInbox)
                     ProfileRow("Dati personali", "Nome e fuso orario", Icons.Outlined.Person) { section = "Dati personali" }
-                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_subtitle), Icons.Outlined.ManageAccounts, onManagement)
+                    /* Solo a chi gestisce qualcosa o controlla gli ingressi; con un server vecchio a tutti, come prima. */
+                    if (it.fabiodalez.incitta.data.management.showsManagementEntry(session.user)) {
+                        ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.management_subtitle), Icons.Outlined.ManageAccounts, onManagement)
+                    }
                     ProfileRow("I miei biglietti", "Prossimi, passati e annullati", Icons.Outlined.ConfirmationNumber, onTickets)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.attended_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.attended_subtitle), Icons.Outlined.History, onAttended)
                     ProfileRow("I miei interessi", "Scegli quali eventi vedere", Icons.Outlined.FavoriteBorder) { section = "I miei interessi" }

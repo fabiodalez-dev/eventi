@@ -23248,6 +23248,26 @@
                                                         ]
                                                     }
                                                 },
+                                                "management": {
+                                                    "type": "object",
+                                                    "description": "Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:\nl'app mostra \u00abGestione eventi\u00bb solo se uno dei tre \u00e8 maggiore di zero. Il dettaglio \u00e8 in `GET /management/subjects`.",
+                                                    "properties": {
+                                                        "venues": {
+                                                            "type": "integer"
+                                                        },
+                                                        "organizers": {
+                                                            "type": "integer"
+                                                        },
+                                                        "checkin": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "venues",
+                                                        "organizers",
+                                                        "checkin"
+                                                    ]
+                                                },
                                                 "email_verified": {
                                                     "type": "boolean"
                                                 },
@@ -23314,6 +23334,7 @@
                                                 "email",
                                                 "role_label",
                                                 "management_links",
+                                                "management",
                                                 "email_verified",
                                                 "whatsapp_verified",
                                                 "community_access",
@@ -23561,6 +23582,26 @@
                                                         ]
                                                     }
                                                 },
+                                                "management": {
+                                                    "type": "object",
+                                                    "description": "Quanti locali e organizzazioni gestisce, e in quante date non ancora finite fa il controllo ingressi:\nl'app mostra \u00abGestione eventi\u00bb solo se uno dei tre \u00e8 maggiore di zero. Il dettaglio \u00e8 in `GET /management/subjects`.",
+                                                    "properties": {
+                                                        "venues": {
+                                                            "type": "integer"
+                                                        },
+                                                        "organizers": {
+                                                            "type": "integer"
+                                                        },
+                                                        "checkin": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "venues",
+                                                        "organizers",
+                                                        "checkin"
+                                                    ]
+                                                },
                                                 "email_verified": {
                                                     "type": "boolean"
                                                 },
@@ -23627,6 +23668,7 @@
                                                 "email",
                                                 "role_label",
                                                 "management_links",
+                                                "management",
                                                 "email_verified",
                                                 "whatsapp_verified",
                                                 "community_access",
@@ -31696,6 +31738,2610 @@
                     }
                 }
             }
+        },
+        "/management/venues/{venue}/events/{event}/poster": {
+            "post": {
+                "operationId": "v1.management.venues.events.poster.store",
+                "summary": "Carica o sostituisce la locandina (campo multipart `image`)",
+                "tags": [
+                    "EventPoster"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EventPosterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "poster": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": "string"
+                                                                },
+                                                                "card": {
+                                                                    "type": "string"
+                                                                },
+                                                                "full": {
+                                                                    "type": "string"
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "width": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "height": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "card": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "full": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": "null"
+                                                                },
+                                                                "width": {
+                                                                    "type": "null"
+                                                                },
+                                                                "height": {
+                                                                    "type": "null"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "draft",
+                                                        "pending",
+                                                        "published",
+                                                        "rejected",
+                                                        "cancelled",
+                                                        "archived"
+                                                    ]
+                                                },
+                                                "sent_to_review": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "poster",
+                                                "status",
+                                                "sent_to_review"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "v1.management.venues.events.poster.destroy",
+                "summary": "Toglie la locandina. Non rimanda in revisione",
+                "tags": [
+                    "EventPoster"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "poster": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": "string"
+                                                                },
+                                                                "card": {
+                                                                    "type": "string"
+                                                                },
+                                                                "full": {
+                                                                    "type": "string"
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "width": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "height": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "card": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "full": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": "null"
+                                                                },
+                                                                "width": {
+                                                                    "type": "null"
+                                                                },
+                                                                "height": {
+                                                                    "type": "null"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "draft",
+                                                        "pending",
+                                                        "published",
+                                                        "rejected",
+                                                        "cancelled",
+                                                        "archived"
+                                                    ]
+                                                },
+                                                "sent_to_review": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "poster",
+                                                "status",
+                                                "sent_to_review"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/organizers/{organizer}/events/{event}/poster": {
+            "post": {
+                "operationId": "v1.management.organizers.events.poster.store",
+                "summary": "Carica o sostituisce la locandina (campo multipart `image`)",
+                "tags": [
+                    "EventPoster"
+                ],
+                "parameters": [
+                    {
+                        "name": "organizer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EventPosterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "poster": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": "string"
+                                                                },
+                                                                "card": {
+                                                                    "type": "string"
+                                                                },
+                                                                "full": {
+                                                                    "type": "string"
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "width": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "height": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "card": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "full": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": "null"
+                                                                },
+                                                                "width": {
+                                                                    "type": "null"
+                                                                },
+                                                                "height": {
+                                                                    "type": "null"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "draft",
+                                                        "pending",
+                                                        "published",
+                                                        "rejected",
+                                                        "cancelled",
+                                                        "archived"
+                                                    ]
+                                                },
+                                                "sent_to_review": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "poster",
+                                                "status",
+                                                "sent_to_review"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "v1.management.organizers.events.poster.destroy",
+                "summary": "Toglie la locandina. Non rimanda in revisione",
+                "tags": [
+                    "EventPoster"
+                ],
+                "parameters": [
+                    {
+                        "name": "organizer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "poster": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": "string"
+                                                                },
+                                                                "card": {
+                                                                    "type": "string"
+                                                                },
+                                                                "full": {
+                                                                    "type": "string"
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "width": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "height": {
+                                                                    "type": [
+                                                                        "integer",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "thumb": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "card": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "full": {
+                                                                    "type": [
+                                                                        "string",
+                                                                        "null"
+                                                                    ]
+                                                                },
+                                                                "blurhash": {
+                                                                    "type": "null"
+                                                                },
+                                                                "width": {
+                                                                    "type": "null"
+                                                                },
+                                                                "height": {
+                                                                    "type": "null"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "thumb",
+                                                                "card",
+                                                                "full",
+                                                                "blurhash",
+                                                                "width",
+                                                                "height"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "draft",
+                                                        "pending",
+                                                        "published",
+                                                        "rejected",
+                                                        "cancelled",
+                                                        "archived"
+                                                    ]
+                                                },
+                                                "sent_to_review": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "poster",
+                                                "status",
+                                                "sent_to_review"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/options": {
+            "get": {
+                "operationId": "v1.management.options",
+                "summary": "Elenchi e tetti dei moduli di gestione",
+                "tags": [
+                    "Options"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "price_types": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "occurrence_statuses": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "venue": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "organizer": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "venue",
+                                                        "organizer"
+                                                    ]
+                                                },
+                                                "recurrence_frequencies": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "lineup_roles": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "accessibility_features": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "transit_modes": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "age_groups": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "membership_requirements": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "practical_icons": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "event_features": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "group": {
+                                                                "type": "string"
+                                                            },
+                                                            "icon": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "group",
+                                                            "icon"
+                                                        ]
+                                                    }
+                                                },
+                                                "booking_question_types": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "social_formats": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "sponsorship_placements": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "external_links": {
+                                                            "type": "integer",
+                                                            "const": 8
+                                                        },
+                                                        "facts": {
+                                                            "type": "integer",
+                                                            "const": 12
+                                                        },
+                                                        "venue_closures": {
+                                                            "type": "integer",
+                                                            "const": 20
+                                                        },
+                                                        "venue_notice_min_days_between": {
+                                                            "type": "integer",
+                                                            "const": 7
+                                                        },
+                                                        "attendee_messages_per_day": {
+                                                            "type": "string"
+                                                        },
+                                                        "attendee_message_subject_max": {
+                                                            "type": "integer",
+                                                            "description": "Questi cinque sono scritti nelle regole dei moduli (`MessageAttendeesRequest`,\n`ManageRequest`, `BeforeGoingFields`): qui ne riporto il valore.",
+                                                            "const": 160
+                                                        },
+                                                        "attendee_message_body_max": {
+                                                            "type": "integer",
+                                                            "const": 2000
+                                                        },
+                                                        "booking_questions": {
+                                                            "type": "integer",
+                                                            "const": 10
+                                                        },
+                                                        "practical_custom_venue": {
+                                                            "type": "integer",
+                                                            "const": 12
+                                                        },
+                                                        "practical_custom_event": {
+                                                            "type": "integer",
+                                                            "const": 24
+                                                        },
+                                                        "gallery_images": {
+                                                            "type": "integer",
+                                                            "const": 30
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "external_links",
+                                                        "facts",
+                                                        "venue_closures",
+                                                        "venue_notice_min_days_between",
+                                                        "attendee_messages_per_day",
+                                                        "attendee_message_subject_max",
+                                                        "attendee_message_body_max",
+                                                        "booking_questions",
+                                                        "practical_custom_venue",
+                                                        "practical_custom_event",
+                                                        "gallery_images"
+                                                    ]
+                                                },
+                                                "images": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_upload_bytes": {
+                                                            "type": "string"
+                                                        },
+                                                        "accepted_mime_types": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "accepted_extensions": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "min_width": {
+                                                            "type": "string"
+                                                        },
+                                                        "min_height": {
+                                                            "type": "string"
+                                                        },
+                                                        "max_pixels": {
+                                                            "type": "string"
+                                                        },
+                                                        "max_original_width": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_upload_bytes",
+                                                        "accepted_mime_types",
+                                                        "accepted_extensions",
+                                                        "min_width",
+                                                        "min_height",
+                                                        "max_pixels",
+                                                        "max_original_width"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "price_types",
+                                                "occurrence_statuses",
+                                                "recurrence_frequencies",
+                                                "lineup_roles",
+                                                "accessibility_features",
+                                                "transit_modes",
+                                                "age_groups",
+                                                "membership_requirements",
+                                                "practical_icons",
+                                                "event_features",
+                                                "booking_question_types",
+                                                "social_formats",
+                                                "sponsorship_placements",
+                                                "limits",
+                                                "images"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/subjects": {
+            "get": {
+                "operationId": "v1.management.subjects",
+                "description": "`venues[]` sono i locali con appartenenza accettata e senza\nprovvedimento, `organizers[]` le organizzazioni attive gestite;\n`checkin_only` \u00e8 vero per chi fa solo il controllo ingressi.\n`permissions` ha una chiave per area, calcolata dalle policy del sito.",
+                "summary": "Elenco dei soggetti di gestione",
+                "tags": [
+                    "Subject"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "venues": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "slug": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "city": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "timezone": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "name",
+                                                                    "timezone"
+                                                                ]
+                                                            },
+                                                            "role": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "owner",
+                                                                    "editor"
+                                                                ]
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "draft",
+                                                                    "pending",
+                                                                    "approved",
+                                                                    "suspended",
+                                                                    "rejected"
+                                                                ]
+                                                            },
+                                                            "logo": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "thumb": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "card": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "full": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "blurhash": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "width": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "height": {
+                                                                        "type": [
+                                                                            "integer",
+                                                                            "null"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "thumb",
+                                                                    "card",
+                                                                    "full",
+                                                                    "blurhash",
+                                                                    "width",
+                                                                    "height"
+                                                                ]
+                                                            },
+                                                            "ticketing_enabled": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "auto_publish": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "permissions": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "events_create": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "events_publish_directly": {
+                                                                                "type": "boolean",
+                                                                                "description": "L'organizzazione non pubblica mai da s\u00e9: \u00abInvia alla redazione\u00bb."
+                                                                            },
+                                                                            "ticketing_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`BookingPolicy::manage`: chi gestisce l'organizzatore dell'evento."
+                                                                            },
+                                                                            "profile_update": {
+                                                                                "type": "boolean",
+                                                                                "description": "`Organizer\\Pages\\Profile::canAccess`: solo `owner_id`."
+                                                                            },
+                                                                            "collaborators_manage": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "import_manage": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "analytics_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "analytics_channels": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "sponsorships_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "sponsorships_purchase": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "social_use": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "comments_moderate": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "reviews_reply": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "leave": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "events_create",
+                                                                            "events_publish_directly",
+                                                                            "ticketing_manage",
+                                                                            "profile_update",
+                                                                            "collaborators_manage",
+                                                                            "import_manage",
+                                                                            "analytics_view",
+                                                                            "analytics_channels",
+                                                                            "sponsorships_view",
+                                                                            "sponsorships_purchase",
+                                                                            "social_use",
+                                                                            "comments_moderate",
+                                                                            "reviews_reply",
+                                                                            "leave"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "events_create": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventPolicy::create` con il locale, come \u00abNuovo evento\u00bb."
+                                                                            },
+                                                                            "events_publish_directly": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventPolicy::publish` su un evento nuovo del locale: auto_publish e locale approvato."
+                                                                            },
+                                                                            "ticketing_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`BookingPolicy::manage`: il referente di un locale senza provvedimenti (o lo staff)."
+                                                                            },
+                                                                            "profile_update": {
+                                                                                "type": "boolean",
+                                                                                "description": "`VenueProfile::canAccess`."
+                                                                            },
+                                                                            "collaborators_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`Collaborators::canAccess`."
+                                                                            },
+                                                                            "import_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`CalendarImport::canAccess`."
+                                                                            },
+                                                                            "analytics_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "analytics_channels": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventAnalyticsPage::canManageChannels`."
+                                                                            },
+                                                                            "sponsorships_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "sponsorships_purchase": {
+                                                                                "type": "boolean",
+                                                                                "description": "`SponsorshipsPage::canPurchase`."
+                                                                            },
+                                                                            "social_use": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "comments_moderate": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventCommentPolicy::hide`: ogni membro del locale."
+                                                                            },
+                                                                            "reviews_reply": {
+                                                                                "type": "boolean",
+                                                                                "description": "`CatalogReviews::canReply`: ogni membro del locale (la recensione deve essere pubblicata)."
+                                                                            },
+                                                                            "leave": {
+                                                                                "type": "boolean",
+                                                                                "description": "`VenueAccess`: tutti, tranne l'ultimo referente."
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "events_create",
+                                                                            "events_publish_directly",
+                                                                            "ticketing_manage",
+                                                                            "profile_update",
+                                                                            "collaborators_manage",
+                                                                            "import_manage",
+                                                                            "analytics_view",
+                                                                            "analytics_channels",
+                                                                            "sponsorships_view",
+                                                                            "sponsorships_purchase",
+                                                                            "social_use",
+                                                                            "comments_moderate",
+                                                                            "reviews_reply",
+                                                                            "leave"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "slug",
+                                                            "name",
+                                                            "city",
+                                                            "role",
+                                                            "status",
+                                                            "logo",
+                                                            "ticketing_enabled",
+                                                            "auto_publish",
+                                                            "permissions"
+                                                        ]
+                                                    }
+                                                },
+                                                "organizers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "slug": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "city": {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ],
+                                                                "properties": {
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "timezone": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "name",
+                                                                    "timezone"
+                                                                ]
+                                                            },
+                                                            "role": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "owner",
+                                                                    "member"
+                                                                ]
+                                                            },
+                                                            "permissions": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "events_create": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "events_publish_directly": {
+                                                                                "type": "boolean",
+                                                                                "description": "L'organizzazione non pubblica mai da s\u00e9: \u00abInvia alla redazione\u00bb."
+                                                                            },
+                                                                            "ticketing_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`BookingPolicy::manage`: chi gestisce l'organizzatore dell'evento."
+                                                                            },
+                                                                            "profile_update": {
+                                                                                "type": "boolean",
+                                                                                "description": "`Organizer\\Pages\\Profile::canAccess`: solo `owner_id`."
+                                                                            },
+                                                                            "collaborators_manage": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "import_manage": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "analytics_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "analytics_channels": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "sponsorships_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "sponsorships_purchase": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "social_use": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "comments_moderate": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "reviews_reply": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "leave": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "events_create",
+                                                                            "events_publish_directly",
+                                                                            "ticketing_manage",
+                                                                            "profile_update",
+                                                                            "collaborators_manage",
+                                                                            "import_manage",
+                                                                            "analytics_view",
+                                                                            "analytics_channels",
+                                                                            "sponsorships_view",
+                                                                            "sponsorships_purchase",
+                                                                            "social_use",
+                                                                            "comments_moderate",
+                                                                            "reviews_reply",
+                                                                            "leave"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "events_create": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventPolicy::create` con il locale, come \u00abNuovo evento\u00bb."
+                                                                            },
+                                                                            "events_publish_directly": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventPolicy::publish` su un evento nuovo del locale: auto_publish e locale approvato."
+                                                                            },
+                                                                            "ticketing_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`BookingPolicy::manage`: il referente di un locale senza provvedimenti (o lo staff)."
+                                                                            },
+                                                                            "profile_update": {
+                                                                                "type": "boolean",
+                                                                                "description": "`VenueProfile::canAccess`."
+                                                                            },
+                                                                            "collaborators_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`Collaborators::canAccess`."
+                                                                            },
+                                                                            "import_manage": {
+                                                                                "type": "boolean",
+                                                                                "description": "`CalendarImport::canAccess`."
+                                                                            },
+                                                                            "analytics_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "analytics_channels": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventAnalyticsPage::canManageChannels`."
+                                                                            },
+                                                                            "sponsorships_view": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "sponsorships_purchase": {
+                                                                                "type": "boolean",
+                                                                                "description": "`SponsorshipsPage::canPurchase`."
+                                                                            },
+                                                                            "social_use": {
+                                                                                "type": "boolean"
+                                                                            },
+                                                                            "comments_moderate": {
+                                                                                "type": "boolean",
+                                                                                "description": "`EventCommentPolicy::hide`: ogni membro del locale."
+                                                                            },
+                                                                            "reviews_reply": {
+                                                                                "type": "boolean",
+                                                                                "description": "`CatalogReviews::canReply`: ogni membro del locale (la recensione deve essere pubblicata)."
+                                                                            },
+                                                                            "leave": {
+                                                                                "type": "boolean",
+                                                                                "description": "`VenueAccess`: tutti, tranne l'ultimo referente."
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "events_create",
+                                                                            "events_publish_directly",
+                                                                            "ticketing_manage",
+                                                                            "profile_update",
+                                                                            "collaborators_manage",
+                                                                            "import_manage",
+                                                                            "analytics_view",
+                                                                            "analytics_channels",
+                                                                            "sponsorships_view",
+                                                                            "sponsorships_purchase",
+                                                                            "social_use",
+                                                                            "comments_moderate",
+                                                                            "reviews_reply",
+                                                                            "leave"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "slug",
+                                                            "name",
+                                                            "city",
+                                                            "role",
+                                                            "permissions"
+                                                        ]
+                                                    }
+                                                },
+                                                "checkin_only": {
+                                                    "type": "boolean",
+                                                    "description": "Solo personale d'ingresso: niente da gestire, ma date da controllare."
+                                                }
+                                            },
+                                            "required": [
+                                                "venues",
+                                                "organizers",
+                                                "checkin_only"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/media": {
+            "get": {
+                "operationId": "v1.management.venues.media.index",
+                "summary": "Le immagini del locale: `logo`, `cover`, `gallery[]` (con `id`)",
+                "tags": [
+                    "VenueMedia"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "logo": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "thumb": {
+                                                            "type": "string"
+                                                        },
+                                                        "card": {
+                                                            "type": "string"
+                                                        },
+                                                        "full": {
+                                                            "type": "string"
+                                                        },
+                                                        "blurhash": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "width": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "height": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "thumb",
+                                                        "card",
+                                                        "full",
+                                                        "blurhash",
+                                                        "width",
+                                                        "height"
+                                                    ]
+                                                },
+                                                "cover": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "thumb": {
+                                                            "type": "string"
+                                                        },
+                                                        "card": {
+                                                            "type": "string"
+                                                        },
+                                                        "full": {
+                                                            "type": "string"
+                                                        },
+                                                        "blurhash": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "width": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "height": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "thumb",
+                                                        "card",
+                                                        "full",
+                                                        "blurhash",
+                                                        "width",
+                                                        "height"
+                                                    ]
+                                                },
+                                                "gallery": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "thumb": {
+                                                                "type": "string"
+                                                            },
+                                                            "card": {
+                                                                "type": "string"
+                                                            },
+                                                            "full": {
+                                                                "type": "string"
+                                                            },
+                                                            "blurhash": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "width": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "height": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "thumb",
+                                                            "card",
+                                                            "full",
+                                                            "blurhash",
+                                                            "width",
+                                                            "height"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "logo",
+                                                "cover",
+                                                "gallery"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/media/gallery/order": {
+            "put": {
+                "operationId": "v1.management.venues.media.gallery.order",
+                "summary": "Il nuovo ordine della galleria: `ids` con tutte e sole le foto",
+                "tags": [
+                    "VenueMedia"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VenueMediaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "gallery": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "thumb": {
+                                                                "type": "string"
+                                                            },
+                                                            "card": {
+                                                                "type": "string"
+                                                            },
+                                                            "full": {
+                                                                "type": "string"
+                                                            },
+                                                            "blurhash": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "width": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "height": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "thumb",
+                                                            "card",
+                                                            "full",
+                                                            "blurhash",
+                                                            "width",
+                                                            "height"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "gallery"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/media/gallery": {
+            "post": {
+                "operationId": "v1.management.venues.media.gallery.store",
+                "summary": "Aggiunge una foto alla galleria (campo multipart `image`), fino a 30",
+                "tags": [
+                    "VenueMedia"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VenueMediaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "gallery": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "thumb": {
+                                                                "type": "string"
+                                                            },
+                                                            "card": {
+                                                                "type": "string"
+                                                            },
+                                                            "full": {
+                                                                "type": "string"
+                                                            },
+                                                            "blurhash": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "width": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "height": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "thumb",
+                                                            "card",
+                                                            "full",
+                                                            "blurhash",
+                                                            "width",
+                                                            "height"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "gallery"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/media/gallery/{media}": {
+            "delete": {
+                "operationId": "v1.management.venues.media.gallery.destroy",
+                "summary": "Toglie una foto dalla galleria",
+                "tags": [
+                    "VenueMedia"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "media",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "gallery": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "thumb": {
+                                                                "type": "string"
+                                                            },
+                                                            "card": {
+                                                                "type": "string"
+                                                            },
+                                                            "full": {
+                                                                "type": "string"
+                                                            },
+                                                            "blurhash": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "width": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "height": {
+                                                                "type": [
+                                                                    "integer",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "thumb",
+                                                            "card",
+                                                            "full",
+                                                            "blurhash",
+                                                            "width",
+                                                            "height"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "gallery"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/management/venues/{venue}/media/{collection}": {
+            "post": {
+                "operationId": "v1.management.venues.media.store",
+                "summary": "Carica o sostituisce il logo o la copertina (campo multipart `image`)",
+                "tags": [
+                    "VenueMedia"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "collection",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VenueMediaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "collection": {
+                                                    "type": "string"
+                                                },
+                                                "image": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "thumb": {
+                                                            "type": "string"
+                                                        },
+                                                        "card": {
+                                                            "type": "string"
+                                                        },
+                                                        "full": {
+                                                            "type": "string"
+                                                        },
+                                                        "blurhash": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "width": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "height": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "thumb",
+                                                        "card",
+                                                        "full",
+                                                        "blurhash",
+                                                        "width",
+                                                        "height"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "collection",
+                                                "image"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "v1.management.venues.media.destroy",
+                "summary": "Toglie il logo o la copertina",
+                "tags": [
+                    "VenueMedia"
+                ],
+                "parameters": [
+                    {
+                        "name": "venue",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "collection",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "collection": {
+                                                    "type": "string"
+                                                },
+                                                "image": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "collection",
+                                                "image"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Accesso richiesto.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "description": "Operazione non autorizzata.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Elemento non disponibile.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "http": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -33891,6 +36537,42 @@
                     "phone"
                 ],
                 "title": "WhatsappRequest"
+            },
+            "EventPosterRequest": {
+                "type": "object",
+                "description": "La locandina di un evento del soggetto (`POST` e `DELETE \u2026/events/{event}/poster`).\n\nL'evento si cerca solo fra quelli del soggetto (404 altrimenti), poi decide\n`EventPolicy::update`, come la pagina \u00abModifica evento\u00bb dei pannelli.",
+                "properties": {
+                    "image": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "description": "Maximum file size: 12288 kilobytes."
+                    }
+                },
+                "required": [
+                    "image"
+                ],
+                "title": "EventPosterRequest"
+            },
+            "VenueMediaRequest": {
+                "type": "object",
+                "description": "Logo, copertina e galleria del locale. Le immagini del locale le cambia chi\npu\u00f2 cambiarne il profilo (`VenuePolicy::update`, cio\u00e8 il referente), come\nnella pagina \u00abProfilo del locale\u00bb.",
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "ids"
+                ],
+                "title": "VenueMediaRequest"
             }
         },
         "responses": {

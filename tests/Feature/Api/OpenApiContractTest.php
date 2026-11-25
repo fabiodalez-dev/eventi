@@ -39,6 +39,22 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['components']['schemas']['MobileVenue']['properties'])->toHaveKeys(['claimable', 'claim_url'])
         ->and($document['components']['schemas']['MobileBooking']['properties'])->toHaveKey('poster');
 
+    // Le fondamenta dell'app di gestione (25/11/2026): identità, opzioni, immagini.
+    expect($document['paths'])->toHaveKeys([
+        '/management/subjects',
+        '/management/options',
+        '/management/venues/{venue}/events/{event}/poster',
+        '/management/organizers/{organizer}/events/{event}/poster',
+        '/management/venues/{venue}/media',
+        '/management/venues/{venue}/media/{collection}',
+        '/management/venues/{venue}/media/gallery',
+        '/management/venues/{venue}/media/gallery/{media}',
+        '/management/venues/{venue}/media/gallery/order',
+    ])
+        ->and(collect($document['paths']['/management/venues/{venue}/media/{collection}']['post']['parameters'])->pluck('name')->all())->toBe(['venue', 'collection'])
+        ->and($document['paths']['/management/venues/{venue}/events/{event}/poster']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
+        ->and($document['paths']['/management/venues/{venue}/media/gallery']['post']['responses'])->toHaveKey('201');
+
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')
