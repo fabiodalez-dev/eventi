@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}, onApplications: () -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -64,6 +64,8 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     it.fabiodalez.incitta.data.management.pendingInvitations(session.user).takeIf { count -> count > 0 }?.let { count ->
                         ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.invitations_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.invitations_profile_help, count), Icons.Outlined.MarkEmailUnread, onInvitations)
                     }
+                    /* «Le mie richieste» (P13): registrare o rivendicare un locale e seguire le richieste, come la voce del profilo sul sito. */
+                    ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.applications_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.applications_profile_help), Icons.Outlined.Storefront, onApplications)
                     ProfileRow("I miei biglietti", "Prossimi, passati e annullati", Icons.Outlined.ConfirmationNumber, onTickets)
                     ProfileRow(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.attended_title), androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.attended_subtitle), Icons.Outlined.History, onAttended)
                     ProfileRow("I miei interessi", "Scegli quali eventi vedere", Icons.Outlined.FavoriteBorder) { section = "I miei interessi" }

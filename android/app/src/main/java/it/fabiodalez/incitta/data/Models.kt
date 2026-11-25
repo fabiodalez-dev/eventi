@@ -109,6 +109,9 @@ data class Venue(
     val closures: List<VenueClosure> = emptyList(),
     /* Solo nella scheda del locale (D60): l'avviso in vista oggi, se c'è. */
     val notice: VenueNotice? = null,
+    /* «Gestisci questo locale?» (P13): pubblico e senza referente, nemmeno invitato. `claim_url` è il modulo del sito, che l'app apre nativo. */
+    val claimable: Boolean = false,
+    @SerialName("claim_url") val claimUrl: String? = null,
 )
 
 @Serializable

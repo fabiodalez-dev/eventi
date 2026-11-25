@@ -22,6 +22,9 @@ use Dedoc\Scramble\Support\Generator\Types\Type;
 
 final class MobileOpenApiDocument
 {
+    /** Letture per la persona collegata fuori da `me/` (P13): richiedono il token e non si mettono in cache. */
+    private const PERSONAL_READS = ['venue-applications/lookup', 'venues/{slug}/claim'];
+
     public function __invoke(OpenApi $document): void
     {
         $schemas = $this->schemas($document);
@@ -204,6 +207,8 @@ final class MobileOpenApiDocument
     {
         $liveAvailability = $path === 'occurrences/{occurrence}/booking';
         $management = str_starts_with($path, 'management/');
+        /* Letture fuori da `me/` che però parlano per la persona collegata (P13): niente cache, niente 304, solo con il token. */
+        $personal = str_starts_with($path, 'me/') || in_array($path, self::PERSONAL_READS, true);
         foreach ($operation->responses ?? [] as $response) {
             if (! $response instanceof Response) {
                 continue;
@@ -221,7 +226,7 @@ final class MobileOpenApiDocument
                 $response->addHeader('X-RateLimit-Limit', new Header(schema: Schema::fromType(new IntegerType)));
                 $response->addHeader('X-RateLimit-Remaining', new Header(schema: Schema::fromType(new IntegerType)));
 
-                if (! str_starts_with($path, 'me/') && ! $liveAvailability && ! $management) {
+                if (! $personal && ! $liveAvailability && ! $management) {
                     $response->addHeader('ETag', new Header(schema: Schema::fromType(new StringType)));
                     $response->addHeader('Cache-Control', new Header(schema: Schema::fromType(new StringType)));
                 }
@@ -236,12 +241,15 @@ final class MobileOpenApiDocument
             $this->addErrorResponse($operation, 404, 'Elemento non disponibile.', $schemas['error']);
         }
 
-        if ($operation->method === 'get' && ! str_starts_with($path, 'me/') && ! $liveAvailability && ! $management) {
+        if ($operation->method === 'get' && ! $personal && ! $liveAvailability && ! $management) {
             $this->addEmptyResponse($operation, 304, 'Contenuto non modificato.');
         }
 
-        if ($operation->method === 'get' && ! str_starts_with($path, 'auth/') && ! str_starts_with($path, 'me/') && ! $management) {
+        if ($operation->method === 'get' && ! str_starts_with($path, 'auth/') && ! $personal && ! $management) {
             $operation->security = [new SecurityRequirement([]), new SecurityRequirement(['http' => []])];
+        }
+        if (in_array($path, self::PERSONAL_READS, true)) {
+            $operation->security = [new SecurityRequirement(['http' => []])];
         }
     }
 

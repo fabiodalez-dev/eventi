@@ -89,6 +89,8 @@ internal class ManagementRepository(
     val events: ManagementEventsApi? = null,
     /* Il calendario collegato del locale (P9). */
     val calendar: ManagementCalendarImportSource? = null,
+    /* P13: registrare o rivendicare, «Le mie richieste». */
+    val applications: ManagementApplicationsSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -193,6 +195,7 @@ internal class ManagementRepository(
             profile = ManagementProfileApi(client, session.token),
             events = ManagementEventsApi(client, session.token),
             calendar = ManagementCalendarImportApi(client, session.token),
+            applications = ManagementApplicationsApi(client, session.token),
         )
     }
 }

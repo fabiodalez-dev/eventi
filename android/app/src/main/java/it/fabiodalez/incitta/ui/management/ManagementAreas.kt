@@ -7,6 +7,7 @@ import it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute
 import it.fabiodalez.incitta.ui.management.collaborators.CollaboratorsRoute
 import it.fabiodalez.incitta.ui.management.profile.ProfileRoute
 import it.fabiodalez.incitta.ui.management.events.EventsListRoute
+import it.fabiodalez.incitta.ui.management.registration.ApplicationsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import it.fabiodalez.incitta.ui.management.calendarimport.CalendarImportRoute
 
@@ -28,7 +29,7 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
     Import(R.string.management_area_import, R.string.management_area_import_help, CalendarImportRoute),
     Social(R.string.management_area_social, R.string.management_area_social_help),
     Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help),
-    Registration(R.string.management_area_registration, R.string.management_area_registration_help);
+    Registration(R.string.management_area_registration, R.string.management_area_registration_help, ApplicationsRoute());
 
     val implemented: Boolean get() = entry != null
 
@@ -48,7 +49,8 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
             Import -> can.importManage && subject.kind == SubjectKind.Venue
             Social -> can.socialUse
             Notifications -> true
-            Registration -> false
+            /* Registrare un altro locale o un'organizzazione, e seguire le richieste: è della persona, quindi di tutti. */
+            Registration -> true
         }
     }
 }

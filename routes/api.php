@@ -170,6 +170,9 @@ Route::prefix('v1')
 
         Route::get('/occurrences/{occurrence}/weather', EventWeatherController::class)->whereNumber('occurrence')->name('occurrences.weather');
 
+        // Registrare o rivendicare un locale, registrare un'organizzazione (P13): da collegati, mai in cache.
+        require __DIR__.'/management/applications.php';
+
         Route::get('/events/{slug}/comments', [EventCommentController::class, 'index']);
         Route::post('/events/{slug}/comments', [EventCommentController::class, 'store'])->middleware(['auth:sanctum', 'verified', 'throttle:10,60,event-comment']);
         Route::post('/events/{slug}/comments/{comment}/reaction', [EventCommentController::class, 'react'])->middleware(['auth:sanctum', 'verified', 'throttle:120,1,event-comment-reaction']);

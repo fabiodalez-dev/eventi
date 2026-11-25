@@ -54,6 +54,7 @@ class ManagementFoundationsTest {
         assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
         assertSame(CollaboratorsRoute, ManagementArea.Collaborators.entry)
         assertSame(it.fabiodalez.incitta.ui.management.calendarimport.CalendarImportRoute, ManagementArea.Import.entry)
+        assertEquals(it.fabiodalez.incitta.ui.management.registration.ApplicationsRoute(), ManagementArea.Registration.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {

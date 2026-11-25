@@ -88,6 +88,24 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/management/venues/{venue}/profile'])->toHaveKeys(['get', 'patch'])
         ->and($document['paths']['/management/venues/{venue}/notices']['post']['responses'])->toHaveKey('201');
 
+    // P13 (25/11/2026): registrare o rivendicare dall'app, solo con il token e mai in cache.
+    expect($document['paths'])->toHaveKeys([
+        '/venue-applications/lookup',
+        '/me/venue-applications/options',
+        '/me/venue-applications/{application}/confirm',
+        '/me/venue-applications/{application}',
+        '/me/organizer-applications',
+        '/venues/{slug}/claim',
+    ])
+        ->and($document['paths']['/me/venue-applications'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/me/venue-applications']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
+        ->and($document['paths']['/me/venue-applications']['post']['responses'])->toHaveKey('201')
+        ->and($document['paths']['/venues/{slug}/claim'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/venues/{slug}/claim']['get']['security'])->toBe([['http' => []]])
+        ->and($document['paths']['/venues/{slug}/claim']['get']['responses'])->not->toHaveKey('304')
+        ->and($document['paths']['/venue-applications/lookup']['get']['security'])->toBe([['http' => []]])
+        ->and($document['paths']['/venue-applications/lookup']['get']['responses'])->not->toHaveKey('304');
+
     expect($document['paths']['/occurrences/{occurrence}/bookings']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/me/bookings']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/me/bookings']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['items']['$ref'])->toBe('#/components/schemas/MobileBooking')
