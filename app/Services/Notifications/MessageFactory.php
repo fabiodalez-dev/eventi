@@ -591,6 +591,7 @@ final readonly class MessageFactory
             ],
             actionLabel: __('notifications.actions.open_panel'),
             url: $this->panelUrl($venue),
+            venueId: (int) $venue->getKey(),
         );
     }
 

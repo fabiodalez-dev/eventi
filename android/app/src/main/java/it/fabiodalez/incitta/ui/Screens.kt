@@ -539,9 +539,11 @@ fun AccountScreen(
     onDismissConfirmation: () -> Unit = {},
     onInvitations: () -> Unit = {},
     onApplications: () -> Unit = {},
+    /* P12: un collegamento di `management_links` con una schermata nativa si apre nella gestione. */
+    onManagementLink: (String) -> Unit = {},
 ) {
     if (state.session != null) {
-        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch, onInvitations, onApplications)
+        ProfileScreen(state, padding, onTickets, onSaved, onLogout, onDeleteAccount, onInterestsSaved, onAppearance, onProfileSaved, onCommunity, onCarpool, onCarpoolMessages, onCommunityInbox, communityTotal, onManagement, onPublicProfile, onRelationships, onVerification, onAttended, onCollections, onOpenSavedSearch, onInvitations, onApplications, onManagementLink)
         return
     }
     state.pendingEmailConfirmation?.let { pending ->

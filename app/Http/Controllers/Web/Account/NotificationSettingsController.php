@@ -9,11 +9,11 @@ use App\Enums\NotificationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Account\UpdateNotificationSettingsRequest;
 use App\Models\User;
-use App\Models\Venue;
 use App\Models\WebPushSubscription;
 use App\Services\Notifications\ChannelSelector;
 use App\Support\Features;
 use App\Support\Notifications\PreferenceLinks;
+use App\Support\Notifications\VenueReportPreference;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -64,11 +64,7 @@ final class NotificationSettingsController extends Controller
                 ->where('user_id', $user->getKey())
                 ->usable()
                 ->exists(),
-            /* Letta sul locale e non sulla relazione `venues()`, che il menu
-               dell'account in testata legge già: due letture della stessa
-               relazione sarebbero un N+1. */
-            'managesVenues' => Venue::query()->join('venue_user', 'venue_user.venue_id', '=', 'venues.id')
-                ->where('venue_user.user_id', $user->getKey())->whereNotNull('venue_user.accepted_at')->exists(),
+            'managesVenues' => VenueReportPreference::available($user),
             'meta' => $this->meta(__('notifications.preferences.title'), __('notifications.preferences.lead')),
         ]);
     }

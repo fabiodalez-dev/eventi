@@ -37,6 +37,8 @@ final readonly class NotificationMessage
         public ?int $occurrenceId = null,
         public ?int $eventId = null,
         public ?int $commentId = null,
+        /* Il locale dell'avviso «locale fermo da tempo»: serve a portarci dentro la gestione dell'app (P12). */
+        public ?int $venueId = null,
     ) {}
 
     /**

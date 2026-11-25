@@ -101,6 +101,8 @@ internal class ManagementRepository(
     val social: ManagementSocialSource? = null,
     /* Il riepilogo del soggetto (P11). */
     val dashboard: ManagementDashboardSource? = null,
+    /* P12: gli avvisi a chi gestisce, il rapporto mensile, lo slug degli eventi del pannello. */
+    val notices: ManagementNoticesSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -211,6 +213,7 @@ internal class ManagementRepository(
             sponsorships = ManagementSponsorshipsApi(client, session.token),
             social = ManagementSocialApi(client, session.token),
             dashboard = ManagementDashboardApi(client, session.token),
+            notices = ManagementNoticesApi(client, session.token),
         )
     }
 }

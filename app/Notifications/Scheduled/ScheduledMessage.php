@@ -12,6 +12,7 @@ use App\Jobs\Middleware\RespectNotificationPreferences;
 use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\User;
+use App\Services\Management\ManagementNoticeTarget;
 use App\Services\Notifications\ChannelSelector;
 use App\Support\Features;
 use App\Support\Notifications\PreferenceLinks;
@@ -223,6 +224,7 @@ final class ScheduledMessage extends Notification implements ShouldQueue
                 'url' => $this->message->url,
                 'occurrence_id' => $this->message->occurrenceId === null ? '' : (string) $this->message->occurrenceId,
                 'event_id' => $this->message->eventId === null ? '' : (string) $this->message->eventId,
+                ...$this->managementData($notifiable),
             ])
             ->android([
                 'priority' => 'high',
@@ -235,6 +237,38 @@ final class ScheduledMessage extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        return $this->message->toArray();
+        $management = $this->management($notifiable);
+
+        return [...$this->message->toArray(), ...($management === null ? [] : ['management' => $management])];
+    }
+
+    /**
+     * Per gli avvisi a chi gestisce, la schermata della gestione da aprire
+     * nell'app (`ManagementNoticeTarget`): nell'archivio come oggetto
+     * `management`, nella push come campi piatti `management_*`, perché i dati
+     * di FCM sono solo stringhe. L'`url` resta quello dell'email.
+     *
+     * @return array{subject_type: string, subject_id: int, area: string, id: int|null}|null
+     */
+    private function management(object $notifiable): ?array
+    {
+        if (! $notifiable instanceof User || ! $this->message->type->isForVenueStaff()) {
+            return null;
+        }
+
+        return app(ManagementNoticeTarget::class)->for($notifiable, $this->message->type, $this->message->eventId, $this->message->venueId);
+    }
+
+    /** @return array<string, string> */
+    private function managementData(object $notifiable): array
+    {
+        $management = $this->management($notifiable);
+
+        return $management === null ? [] : [
+            'management_subject_type' => $management['subject_type'],
+            'management_subject_id' => (string) $management['subject_id'],
+            'management_area' => $management['area'],
+            'management_id' => $management['id'] === null ? '' : (string) $management['id'],
+        ];
     }
 }

@@ -18,4 +18,17 @@ class NotificationModelsTest {
         assertEquals("false", data.getValue("daily_digest").jsonPrimitive.content)
         assertEquals("false", data.getValue("reminders").jsonPrimitive.content)
     }
+
+    @Test fun theMonthlyReportToggleFollowsTheServer() {
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val manager = json.decodeFromString<NotificationPreferences>("""{"venue_report":false,"venue_report_available":true,"comments":false}""")
+        assertTrue(manager.venueReportAvailable)
+        assertFalse(manager.venueReport)
+        assertFalse(manager.comments)
+        /* Un server vecchio non dice niente: l'interruttore non compare. */
+        assertFalse(json.decodeFromString<NotificationPreferences>("{}").venueReportAvailable)
+        /* La scelta letta torna al server così com'è. */
+        val patch = json.parseToJsonElement(json.encodeToString(manager)).jsonObject
+        assertEquals("false", patch.getValue("venue_report").jsonPrimitive.content)
+    }
 }

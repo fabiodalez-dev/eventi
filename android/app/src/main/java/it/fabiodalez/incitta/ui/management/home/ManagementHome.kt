@@ -22,6 +22,8 @@ import it.fabiodalez.incitta.data.management.managementCounts
 import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.analytics.ExportState
+import it.fabiodalez.incitta.ui.management.availableAreas
+import it.fabiodalez.incitta.ui.management.webOnlyAreas
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
@@ -184,6 +186,24 @@ internal fun ManagementHomeScreen(viewModel: ManagementHomeViewModel, context: M
                 onRetry = viewModel::loadSummary,
                 onProgramme = { week -> viewModel.programme(week, cacheDir) },
             )
+            val areas = availableAreas(current, hasCheckinDates)
+            Text(stringResource(R.string.management_home_areas), style = MaterialTheme.typography.titleLarge)
+            Column {
+                areas.forEach { area ->
+                    ManagementRow(stringResource(area.title), stringResource(area.help), onClick = { open(context, area) })
+                }
+            }
+            if (areas.isEmpty()) Text(stringResource(R.string.management_home_no_areas), color = Muted)
+            /* Il pannello web solo per quello che nell'app non c'è ancora, e lo dice (P12). */
+            val webOnly = webOnlyAreas(current, hasCheckinDates)
+            if (webOnly.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(R.string.management_home_more_web, webOnly.map { stringResource(it.title) }.joinToString(", ")), color = Muted)
+                OutlinedButton(
+                    onClick = { uriHandler.openUri(BuildConfig.API_BASE_URL.substringBefore("/api/") + "/" + current.webPath) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.management_home_open_web)) }
+            }
         }
     }
 }

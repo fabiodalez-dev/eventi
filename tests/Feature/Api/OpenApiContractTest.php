@@ -178,6 +178,13 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         '/management/organizers/{organizer}/dashboard',
     ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/dashboard/programme')
         ->and(collect($document['paths']['/management/venues/{venue}/dashboard/programme']['get']['parameters'])->pluck('name')->all())->toContain('week');
+    // P12 (25/11/2026): gli avvisi a chi gestisce il soggetto e lo slug di un evento del pannello.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/notifications',
+        '/management/venues/{venue}/events/by-slug/{slug}',
+        '/management/organizers/{organizer}/notifications',
+        '/management/organizers/{organizer}/events/by-slug/{slug}',
+    ])->and(collect($document['paths']['/management/venues/{venue}/notifications']['get']['parameters'])->pluck('name')->all())->toContain('cursor', 'limit');
 
     $inspect = function (mixed $node) use (&$inspect): void {
         if (! is_array($node)) {

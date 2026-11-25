@@ -12,6 +12,8 @@ import com.google.firebase.messaging.RemoteMessage
 import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.LocalStore
+import it.fabiodalez.incitta.data.management.ManagementNoticeTarget
+import it.fabiodalez.incitta.data.management.noticeTarget
 
 class InCittaMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) { PushRegistration.register(applicationContext, token) }
@@ -25,7 +27,8 @@ class InCittaMessagingService : FirebaseMessagingService() {
         manager.createNotificationChannel(NotificationChannel("eventi", getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT).apply { setShowBadge(true) })
         val target = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = Uri.parse(message.data["url"] ?: "")
+            /* Un avviso a chi gestisce apre la schermata della gestione (P12); gli altri il loro `url`. */
+            data = Uri.parse(noticeTarget(ManagementNoticeTarget.fromPush(message.data), message.data["url"] ?: ""))
             putExtra("notification_user_id", session.user.id)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
