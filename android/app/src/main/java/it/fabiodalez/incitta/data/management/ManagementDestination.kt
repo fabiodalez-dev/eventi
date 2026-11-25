@@ -33,6 +33,13 @@ internal sealed interface ManagementDestination {
      * solo a sapere che la persona sta cercando i suoi inviti.
      */
     data object Invitations : ManagementDestination
+    /**
+     * `/app/sponsorizzazioni/ritorno?…` (P6): Stripe riporta qui chi ha
+     * pagato (o chiuso il pagamento) dall'app. È l'unico indirizzo di questo
+     * elenco dichiarato App Link: si apre la pagina delle sponsorizzazioni
+     * del soggetto, che controlla l'ordine con il server.
+     */
+    data class SponsorshipCheckout(val result: SponsorshipReturn) : ManagementDestination
 
     companion object {
         fun parse(url: String, allowedOrigin: String): ManagementDestination? = runCatching {
@@ -50,6 +57,7 @@ internal sealed interface ManagementDestination {
                 val event = if (reviews) null else queryLong(uri.rawQuery, "event")
                 return Feedback(kind, match.groupValues[2], reviews, event)
             }
+            SponsorshipReturn.parse(uri)?.let { return SponsorshipCheckout(it) }
             if (Regex("^/inviti-locali/[0-9]{1,18}/[0-9]{1,18}/[0-9]{1,18}$").matches(path) || Regex("^/inviti-ingressi/[0-9]{1,18}/[0-9]{1,18}$").matches(path)) return Invitations
             null
         }.getOrNull()

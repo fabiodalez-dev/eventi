@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sponsorizzazioni (P6): le pagine «Sponsorizzazioni» e «Statistiche sponsorizzazioni» dei pannelli. I testi che il sito scrive dal server (stato di un ordine, frase sotto la barra, prezzo) arrivano già scritti. -->
+<resources>
+    <!-- La pagina -->
+    <string name="sponsorships_title">Sponsorizzazioni</string>
+    <string name="sponsorships_lead">Metti in evidenza i tuoi eventi sul sito e nell’app: scegli l’evento, dove compare e per quanto tempo.</string>
+    <string name="sponsorships_subject_missing">Non gestisci più questo locale o questa organizzazione.</string>
+    <string name="sponsorships_analytics_open">Statistiche sponsorizzazioni</string>
+    <string name="sponsorships_refresh">Aggiorna</string>
+    <string name="sponsorships_event_link">Sponsorizzazione</string>
+
+    <!-- Un periodo già attivo -->
+    <string name="sponsorships_active_title">Hai un periodo attivo</string>
+    <string name="sponsorships_active_lead">Scegli quali eventi mettere in evidenza adesso: entrano subito, senza altre richieste.</string>
+    <string name="sponsorships_active_until">%1$s · fino al %2$s</string>
+    <string name="sponsorships_active_pick">Metti in evidenza un evento</string>
+    <string name="sponsorships_active_period">Periodo</string>
+    <string name="sponsorships_activate">Metti in evidenza</string>
+    <string name="sponsorships_active_on">In evidenza</string>
+    <string name="sponsorships_activated">Evento aggiunto alle sponsorizzazioni</string>
+    <string name="sponsorships_no_events">Si possono sponsorizzare solo gli eventi pubblicati con una data in programma. Pubblica un evento e torna qui.</string>
+
+    <!-- Una sponsorizzazione nuova -->
+    <string name="sponsorships_new">Nuova sponsorizzazione</string>
+    <string name="sponsorships_new_hint">Quattro passi: cosa, dove, per quanto, riepilogo. Il prezzo lo vedi subito.</string>
+
+    <!-- Richieste e ordini -->
+    <string name="sponsorships_orders_title">Richieste e ordini</string>
+    <string name="sponsorships_orders_none">Nessuna richiesta o ordine, per ora.</string>
+    <string name="sponsorships_order_retry">Riprova il pagamento</string>
+    <string name="sponsorships_order_cancel">Annulla</string>
+    <string name="sponsorships_order_cancel_title">Annullare l’ordine?</string>
+    <string name="sponsorships_order_cancel_confirm">Vuoi annullare questo ordine? Non è stato addebitato nulla.</string>
+    <string name="sponsorships_order_cancel_action">Annulla l’ordine</string>
+    <string name="sponsorships_order_withdraw">Ritira la richiesta</string>
+    <string name="sponsorships_order_withdraw_title">Ritirare la richiesta?</string>
+    <string name="sponsorships_order_withdraw_confirm">Vuoi ritirare questa richiesta? Non è stato addebitato nulla.</string>
+    <string name="sponsorships_order_line">%1$s · %2$s</string>
+    <string name="sponsorships_order_note">Il tuo messaggio: «%1$s»</string>
+
+    <!-- Le tue sponsorizzazioni -->
+    <string name="sponsorships_units_title">Le tue sponsorizzazioni</string>
+    <string name="sponsorships_units_lead">Ogni periodo acquistato o concesso, con l’avanzamento e i numeri di ogni evento.</string>
+    <string name="sponsorships_units_none">Ancora nessuna sponsorizzazione sui tuoi eventi.</string>
+    <string name="sponsorships_total_views">Visualizzazioni</string>
+    <string name="sponsorships_total_views_hint">Da quando hai cominciato a sponsorizzare</string>
+    <string name="sponsorships_total_clicks">Aperture</string>
+    <string name="sponsorships_total_clicks_hint">Persone che hanno aperto l’evento dalla sponsorizzazione</string>
+    <string name="sponsorships_grant_period">%1$s – %2$s · %3$s</string>
+    <string name="sponsorships_grant_events">Eventi in vetrina</string>
+    <string name="sponsorships_grant_events_none">Nessun evento in vetrina con questo periodo, per ora.</string>
+    <string name="sponsorships_show_less">Mostra meno eventi</string>
+    <plurals name="sponsorships_show_all">
+        <item quantity="one">Mostra l’altro evento</item>
+        <item quantity="other">Mostra gli altri %1$d eventi</item>
+    </plurals>
+    <string name="sponsorships_stop">Interrompi</string>
+    <string name="sponsorships_stop_title">Interrompere la sponsorizzazione?</string>
+    <string name="sponsorships_stop_confirm">Vuoi interrompere la sponsorizzazione di «%1$s»?</string>
+    <string name="sponsorships_stopped">Sponsorizzazione interrotta</string>
+    <string name="sponsorships_singles_title">Campagne della redazione</string>
+    <string name="sponsorships_singles_lead">Le sponsorizzazioni sui tuoi eventi decise dalla redazione, anche concluse.</string>
+    <string name="sponsorships_campaign_ends">%1$s · fine %2$s</string>
+    <string name="sponsorships_more_campaigns">Mostra altre campagne</string>
+    <string name="sponsorships_open_campaign">Apri la campagna</string>
+
+    <!-- Avanzamento -->
+    <string name="sponsorships_progress_label">Avanzamento: %1$d per cento</string>
+
+    <!-- Esiti -->
+    <string name="sponsorships_checkout_opened">Si apre la pagina sicura di Stripe nel browser: quando hai finito torna qui.</string>
+    <string name="sponsorships_checkout_unavailable">Non riesco ad aprire il browser per il pagamento. Riprova dalla riga dell’ordine.</string>
+    <string name="sponsorships_checked">Ordine aggiornato.</string>
+    <string name="sponsorships_saved">Fatto.</string>
+    <string name="sponsorships_request_sent">Richiesta inviata. La redazione la valuta e ti scrive per il pagamento. Finché non la approva non si attiva niente.</string>
+
+    <!-- La scelta in quattro passi -->
+    <string name="sponsorships_wizard_title">Nuova sponsorizzazione</string>
+    <string name="sponsorships_step_progress">Passo %1$d di 4</string>
+    <string name="sponsorships_step_what">1. Cosa vuoi mettere in evidenza</string>
+    <string name="sponsorships_step_what_lead">Un evento che scegli tu, oppure tutti i tuoi eventi.</string>
+    <string name="sponsorships_scope_event">Un evento</string>
+    <string name="sponsorships_scope_event_hint">Lo scegli qui sotto: compare finché ha date in programma.</string>
+    <string name="sponsorships_scope_all">Tutti i miei eventi</string>
+    <string name="sponsorships_scope_all_hint">Anche quelli che pubblicherai durante il periodo.</string>
+    <string name="sponsorships_search">Cerca fra i tuoi eventi</string>
+    <string name="sponsorships_search_action">Cerca</string>
+    <string name="sponsorships_next_date">Prossima data: %1$s</string>
+    <string name="sponsorships_published">Pubblicato</string>
+    <string name="sponsorships_already">Già sponsorizzato</string>
+    <string name="sponsorships_more_events">Mostra altri eventi</string>
+    <string name="sponsorships_no_results">Nessun evento corrisponde alla ricerca.</string>
+    <string name="sponsorships_step_where">2. Dove compare</string>
+    <string name="sponsorships_step_where_lead">Ogni posizione mostra una sponsorizzazione alla volta, a rotazione.</string>
+    <string name="sponsorships_step_time">3. Per quanto tempo</string>
+    <string name="sponsorships_step_time_lead">Il periodo parte dal giorno in cui la redazione approva.</string>
+    <string name="sponsorships_step_summary">4. Riepilogo</string>
+    <string name="sponsorships_summary_what">Cosa</string>
+    <string name="sponsorships_summary_where">Dove</string>
+    <string name="sponsorships_summary_time">Durata</string>
+    <string name="sponsorships_summary_from_approval">%1$s · dall’approvazione</string>
+    <string name="sponsorships_summary_price">Prezzo</string>
+    <string name="sponsorships_summary_payment">Pagamento</string>
+    <string name="sponsorships_payment_online">Con carta, su Stripe</string>
+    <string name="sponsorships_payment_request">Lo concordi con la redazione: adesso non paghi niente</string>
+    <string name="sponsorships_note_label">Messaggio per la redazione (facoltativo)</string>
+    <string name="sponsorships_note_help">Per esempio: come preferisci pagare, o un recapito telefonico. %1$d/%2$d</string>
+    <string name="sponsorships_submit_online">Vai al pagamento</string>
+    <string name="sponsorships_submit_online_hint">Si apre la pagina sicura di Stripe nel browser. Il periodo parte quando la redazione approva.</string>
+    <string name="sponsorships_submit_request">Invia la richiesta</string>
+    <string name="sponsorships_submit_request_hint">La redazione riceve la richiesta e ti risponde per email.</string>
+    <string name="sponsorships_next">Avanti</string>
+    <string name="sponsorships_previous">Indietro</string>
+    <string name="sponsorships_choose">Cambia</string>
+
+    <!-- Una campagna -->
+    <string name="sponsorships_campaign_title">Campagna</string>
+    <string name="sponsorships_campaign_numbers">%1$s visualizzazioni · %2$s aperture</string>
+    <string name="sponsorships_spend">Spesa registrata della campagna</string>
+    <string name="sponsorships_per_booking">Costo per prenotazione</string>
+    <string name="sponsorships_per_attendance">Costo per presenza</string>
+    <string name="sponsorships_bookings">Prenotazioni confermate</string>
+    <string name="sponsorships_attendances">Ingressi registrati</string>
+    <string name="sponsorships_not_available">Non disponibile</string>
+    <string name="sponsorships_campaign_stats">Statistiche di questa campagna</string>
+    <string name="sponsorships_event_gone">Evento non più disponibile</string>
+
+    <!-- Statistiche -->
+    <string name="sponsorships_analytics_title">Statistiche sponsorizzazioni</string>
+    <string name="sponsorships_analytics_lead">Visualizzazioni e clic delle campagne, anche concluse. Scegli il periodo o cerca un evento.</string>
+    <string name="sponsorships_period">Periodo</string>
+    <string name="sponsorships_from">Dal</string>
+    <string name="sponsorships_to">Al</string>
+    <string name="sponsorships_pick_date">Scegli la data</string>
+    <string name="sponsorships_dates_needed">Scegli le due date per vedere i numeri.</string>
+    <string name="sponsorships_campaign_filter">Campagna o evento</string>
+    <string name="sponsorships_all_campaigns">Tutte le campagne</string>
+    <string name="sponsorships_campaign_search">Cerca per evento o locale</string>
+    <string name="sponsorships_campaign_none">Nessuna campagna corrisponde.</string>
+    <string name="sponsorships_window">Dal %1$s al %2$s, giorni nel fuso della città.</string>
+    <string name="sponsorships_totals">Nel periodo</string>
+    <string name="sponsorships_impressions">Visualizzazioni</string>
+    <string name="sponsorships_clicks">Clic registrati</string>
+    <string name="sponsorships_rate">Clic ogni 100 visualizzazioni</string>
+    <string name="sponsorships_chart_impressions">Visualizzazioni giornaliere</string>
+    <string name="sponsorships_chart_clicks">Clic giornalieri</string>
+    <string name="sponsorships_chart_empty">Nessun dato in questo periodo.</string>
+    <string name="sponsorships_chart_label">%1$s. Massimo %2$s. I valori esatti sono nell’elenco giorno per giorno.</string>
+    <string name="sponsorships_peak">Massimo: %1$s</string>
+    <string name="sponsorships_daily">Valori giorno per giorno</string>
+    <string name="sponsorships_daily_show">Mostra i valori giorno per giorno</string>
+    <string name="sponsorships_daily_hide">Nascondi i valori giorno per giorno</string>
+    <string name="sponsorships_daily_row">%1$s visualizzazioni · %2$s clic</string>
+    <string name="sponsorships_progress_title">Avanzamento della sponsorizzazione</string>
+    <string name="sponsorships_delivery_title">Consegnate e attese, giorno per giorno</string>
+    <string name="sponsorships_delivery_lead">La linea piena sono le visualizzazioni consegnate, quella tratteggiata quelle attese seguendo il traffico previsto.</string>
+    <string name="sponsorships_delivery_summary">Consegnate: %1$s · Attese: %2$s</string>
+    <string name="sponsorships_economics_title">Spesa e risultati</string>
+    <string name="sponsorships_register">Registro dei clic</string>
+    <string name="sponsorships_register_lead">Una riga per ogni clic accettato dai controlli antiabuso, con l’ora nel fuso della città. Nessun IP o dato personale viene conservato.</string>
+    <string name="sponsorships_register_empty">Nessun clic nel registro per questo periodo.</string>
+    <string name="sponsorships_register_more">Mostra altri clic</string>
+    <string name="sponsorships_click_meta">%1$s · %2$s · %3$s</string>
+</resources>

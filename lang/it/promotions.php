@@ -202,4 +202,15 @@ return [
             'requested_why' => 'Ricevi questa email perché puoi approvare le sponsorizzazioni su :product.',
         ],
     ],
+    // La pagina a cui Stripe riporta chi ha pagato dall'app (`/app/sponsorizzazioni/ritorno`).
+    'app_return' => [
+        'title' => 'Torna all\'app',
+        'heading_paid' => 'Pagamento completato',
+        'heading_cancelled' => 'Pagamento annullato',
+        'lead_paid' => 'Torna nell\'app: controlla il pagamento e ti mostra l\'ordine. La redazione lo approva a breve e ti scrive per email.',
+        'lead_cancelled' => 'Non è stato addebitato nulla. L\'ordine resta nell\'app: puoi riprovare il pagamento o annullarlo.',
+        'open' => 'Torna all\'app',
+        'fallback' => 'Se l\'app non si apre da sola, toccala dalla schermata del telefono: alla riapertura controlla il pagamento.',
+        'home' => 'Vai agli eventi',
+    ],
 ];

@@ -4,22 +4,16 @@ declare(strict_types=1);
 
 namespace App\Filament\Shared;
 
-use App\Enums\PromotionMode;
-use App\Enums\SponsorshipOrderStatus;
 use App\Enums\SponsorshipPlacement;
-use App\Enums\SponsorshipStatus;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
 use App\Models\SponsorshipOrder;
-use App\Models\SponsorshipPrice;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\Sponsorship\GrantCampaigns;
-use App\Services\Sponsorship\OrderNoLongerPayable;
-use App\Services\Sponsorship\Payment\PaymentGatewayException;
-use App\Services\Sponsorship\SponsorshipOrders;
+use App\Services\Sponsorship\SponsorshipDesk;
+use App\Services\Sponsorship\SponsorshipDeskOutcome;
 use App\Services\Sponsorship\SponsorshipProgress;
 use App\Services\Sponsorship\UnitProgress;
 use App\Support\Sponsorship\SponsorableEvents;
@@ -28,13 +22,10 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection as SupportCollection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\RateLimiter;
 use Livewire\WithPagination;
 
 /**
@@ -50,7 +41,8 @@ use Livewire\WithPagination;
  * Stripe, mostrava solo elenchi vuoti e nessun pulsante: «qui non si puo'
  * sponsorizzare».
  *
- * La pagina disegna e autorizza; le regole stanno in `SponsorshipOrders`
+ * La pagina disegna e autorizza; le regole stanno in `SponsorshipDesk`, che
+ * chiama anche l'API dell'app, e sotto di lui in `SponsorshipOrders`
  * (acquisto e richiesta), `GrantCampaigns` (scelta degli eventi) e
  * `SponsorableEvents` (quali eventi): ogni valore che arriva da Livewire
  * viene ricontrollato li'.
@@ -59,10 +51,7 @@ abstract class SponsorshipsPage extends Page
 {
     use WithPagination;
 
-    /** Quante richieste puo' inviare una persona in un'ora, oltre al tetto delle richieste aperte. */
-    private const REQUESTS_PER_HOUR = 5;
-
-    private const EVENTS_PAGE = 6;
+    private const EVENTS_PAGE = SponsorshipDesk::EVENTS_STEP;
 
     /** Quanti eventi mostra la scheda di un'abilitazione prima di «mostra gli altri». */
     public const GRANT_EVENTS_SHOWN = 5;
@@ -142,30 +131,15 @@ abstract class SponsorshipsPage extends Page
             return;
         }
 
-        $order = SponsorshipOrder::query()->forSponsor($this->sponsor())->find($orderId);
+        $result = $this->desk()->returnFromCheckout($this->sponsor(), $orderId, request()->boolean('cancelled'));
 
-        if ($order === null) {
+        if ($result === null) {
             return;
         }
 
-        if (request()->boolean('cancelled')) {
-            Notification::make()->title(__('promotions.orders.returned_cancelled'))->warning()->send();
-
-            return;
-        }
-
-        try {
-            app(SponsorshipOrders::class)->reconcile($order);
-        } catch (PaymentGatewayException) {
-            /* Stripe non risponde: il webhook arrivera' comunque, e intanto
-               la pagina dice solo che il pagamento non risulta ancora. */
-        }
-
-        $order->refresh();
-
-        $order->status === SponsorshipOrderStatus::Paid
-            ? Notification::make()->title(__('promotions.orders.returned_paid'))->success()->send()
-            : Notification::make()->title(__('promotions.orders.returned_pending'))->warning()->send();
+        $result->outcome === SponsorshipDeskOutcome::Paid
+            ? Notification::make()->title($result->outcome->message())->success()->send()
+            : Notification::make()->title($result->outcome->message())->warning()->send();
     }
 
     protected function getHeaderActions(): array
@@ -184,7 +158,7 @@ abstract class SponsorshipsPage extends Page
     /** Pagamento online con carta (Stripe configurato) o richiesta alla redazione. */
     public function paysOnline(): bool
     {
-        return app(SponsorshipOrders::class)->available();
+        return $this->desk()->paysOnline();
     }
 
     public function updatedSearch(): void
@@ -201,12 +175,12 @@ abstract class SponsorshipsPage extends Page
 
     public function showMoreEvents(): void
     {
-        $this->eventLimit = min($this->eventLimit + self::EVENTS_PAGE, 60);
+        $this->eventLimit = min($this->eventLimit + self::EVENTS_PAGE, SponsorshipDesk::EVENTS_MAX);
     }
 
     public function selectEvent(int $id): void
     {
-        $event = SponsorableEvents::of($this->sponsor())->find($id);
+        $event = $this->desk()->sponsorableEvent($this->sponsor(), $id);
 
         if ($event === null) {
             Notification::make()->title(__('promotions.request.event_not_available'))->warning()->send();
@@ -238,19 +212,13 @@ abstract class SponsorshipsPage extends Page
     {
         $placement = SponsorshipPlacement::tryFrom((string) $this->placement);
 
-        return $placement === null ? [] : app(SponsorshipOrders::class)->durations($placement);
+        return $placement === null ? [] : $this->desk()->durations($placement);
     }
 
     /** @return array{key: string, months: int, amount_cents: int|null, price_id: int|null}|null */
     public function chosenDuration(): ?array
     {
-        foreach ($this->durations() as $duration) {
-            if ($duration['key'] === $this->duration) {
-                return $duration;
-            }
-        }
-
-        return null;
+        return $this->desk()->duration(SponsorshipPlacement::tryFrom((string) $this->placement), $this->duration);
     }
 
     public function chosenEvent(): ?Event
@@ -275,12 +243,12 @@ abstract class SponsorshipsPage extends Page
      */
     public function sponsorableEvents(): Collection
     {
-        return $this->eventsQuery()->with('media')->orderBy('next_starts_at')->limit($this->eventLimit)->get();
+        return $this->desk()->events($this->sponsor(), $this->search, $this->eventLimit);
     }
 
     public function hasMoreEvents(): bool
     {
-        return $this->eventsQuery()->count() > $this->eventLimit;
+        return $this->desk()->eventsQuery($this->sponsor(), $this->search)->count() > $this->eventLimit;
     }
 
     public function sponsorableCount(): int
@@ -307,49 +275,19 @@ abstract class SponsorshipsPage extends Page
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $placement = SponsorshipPlacement::from((string) $this->placement);
-        $duration = $this->chosenDuration();
-        $event = $this->scope === 'event' ? $this->chosenEvent() : null;
+        $result = $this->desk()->submit($this->buyer(), $this->sponsor(), $this->scope, $this->eventId,
+            SponsorshipPlacement::from((string) $this->placement), (string) $this->duration, $this->note, $this->successUrl(), $this->cancelUrl());
 
-        if ($duration === null || ($this->scope === 'event' && $event === null)) {
-            Notification::make()->title(__('promotions.request.incomplete'))->warning()->send();
+        match ($result->outcome) {
+            SponsorshipDeskOutcome::CheckoutOpened => $this->redirectToCheckout($result->order),
+            SponsorshipDeskOutcome::Requested => $this->requestSent(),
+            SponsorshipDeskOutcome::SlowDown, SponsorshipDeskOutcome::CheckoutFailed => Notification::make()->title($result->outcome->message())->danger()->send(),
+            default => Notification::make()->title($result->outcome->message())->warning()->send(),
+        };
+    }
 
-            return;
-        }
-
-        $key = 'sponsorship-request:'.$this->buyer()->getKey();
-        if (RateLimiter::tooManyAttempts($key, self::REQUESTS_PER_HOUR)) {
-            Notification::make()->title(__('promotions.request.slow_down'))->danger()->send();
-
-            return;
-        }
-        RateLimiter::hit($key, 3600);
-
-        $mode = $event !== null ? PromotionMode::Selected : PromotionMode::Automatic;
-        $price = $duration['price_id'] !== null ? SponsorshipPrice::active()->find($duration['price_id']) : null;
-
-        if ($price !== null && $this->paysOnline()) {
-            try {
-                $order = app(SponsorshipOrders::class)->place($this->buyer(), $this->sponsor(), $price, $mode, $this->successUrl(), $this->cancelUrl(), $event);
-            } catch (PaymentGatewayException) {
-                Notification::make()->title(__('promotions.orders.checkout_failed'))->danger()->send();
-
-                return;
-            }
-
-            $this->redirectToCheckout($order);
-
-            return;
-        }
-
-        $open = SponsorshipOrder::query()->forSponsor($this->sponsor())->where('status', SponsorshipOrderStatus::Requested)->count();
-        if ($open >= SponsorshipOrders::MAX_OPEN_REQUESTS) {
-            Notification::make()->title(__('promotions.request.too_many', ['max' => SponsorshipOrders::MAX_OPEN_REQUESTS]))->warning()->send();
-
-            return;
-        }
-
-        app(SponsorshipOrders::class)->request($this->buyer(), $this->sponsor(), $placement, $duration['months'], $price, $mode, $event, $this->note);
+    private function requestSent(): void
+    {
         Notification::make()->title(__('promotions.request.sent'))->body(__('promotions.request.sent_body'))->success()->send();
         $this->reset(['eventId', 'placement', 'duration', 'note', 'search']);
         $this->scope = 'event';
@@ -366,24 +304,19 @@ abstract class SponsorshipsPage extends Page
 
     public function activate(int $eventId): void
     {
-        $grant = $this->grantId === null ? null : SponsorshipGrant::active()->forSponsor($this->sponsor())
-            ->where('mode', PromotionMode::Selected)->find($this->grantId);
-        $event = SponsorableEvents::of($this->sponsor())->find($eventId);
-
-        if ($grant === null || $event === null) {
+        if ($this->desk()->activate($this->buyer(), $this->sponsor(), $this->grantId, $eventId) === null) {
             Notification::make()->title(__('promotions.request.event_not_available'))->warning()->send();
 
             return;
         }
 
-        app(GrantCampaigns::class)->choose($this->buyer(), $grant, $event);
         Notification::make()->title(__('promotions.success'))->success()->send();
     }
 
     /** @return Collection<int, SponsorshipGrant> */
     public function selectableGrants(): Collection
     {
-        return SponsorshipGrant::active()->forSponsor($this->sponsor())->where('mode', PromotionMode::Selected)->orderBy('ends_at')->get();
+        return $this->desk()->selectableGrants($this->sponsor());
     }
 
     /**
@@ -393,8 +326,7 @@ abstract class SponsorshipsPage extends Page
      */
     public function activeEventIds(): array
     {
-        return $this->grantId === null ? [] : Sponsorship::query()->where('sponsorship_grant_id', $this->grantId)
-            ->where('status', SponsorshipStatus::Active)->pluck('event_id')->map(fn ($id): int => (int) $id)->all();
+        return $this->desk()->activeEventIds($this->grantId);
     }
 
     /* ---------------------------------------------------------------
@@ -409,9 +341,7 @@ abstract class SponsorshipsPage extends Page
      */
     public function grants(): Collection
     {
-        return SponsorshipGrant::query()->forSponsor($this->sponsor())
-            ->with(['venue.city', 'organizer.city', 'sponsorships' => fn ($rows) => $rows->with(['event.media', 'event.venue', 'event.city'])->orderByDesc('impressions')->orderBy('id')])
-            ->orderByDesc('ends_at')->get();
+        return $this->desk()->grants($this->sponsor());
     }
 
     /**
@@ -444,7 +374,7 @@ abstract class SponsorshipsPage extends Page
      */
     public function grantRows(SponsorshipGrant $grant): SupportCollection
     {
-        return $grant->sponsorships->filter(fn (Sponsorship $row): bool => $row->event !== null)->values();
+        return $this->desk()->grantRows($grant);
     }
 
     public function toggleGrantEvents(int $id): void
@@ -464,99 +394,48 @@ abstract class SponsorshipsPage extends Page
      */
     public function eventDates(iterable $rows): array
     {
-        $ids = [];
-        foreach ($rows as $row) {
-            $ids[] = (int) $row->event_id;
-        }
-
-        if ($ids === []) {
-            return [];
-        }
-
-        $dates = [];
-        $rows = DB::table('event_occurrences')->whereIn('event_id', array_values(array_unique($ids)))->whereNull('deleted_at')
-            ->groupBy('event_id')
-            ->selectRaw('event_id, MIN(CASE WHEN effective_ends_at > ? THEN starts_at END) AS next_start, MAX(starts_at) AS last_start', [now('UTC')->format('Y-m-d H:i:s')])
-            ->get();
-
-        foreach ($rows as $row) {
-            $date = $row->next_start ?? $row->last_start;
-            if (is_numeric($row->event_id) && is_string($date)) {
-                $dates[(int) $row->event_id] = $date;
-            }
-        }
-
-        return $dates;
+        return $this->desk()->eventDates($rows);
     }
 
     /** @return Collection<int, SponsorshipOrder> */
     public function orders(): Collection
     {
-        return SponsorshipOrder::query()->forSponsor($this->sponsor())->with('event.media')->latest('id')->limit(20)->get();
+        return $this->desk()->orders($this->sponsor());
     }
 
     public function retry(int $id): void
     {
         Gate::authorize('purchase', [SponsorshipOrder::class, $this->sponsor()]);
-        $order = SponsorshipOrder::query()->forSponsor($this->sponsor())
-            ->where('status', SponsorshipOrderStatus::PendingPayment)->findOrFail($id);
+        $result = $this->desk()->retry($this->sponsor(), $id, $this->successUrl(), $this->cancelUrl());
 
-        try {
-            app(SponsorshipOrders::class)->openCheckout($order, $this->successUrl(), $this->cancelUrl());
-        } catch (OrderNoLongerPayable) {
-            Notification::make()->title(__('promotions.orders.no_longer_payable'))->warning()->send();
-
-            return;
-        } catch (PaymentGatewayException) {
-            Notification::make()->title(__('promotions.orders.checkout_failed'))->danger()->send();
-
-            return;
-        }
-
-        /* La pagina aperta prima risultava gia' pagata: niente da riaprire. */
-        if ($order->status === SponsorshipOrderStatus::Paid) {
-            Notification::make()->title(__('promotions.orders.returned_paid'))->success()->send();
-
-            return;
-        }
-
-        $this->redirectToCheckout($order);
+        match ($result->outcome) {
+            SponsorshipDeskOutcome::CheckoutOpened => $this->redirectToCheckout($result->order),
+            SponsorshipDeskOutcome::Paid => Notification::make()->title($result->outcome->message())->success()->send(),
+            SponsorshipDeskOutcome::NoLongerPayable => Notification::make()->title($result->outcome->message())->warning()->send(),
+            default => Notification::make()->title($result->outcome->message())->danger()->send(),
+        };
     }
 
     public function cancelOrder(int $id): void
     {
         Gate::authorize('purchase', [SponsorshipOrder::class, $this->sponsor()]);
-        $order = SponsorshipOrder::query()->forSponsor($this->sponsor())
-            ->where('status', SponsorshipOrderStatus::PendingPayment)->findOrFail($id);
+        $result = $this->desk()->cancel($this->sponsor(), $id);
 
-        try {
-            $cancelled = app(SponsorshipOrders::class)->cancel($order);
-        } catch (PaymentGatewayException) {
-            Notification::make()->title(__('promotions.orders.cancel_failed'))->danger()->send();
-
-            return;
-        }
-
-        $cancelled
-            ? Notification::make()->title(__('promotions.orders.cancelled'))->success()->send()
-            : Notification::make()->title(__('promotions.orders.returned_paid'))->success()->send();
+        $result->outcome === SponsorshipDeskOutcome::CancelFailed
+            ? Notification::make()->title($result->outcome->message())->danger()->send()
+            : Notification::make()->title($result->outcome->message())->success()->send();
     }
 
     public function withdraw(int $id): void
     {
         Gate::authorize('purchase', [SponsorshipOrder::class, $this->sponsor()]);
-        $order = SponsorshipOrder::query()->forSponsor($this->sponsor())
-            ->where('status', SponsorshipOrderStatus::Requested)->findOrFail($id);
-        app(SponsorshipOrders::class)->withdraw($order);
+        $this->desk()->withdraw($this->sponsor(), $id);
         Notification::make()->title(__('promotions.request.withdrawn'))->success()->send();
     }
 
     public function stop(int $id): void
     {
-        $campaign = Sponsorship::query()->whereHas('event', fn (Builder $q) => $this->scopeEventsOfSponsor($q))
-            ->whereHas('grant', fn (Builder $q) => $q->where('mode', PromotionMode::Selected)->forSponsor($this->sponsor()))->findOrFail($id);
-        Gate::authorize('update', $campaign->event);
-        $campaign->update(['status' => SponsorshipStatus::Paused]);
+        $this->desk()->stop($this->buyer(), $this->sponsor(), $id);
         Notification::make()->title(__('promotions.stopped'))->success()->send();
     }
 
@@ -569,7 +448,7 @@ abstract class SponsorshipsPage extends Page
      */
     public function sponsorships(): LengthAwarePaginator
     {
-        return $this->campaignsQuery()->whereNull('sponsorship_grant_id')->with(['event.media', 'event.city'])->orderByDesc('ends_at')->paginate(10);
+        return $this->desk()->editorialCampaigns($this->sponsor());
     }
 
     /**
@@ -580,19 +459,13 @@ abstract class SponsorshipsPage extends Page
      */
     public function totals(): array
     {
-        $totals = $this->campaignsQuery()->withTrashed()
-            ->selectRaw('COALESCE(SUM(impressions), 0) as impressions, COALESCE(SUM(clicks), 0) as clicks')->first();
-
-        return ['impressions' => (int) $totals?->impressions, 'clicks' => (int) $totals?->clicks];
+        return $this->desk()->totals($this->sponsor());
     }
 
     /** Il fuso della citta' del committente: date e scadenze si leggono li', non in UTC. */
     public function timezone(): string
     {
-        $sponsor = $this->sponsor();
-        $timezone = $sponsor->city?->timezone;
-
-        return is_string($timezone) && $timezone !== '' ? $timezone : 'Europe/Rome';
+        return SponsorshipDesk::timezone($this->sponsor());
     }
 
     public function isVenue(): bool
@@ -603,37 +476,12 @@ abstract class SponsorshipsPage extends Page
     /** Solo chi e' proprietario del committente puo' spendere a suo nome (`SponsorshipOrderPolicy::purchase`). */
     public function canPurchase(): bool
     {
-        return Gate::allows('purchase', [SponsorshipOrder::class, $this->sponsor()]);
+        return $this->desk()->canPurchase($this->buyer(), $this->sponsor());
     }
 
-    /** @return Builder<Sponsorship> */
-    private function campaignsQuery(): Builder
+    private function desk(): SponsorshipDesk
     {
-        return Sponsorship::query()
-            ->whereHas('event', fn (Builder $q) => $this->scopeEventsOfSponsor($q))
-            ->where(fn (Builder $q) => $q->whereNull('sponsorship_grant_id')->orWhereHas('grant', fn (Builder $g) => $g->forSponsor($this->sponsor())));
-    }
-
-    /** @return Builder<Event> */
-    private function eventsQuery(): Builder
-    {
-        $search = trim($this->search);
-
-        return SponsorableEvents::of($this->sponsor())
-            ->when($search !== '', fn (Builder $q) => $q->where('events.title', 'like', '%'.addcslashes(mb_substr($search, 0, 80), '%_\\').'%'));
-    }
-
-    /**
-     * @param  Builder<Event>  $query
-     * @return Builder<Event>
-     */
-    private function scopeEventsOfSponsor(Builder $query): Builder
-    {
-        $sponsor = $this->sponsor();
-
-        return $sponsor instanceof Venue
-            ? $query->where('venue_id', $sponsor->getKey())
-            : $query->where('organizer_id', $sponsor->getKey());
+        return app(SponsorshipDesk::class);
     }
 
     private function buyer(): User
@@ -655,9 +503,9 @@ abstract class SponsorshipsPage extends Page
         return static::getUrl(tenant: $this->sponsor()).'?order={ORDER}&cancelled=1';
     }
 
-    private function redirectToCheckout(SponsorshipOrder $order): void
+    private function redirectToCheckout(?SponsorshipOrder $order): void
     {
-        if ($order->checkout_url === null) {
+        if ($order?->checkout_url === null) {
             Notification::make()->title(__('promotions.orders.checkout_failed'))->danger()->send();
 
             return;
