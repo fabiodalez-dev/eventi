@@ -28,10 +28,15 @@ use Illuminate\Support\Facades\Storage;
  * - una pubblicazione programmata, in coda, in corso, fallita o incerta
  *   (le ultime due si ritentano dallo storico, e `PublishSocial` manda a Meta
  *   l'indirizzo firmato delle immagini del pacchetto);
- * - una pubblicazione di oggi o di ieri: `social:daily` sa di aver già
- *   pubblicato il carosello del giorno guardando le pubblicazioni, che se ne
- *   vanno con il pacchetto (`cascadeOnDelete`). Il giorno di margine copre
- *   la differenza fra il fuso della città e quello del server.
+ * - una pubblicazione di oggi o di ieri, così le grafiche appena uscite si
+ *   riaprono ancora dallo studio. Il giorno di margine copre la differenza
+ *   fra il fuso della città e quello del server.
+ *
+ * Le pubblicazioni non se ne vanno con il pacchetto: la chiave è
+ * `nullOnDelete`, e lo storico della redazione le mostra anche senza
+ * pacchetto (senza immagini). Anche `social:daily`, che riconosce il
+ * carosello già pubblicato dalla `dedupe_key` delle pubblicazioni, non
+ * dipende dal pacchetto.
  *
  * I pacchetti dei locali non hanno mai pubblicazioni (`SocialPublisher`
  * rifiuta quelli con `venue_id`): per loro vale solo il conto dei dodici.

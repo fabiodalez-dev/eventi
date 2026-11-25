@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 25/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **342 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **360 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -703,7 +703,7 @@ Lo studio delle grafiche social del locale (W-SO-01…09) e l'anteprima della gr
 
 Limiti: le letture e i file `management-social` (60 al minuto per persona), la preparazione `management-social-generate` (10 al minuto), l'anteprima lo stesso secchio del sito (`social-preview`, 120 al minuto). La preparazione è sincrona come nel pannello: con molte serate può avvicinarsi al tempo massimo di risposta dell'hosting.
 
-**Pulizia.** `SocialBatch` è `Prunable` e `model:prune` gira ogni notte alle 04:40 (`routes/console.php`): restano i dodici pacchetti più recenti di ogni locale e della redazione di ogni città (quelli che lo studio mostra), più quelli con una pubblicazione programmata, in coda, in corso, fallita o incerta, e quelli con pubblicazioni di oggi o di ieri (`social:daily` riconosce il carosello già pubblicato dalle pubblicazioni, che se ne vanno con il pacchetto). Le immagini in `storage/app/social/{id}` si cancellano con il pacchetto. Lo storico della redazione perde le pubblicazioni concluse dei pacchetti cancellati.
+**Pulizia.** `SocialBatch` è `Prunable` e `model:prune` gira ogni notte alle 04:40 (`routes/console.php`): restano i dodici pacchetti più recenti di ogni locale e della redazione di ogni città (quelli che lo studio mostra), più quelli con una pubblicazione programmata, in coda, in corso, fallita o incerta, e quelli con pubblicazioni di oggi o di ieri. Le immagini in `storage/app/social/{id}` si cancellano con il pacchetto. Le pubblicazioni invece restano: dal 26/11/2026 `social_publications.social_batch_id` è nullable con `nullOnDelete` (migrazione `2026_11_26_100000_keep_social_publications_without_batch`), quindi lo storico della redazione mostra anche le pubblicazioni dei pacchetti cancellati, con la nota che le grafiche non ci sono più e senza «Riprova»; `social:daily` riconosce il carosello già pubblicato dalla `dedupe_key`, che non dipende dal pacchetto.
 
 ## Gestione: riepilogo (P11, 25 novembre 2026)
 

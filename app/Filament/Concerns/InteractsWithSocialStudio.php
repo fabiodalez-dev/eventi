@@ -391,7 +391,13 @@ trait InteractsWithSocialStudio
     {
         abort_unless($this->socialVenue() === null, 403);
 
-        return SocialPublication::whereIn('social_batch_id', SocialBatch::where('city_id', $this->socialCity()->id)->select('id'))->latest()->limit(30)->get();
+        $city = $this->socialCity()->id;
+
+        // Anche le pubblicazioni il cui pacchetto è stato tolto dalla pulizia: la città la dice il collegamento con cui sono uscite.
+        return SocialPublication::query()
+            ->where(fn ($query) => $query->whereIn('social_batch_id', SocialBatch::where('city_id', $city)->select('id'))
+                ->orWhere(fn ($orphan) => $orphan->whereNull('social_batch_id')->whereIn('social_connection_id', SocialConnection::where('city_id', $city)->select('id'))))
+            ->latest()->limit(30)->get();
     }
 
     public function openBatch(string $id): void
@@ -440,8 +446,8 @@ trait InteractsWithSocialStudio
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
         $this->validate(['scheduledAt' => ['required', 'date_format:Y-m-d\\TH:i']]);
         $publication = SocialPublication::findOrFail($id);
-        $batch = SocialBatch::findOrFail($publication->social_batch_id);
-        $city = City::findOrFail($batch->city_id);
+        // Il fuso è quello della città del collegamento, che resta anche se il pacchetto è stato tolto.
+        $city = City::findOrFail(SocialConnection::findOrFail($publication->social_connection_id)->city_id);
         $when = CarbonImmutable::parse($this->scheduledAt, $city->timezone)->utc();
         if ($when->lessThanOrEqualTo(now())) {
             $this->addError('scheduledAt', __('social.schedule.future'));
@@ -473,7 +479,12 @@ trait InteractsWithSocialStudio
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
         $publication = SocialPublication::findOrFail($id);
         abort_unless(in_array($publication->status, [SocialPublicationStatus::Failed, SocialPublicationStatus::Uncertain], true), 422);
-        $batch = SocialBatch::findOrFail($publication->social_batch_id);
+        $batch = $publication->batch;
+        if ($batch === null) {
+            $this->addError('publish', __('social.studio.batch_gone'));
+
+            return;
+        }
         try {
             app(SocialPublisher::class)->assertFresh($batch);
             $connection = SocialConnection::findOrFail($publication->social_connection_id);

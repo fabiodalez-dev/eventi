@@ -61,6 +61,7 @@ return [
         'open_batch' => 'Apri',
         'publication' => 'Pubblica o programma',
         'history_empty' => 'Nessuna pubblicazione ancora.',
+        'batch_gone' => 'Le grafiche di questa pubblicazione non ci sono più: il pacchetto è stato tolto dalla pulizia dei pacchetti vecchi.',
     ],
     'schedule' => [
         'title' => 'Programma la pubblicazione',

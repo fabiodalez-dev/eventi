@@ -39,7 +39,14 @@ class PublishSocial implements ShouldQueue
             return;
         }
         $connection = SocialConnection::findOrFail($publication->social_connection_id);
-        $batch = SocialBatch::findOrFail($publication->social_batch_id);
+        $batch = $publication->social_batch_id === null ? null : SocialBatch::find($publication->social_batch_id);
+        if ($batch === null) {
+            // Senza pacchetto non ci sono immagini da mandare: la pubblicazione resta nello storico come non pubblicata.
+            SocialPublication::whereKey($publication->id)->whereIn('status', [Status::Queued->value, Status::Processing->value])
+                ->update(['status' => Status::Failed->value, 'error' => __('social.studio.batch_gone')]);
+
+            return;
+        }
         try {
             if ($publication->platform === 'telegram') {
                 $publisher->assertFresh($batch);

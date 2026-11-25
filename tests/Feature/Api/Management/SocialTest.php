@@ -259,9 +259,11 @@ it('la pulizia tiene i dodici pacchetti più recenti di ogni locale e quelli che
     }
     Storage::disk('local')->assertExists('social/'.$scheduled->id.'/01-serata.jpg');
     Storage::disk('local')->assertExists('social/'.$venueA->first()->id.'/01-serata.jpg');
-    // La pubblicazione del giorno resta: `social:daily` non ripubblica il carosello.
+    // La pubblicazione del giorno resta con il suo pacchetto; quella vecchia resta nello storico, senza pacchetto.
     expect(SocialPublication::query()->where('social_batch_id', $publishedToday->id)->exists())->toBeTrue()
-        ->and(SocialPublication::query()->where('social_batch_id', $publishedLongAgo->id)->exists())->toBeFalse();
+        ->and(SocialPublication::query()->where('social_batch_id', $publishedLongAgo->id)->exists())->toBeFalse()
+        ->and(SocialPublication::query()->where('dedupe_key', $connection->id.':facebook:'.$publishedLongAgo->id.':0')->value('social_batch_id'))->toBeNull()
+        ->and(SocialPublication::query()->count())->toBe(4);
 });
 
 it('pianifica la pulizia dei pacchetti ogni notte', function (): void {

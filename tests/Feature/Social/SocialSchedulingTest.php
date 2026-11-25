@@ -61,6 +61,36 @@ it('schedules from the admin UI in the city timezone and can reschedule or cance
     expect($publication->fresh()->status)->toBe(Status::Cancelled);
 });
 
+it('keeps the editorial history when the nightly cleanup removes the batch', function (): void {
+    $this->actingAs($this->admin);
+    $row = fn (string $key, Status $status, array $extra = []) => SocialPublication::create(['social_batch_id' => $this->batch->id, 'social_connection_id' => $this->connection->id,
+        'platform' => 'telegram', 'part' => 0, 'dedupe_key' => $key, 'status' => $status->value, ...$extra]);
+    $published = $row('history:published', Status::Published);
+    $failed = $row('history:failed', Status::Failed, ['error' => 'Telegram non ha risposto']);
+    $queued = $row('history:queued', Status::Queued);
+
+    // Lo stesso effetto della pulizia notturna (`SocialBatch::prunable`): il pacchetto se ne va, le pubblicazioni no.
+    $this->batch->delete();
+
+    expect(SocialPublication::query()->count())->toBe(3)
+        ->and($published->fresh()->social_batch_id)->toBeNull()
+        ->and($published->fresh()->hasLostBatch())->toBeTrue()
+        ->and($published->fresh()->status)->toBe(Status::Published);
+    $page = Livewire::test(Social::class)
+        ->assertSee(__('social.studio.batch_gone'))
+        ->assertSee('Telegram non ha risposto')
+        ->assertDontSee(__('social.studio.history_empty'))
+        ->assertDontSeeHtml('wire:click="retryPublication('.$failed->id.')"');
+    expect($page->instance()->publications()->pluck('id')->all())->toEqualCanonicalizing([$published->id, $failed->id, $queued->id]);
+    // Senza immagini non si ritenta: l'errore lo dice, la pubblicazione resta com'era.
+    $page->call('retryPublication', $failed->id)->assertHasErrors('publish');
+    expect($failed->fresh()->status)->toBe(Status::Failed);
+    // Una pubblicazione rimasta in coda senza pacchetto si chiude come non pubblicata, senza chiamare nessuno.
+    (new PublishSocial($queued->id))->handle(app(SocialPublisher::class));
+    expect($queued->fresh()->status)->toBe(Status::Failed)
+        ->and($queued->fresh()->error)->toBe(__('social.studio.batch_gone'));
+});
+
 it('rejects past schedules and unauthorized scheduling', function (): void {
     $this->actingAs($this->admin);
     Livewire::test(Social::class)->call('openBatch', $this->batch->id)->set('scheduledAt', '2000-01-01T12:00')->call('schedulePublication')->assertHasErrors('scheduledAt');
