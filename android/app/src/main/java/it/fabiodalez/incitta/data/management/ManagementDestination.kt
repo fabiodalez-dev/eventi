@@ -19,6 +19,13 @@ internal sealed interface ManagementDestination {
     data object TicketingDates : ManagementDestination
     /** `/gestione-biglietti/{data}` e `/gestione-biglietti/{data}/scanner`: la scheda della data. */
     data class TicketingDate(val occurrenceId: Long) : ManagementDestination
+    /**
+     * `/inviti-locali/…` e `/inviti-ingressi/…` (P8), più la voce «I tuoi
+     * inviti» del profilo: l'elenco degli inviti ricevuti. Il collegamento
+     * firmato non si usa (l'app risponde con l'account confermato): serve
+     * solo a sapere che la persona sta cercando i suoi inviti.
+     */
+    data object Invitations : ManagementDestination
 
     companion object {
         fun parse(url: String, allowedOrigin: String): ManagementDestination? = runCatching {
@@ -30,6 +37,7 @@ internal sealed interface ManagementDestination {
             Regex("^/gestione-biglietti/([1-9][0-9]{0,17})(/scanner)?$").matchEntire(path)?.let { match ->
                 return match.groupValues[1].toLongOrNull()?.let(::TicketingDate)
             }
+            if (Regex("^/inviti-locali/[0-9]{1,18}/[0-9]{1,18}/[0-9]{1,18}$").matches(path) || Regex("^/inviti-ingressi/[0-9]{1,18}/[0-9]{1,18}$").matches(path)) return Invitations
             null
         }.getOrNull()
     }
