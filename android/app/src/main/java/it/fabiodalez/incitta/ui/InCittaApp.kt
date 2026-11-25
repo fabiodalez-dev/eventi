@@ -449,6 +449,8 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onMap = { viewModel.selectTab(AppTab.MAP) },
                         onCalendarDay = viewModel::openCalendarDay,
                         onPreset = viewModel::openEventsPreset,
+                        onRegister = { path -> openDestination(it.fabiodalez.incitta.BuildConfig.API_BASE_URL.substringBefore("/api/") + "/" + path) },
+                        onLogin = { viewModel.selectTab(AppTab.ACCOUNT) },
                         onBannerImpression = { banner ->
                             lastBannerImpression = android.os.SystemClock.elapsedRealtime()
                             viewModel.bannerMetric(banner, false)
@@ -498,6 +500,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onTickets = { viewModel.selectTab(AppTab.TICKETS) },
                         onManagement = { managementDestination = null; managementOpen = true },
                         onInvitations = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Invitations; managementOpen = true },
+                        onApplications = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Registration(it.fabiodalez.incitta.data.management.RegistrationForm.Applications); managementOpen = true },
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,

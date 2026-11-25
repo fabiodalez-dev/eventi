@@ -33,6 +33,14 @@ internal sealed interface ManagementDestination {
      * solo a sapere che la persona sta cercando i suoi inviti.
      */
     data object Invitations : ManagementDestination
+    /**
+     * P13: `/le-mie-richieste`, `/registra-il-tuo-locale`,
+     * `/registra-la-tua-organizzazione` e `/locali/{locale}/rivendica`, più le
+     * voci del profilo, della home e della scheda del locale. Nell'app si
+     * scrive solo da collegati (la `parse` si chiama solo con una sessione):
+     * un ospite resta sul sito, o accede prima.
+     */
+    data class Registration(val form: RegistrationForm, val slug: String? = null) : ManagementDestination
 
     companion object {
         fun parse(url: String, allowedOrigin: String): ManagementDestination? = runCatching {
@@ -50,11 +58,22 @@ internal sealed interface ManagementDestination {
                 val event = if (reviews) null else queryLong(uri.rawQuery, "event")
                 return Feedback(kind, match.groupValues[2], reviews, event)
             }
+            when (path) {
+                "/le-mie-richieste" -> return Registration(RegistrationForm.Applications)
+                "/registra-il-tuo-locale" -> return Registration(RegistrationForm.Venue)
+                "/registra-la-tua-organizzazione" -> return Registration(RegistrationForm.Organizer)
+            }
+            Regex("^/locali/([a-z0-9][a-z0-9-]{0,190})/rivendica$").matchEntire(path)?.let { match ->
+                return Registration(RegistrationForm.Claim, match.groupValues[1])
+            }
             if (Regex("^/inviti-locali/[0-9]{1,18}/[0-9]{1,18}/[0-9]{1,18}$").matches(path) || Regex("^/inviti-ingressi/[0-9]{1,18}/[0-9]{1,18}$").matches(path)) return Invitations
             null
         }.getOrNull()
     }
 }
+
+/** Quale schermata di P13: l'elenco delle richieste o uno dei tre moduli. */
+internal enum class RegistrationForm { Applications, Venue, Claim, Organizer }
 
 /* Un numero positivo da un parametro dell'indirizzo; `null` se manca o non è un id. */
 private fun queryLong(query: String?, name: String): Long? = query.orEmpty().split('&')

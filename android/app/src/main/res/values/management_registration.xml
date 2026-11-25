@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P13: registrare o rivendicare un locale, registrare un’organizzazione, «Le mie richieste». Gli stessi testi dei moduli del sito (lang/it/forms.php, venue_applications.php). -->
+<resources>
+    <!-- Le mie richieste -->
+    <string name="applications_title">Le mie richieste</string>
+    <string name="applications_lead">Le richieste di registrare o rivendicare un locale, o di registrare un’organizzazione, mandate con questo account.</string>
+    <string name="applications_profile_help">Registra o rivendica un locale e segui le richieste</string>
+    <string name="applications_new_venue">Registra un locale</string>
+    <string name="applications_new_organizer">Registra un’organizzazione</string>
+    <string name="applications_empty_title">Nessuna richiesta</string>
+    <string name="applications_empty">Gestisci un locale o organizzi eventi? Registralo e, dopo la mia approvazione, lo gestisci dal tuo pannello. Se il locale è già nel catalogo, aprilo e premi «Rivendica il locale».</string>
+    <string name="applications_sent_on">Inviata il %1$s</string>
+    <string name="applications_decided_on">Valutata il %1$s</string>
+    <string name="applications_confirm">Conferma e invia</string>
+    <string name="applications_discard">Elimina</string>
+    <string name="applications_discard_title">Eliminare la richiesta?</string>
+    <string name="applications_discard_text">La richiesta per %1$s sparisce, con l’immagine allegata. Non si può annullare.</string>
+    <string name="applications_open_panel">Apri il pannello</string>
+    <string name="applications_open_public">Vedi la scheda pubblica</string>
+    <string name="applications_open_venue">Vedi il locale</string>
+    <string name="applications_new_request">Nuova richiesta</string>
+    <string name="applications_more">Mostra altre richieste</string>
+    <string name="applications_state_badge">Stato: %1$s</string>
+
+    <!-- Le richieste mostrate in cima ai moduli -->
+    <string name="applications_awaiting_title">Hai una richiesta da confermare</string>
+    <string name="applications_awaiting_body">La richiesta per %1$s è stata scritta con il tuo indirizzo prima che entrassi. Se l’hai mandata tu, confermala e la metto in coda; altrimenti eliminala.</string>
+    <string name="applications_in_review">Richiesta per %1$s in valutazione dal %2$s.</string>
+
+    <!-- Parti comuni dei moduli -->
+    <string name="application_submit">Invia la richiesta</string>
+    <string name="application_contact_title">Tu, referente</string>
+    <string name="application_contact_description">I tuoi contatti restano privati: servono solo a verificare la richiesta.</string>
+    <string name="application_contact_name">Nome e cognome</string>
+    <string name="application_contact_role">Ruolo</string>
+    <string name="application_contact_role_hint">Per esempio: titolare, gestore, direttore artistico.</string>
+    <string name="application_contact_phone">Il tuo telefono</string>
+    <string name="application_contact_email">La tua email</string>
+    <string name="application_signed_in_as">Mandi la richiesta come %1$s.</string>
+    <string name="application_next_title">Cosa succede dopo</string>
+    <string name="application_next_review">Verifico i dati, di solito entro due giorni lavorativi, e se serve ti telefono.</string>
+    <string name="application_next_panel">Quando approvo, entri nel pannello del locale con il tuo account e completi la scheda.</string>
+    <string name="application_next_publish">La scheda va online quando è completa: da lì pubblichi i tuoi eventi.</string>
+    <string name="application_claim_next_review">Verifico che il locale sia tuo, con i dati che mi hai dato.</string>
+    <string name="application_claim_next_panel">Quando approvo, entri nel pannello del locale con il tuo account: la scheda resta online e da lì la aggiorni.</string>
+    <string name="application_organizer_next_review">Verifico i dati e se serve ti scrivo o ti telefono.</string>
+    <string name="application_organizer_next_panel">Quando approvo, ti arriva il collegamento al pannello dell’organizzazione.</string>
+    <string name="application_privacy_note">I contatti pubblici compaiono sulla scheda del locale; i tuoi (nome, ruolo, telefono, email) li uso solo per verificare la richiesta e non compaiono sul sito.</string>
+    <string name="application_step">%1$d. %2$s</string>
+
+    <!-- Dopo l’invio -->
+    <string name="application_sent_queued_title">Richiesta in coda</string>
+    <string name="application_sent_verify_title">Manca un passo: conferma la tua email</string>
+    <string name="application_sent_organizer_title">Richiesta ricevuta</string>
+    <string name="application_sent_events">Torna agli eventi</string>
+    <string name="application_sent_another">Scrivi un’altra richiesta</string>
+    <string name="application_sent_mine">Vai a «Le mie richieste»</string>
+
+    <!-- Registra il tuo locale -->
+    <string name="register_venue_title">Registra il tuo locale</string>
+    <string name="register_venue_lead">Pubblica i tuoi eventi in città e raggiungi chi sta già cercando qualcosa da fare stasera.</string>
+    <string name="register_catalogue_title">Il tuo locale è già nel catalogo?</string>
+    <string name="register_catalogue_description">Molti locali ci sono già, inseriti dalla redazione. Se trovi il tuo, rivendicalo: non serve crearne un altro.</string>
+    <string name="register_catalogue_label">Nome del locale</string>
+    <string name="register_catalogue_placeholder">Per esempio: Caffè Pedrocchi</string>
+    <string name="register_catalogue_submit">Cerca</string>
+    <string name="register_catalogue_none">Nessun locale con questo nome: compila il modulo qui sotto.</string>
+    <string name="register_catalogue_claim">Rivendica</string>
+    <string name="register_catalogue_claim_named">Rivendica %1$s</string>
+    <string name="register_catalogue_managed">Ha già un referente</string>
+    <string name="register_catalogue_short">Scrivi almeno tre lettere.</string>
+    <string name="register_venue_section">Il locale</string>
+    <string name="register_venue_section_description">Come si chiama e che tipo di posto è.</string>
+    <string name="register_venue_name">Nome del locale</string>
+    <string name="register_venue_type">Tipo di locale</string>
+    <string name="register_venue_type_unknown">Non saprei</string>
+    <string name="register_where_section">Dove</string>
+    <string name="register_where_description">L’indirizzo serve a mettere il locale sulla mappa.</string>
+    <string name="register_address">Indirizzo</string>
+    <string name="register_address_hint">Via e numero civico.</string>
+    <string name="register_postal_code">CAP</string>
+    <string name="register_municipality">Comune</string>
+    <string name="register_public_section">Contatti pubblici</string>
+    <string name="register_public_description">Compaiono sulla scheda del locale: scrivi quelli che vuoi dare al pubblico.</string>
+    <string name="register_website">Sito del locale</string>
+    <string name="register_public_email">Email del locale</string>
+    <string name="register_public_phone">Telefono del locale</string>
+    <string name="register_public_phone_hint">Il numero a cui rispondi al pubblico, anche diverso dal tuo.</string>
+    <string name="register_instagram">Instagram</string>
+    <string name="register_facebook">Facebook</string>
+    <string name="register_social_hint">L’indirizzo completo, con https://</string>
+    <string name="register_space_section">Lo spazio</string>
+    <string name="register_space_description">Facoltativo: aiuta chi cerca un posto adatto.</string>
+    <string name="register_capacity">Capienza (persone)</string>
+    <string name="register_description">Presentazione del locale</string>
+    <string name="register_description_hint">Due o tre righe per chi non conosce il posto. Si può cambiare dal pannello.</string>
+    <string name="register_image_section">Un’immagine</string>
+    <string name="register_image_description">Facoltativa: diventa la copertina della scheda. Resta privata finché la richiesta non è approvata.</string>
+    <string name="register_image_hint">JPG, PNG o WebP, almeno 400×300 pixel, al massimo 5 MB.</string>
+    <string name="register_image_pick">Scegli un’immagine</string>
+    <string name="register_image_change">Cambia immagine</string>
+    <string name="register_image_remove">Togli l’immagine</string>
+    <string name="register_image_chosen">Immagine scelta: %1$d×%2$d pixel</string>
+    <string name="register_image_too_small">L’immagine è troppo piccola: servono almeno 400×300 pixel.</string>
+    <string name="register_image_too_heavy">L’immagine supera i 5 MB anche ridotta: scegline un’altra.</string>
+    <string name="register_message">Qualcosa da aggiungere</string>
+    <string name="register_message_hint">Che tipo di eventi organizzi e ogni quanto. Lo leggo solo io.</string>
+
+    <!-- Rivendica -->
+    <string name="claim_title">Rivendica il tuo locale</string>
+    <string name="claim_lead">%1$s è già nel catalogo. Se lo gestisci tu, chiedi le chiavi della sua pagina: verifico la richiesta e ti apro il pannello.</string>
+    <string name="claim_submit">Chiedi di gestire questo locale</string>
+    <string name="claim_venue_section">Il locale</string>
+    <string name="claim_venue_description">La scheda che chiedi di gestire.</string>
+    <string name="claim_verify_title">Come posso verificare che il locale è tuo?</string>
+    <string name="claim_verify_description">Scrivi il tuo ruolo, da quando lo gestisci e un modo per verificarlo: il sito o la pagina social dove compari, un numero del locale a cui risponderai, un documento che puoi mostrarmi.</string>
+    <string name="claim_message">Ruolo, da quando e come verificarlo</string>
+    <string name="claim_privacy_note">Uso questi dati solo per verificare la richiesta e aprirti il pannello: nome, telefono ed email del referente non compaiono sul sito.</string>
+    <string name="claim_back">Torna a %1$s</string>
+
+    <!-- Registra la tua organizzazione -->
+    <string name="register_organizer_title">Registra la tua organizzazione</string>
+    <string name="register_organizer_lead">Associazioni, collettivi, rassegne: se organizzi eventi senza una sede fissa, chiedi un pannello per proporre le tue date in qualunque locale della città.</string>
+    <string name="register_organizer_section">L’organizzazione</string>
+    <string name="register_organizer_section_description">Il nome con cui compari sul sito e cosa organizzi.</string>
+    <string name="register_organizer_name">Nome dell’organizzazione</string>
+    <string name="register_organizer_website">Sito o pagina social</string>
+    <string name="register_organizer_message">Che cosa organizzi</string>
+    <string name="register_organizer_message_hint">Che tipo di eventi organizzi, dove e ogni quanto: diventa la presentazione dell’organizzazione, che poi cambi dal pannello.</string>
+
+    <!-- Fuori dalla gestione: scheda del locale e home -->
+    <string name="claim_card_title">Gestisci questo locale?</string>
+    <string name="claim_card_description">Se %1$s è tuo, chiedi le chiavi della sua pagina: aggiorni orari e contatti e pubblichi i tuoi eventi.</string>
+    <string name="claim_card_action">Rivendica il locale</string>
+    <string name="claim_card_login">Accedi per rivendicarlo</string>
+    <string name="organize_login_hint">Per registrare un locale o un’organizzazione dall’app accedi prima con il tuo account.</string>
+</resources>

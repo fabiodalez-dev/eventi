@@ -31,6 +31,7 @@ import it.fabiodalez.incitta.ui.management.notifications.notificationsGraph
 import it.fabiodalez.incitta.ui.management.overview.overviewGraph
 import it.fabiodalez.incitta.ui.management.profile.profileGraph
 import it.fabiodalez.incitta.ui.management.registration.registrationGraph
+import it.fabiodalez.incitta.ui.management.registration.registrationRouteFor
 import it.fabiodalez.incitta.ui.management.social.socialGraph
 import it.fabiodalez.incitta.ui.management.sponsorships.sponsorshipsGraph
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
@@ -108,6 +109,7 @@ internal fun ManagementNavHost(
             ManagementDestination.TicketingDates -> if (start != TicketingDatesRoute) navController.navigate(TicketingDatesRoute)
             is ManagementDestination.Feedback -> navController.navigate(feedbackRouteFor(destination))
             ManagementDestination.Invitations -> navController.navigate(InvitationsRoute(fromOutside = true))
+            is ManagementDestination.Registration -> navController.navigate(registrationRouteFor(destination))
         }
     }
 }
