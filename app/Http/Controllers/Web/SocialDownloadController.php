@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web;
 
+use App\Exceptions\SocialStudioException;
 use App\Http\Controllers\Controller;
 use App\Models\EventOccurrence;
 use App\Models\SocialBatch;
@@ -25,7 +26,7 @@ class SocialDownloadController extends Controller
         Gate::authorize('update', $occurrence->event);
         try {
             $bytes = $this->files->preview($occurrence);
-        } catch (\RuntimeException $e) {
+        } catch (SocialStudioException $e) {
             abort(422, $e->getMessage());
         }
 

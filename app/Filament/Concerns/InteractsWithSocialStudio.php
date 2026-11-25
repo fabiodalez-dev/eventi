@@ -6,6 +6,7 @@ namespace App\Filament\Concerns;
 
 use App\Enums\SocialFormat;
 use App\Enums\SocialPublicationStatus;
+use App\Exceptions\SocialStudioException;
 use App\Filament\Support\PanelDate;
 use App\Jobs\Social\PublishSocial;
 use App\Models\City;
@@ -28,7 +29,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Lo studio delle grafiche social, uguale nel pannello della redazione e in
@@ -360,11 +360,11 @@ trait InteractsWithSocialStudio
             Notification::make()->title(__('social.ready'))->success()->send();
         } catch (ValidationException $e) {
             $this->addError('graphicTitle', (string) collect($e->errors())->flatten()->first());
-        } catch (HttpExceptionInterface $e) {
-            // Una serata di un altro giorno o di un altro locale resta un 403, come prima.
-            throw $e;
-        } catch (\RuntimeException $e) {
+        } catch (SocialStudioException $e) {
+            // Solo gli errori previsti (un testo che non sta, lo spazio su disco, il tetto giornaliero del
+            // locale) diventano un messaggio; un 403 o un errore del database vanno al gestore degli errori.
             $this->addError('generate', $e->getMessage());
+            Notification::make()->title($e->getMessage())->danger()->send();
         }
     }
 

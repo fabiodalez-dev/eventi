@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Management;
 
+use App\Enums\ApiErrorCode;
 use App\Enums\OccurrenceStatus;
 use App\Enums\SocialFormat;
+use App\Exceptions\ApiException;
+use App\Exceptions\SocialStudioException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Management\Social\SocialBatchRequest;
 use App\Http\Requests\Api\V1\Management\Social\SocialBatchStoreRequest;
@@ -27,7 +30,6 @@ use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Le grafiche social nell'app (P10, W-SO-01…09 e la grafica di W-DT-12).
@@ -163,10 +165,13 @@ final class SocialStudioController extends Controller
                 $request->studioEventId(),
                 true,
             );
-        } catch (HttpExceptionInterface $e) {
-            throw $e;
-        } catch (RuntimeException $e) {
-            // La grafica che non si disegna (un titolo che non ci sta) o lo spazio su disco, come nella pagina.
+        } catch (SocialStudioException $e) {
+            // Solo gli errori previsti diventano un messaggio: un titolo che non ci sta, lo spazio su disco
+            // (422), il tetto giornaliero del locale (429, col messaggio anche nel campo, che l'app mostra
+            // al posto di «attendi un minuto»). Il resto va al gestore degli errori, senza dettagli al client.
+            if ($e->dailyLimit) {
+                throw new ApiException(ApiErrorCode::RateLimited, $e->getMessage(), ['generate' => [$e->getMessage()]]);
+            }
             throw ValidationException::withMessages(['generate' => $e->getMessage()]);
         }
 
@@ -225,7 +230,7 @@ final class SocialStudioController extends Controller
         $date = $request->occurrence();
         try {
             $bytes = $this->files->preview($date);
-        } catch (RuntimeException $e) {
+        } catch (SocialStudioException $e) {
             throw ValidationException::withMessages(['preview' => $e->getMessage()]);
         }
 

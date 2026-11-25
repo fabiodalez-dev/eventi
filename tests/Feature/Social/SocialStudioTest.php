@@ -3,6 +3,7 @@
 use App\Enums\OccurrenceStatus;
 use App\Enums\SocialFormat;
 use App\Enums\SocialPublicationStatus;
+use App\Enums\VenueStatus;
 use App\Filament\Admin\Pages\Social;
 use App\Filament\Admin\Pages\SocialSettings;
 use App\Jobs\Social\PublishSocial;
@@ -10,6 +11,7 @@ use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\Social\SocialGraphic;
 use App\Services\Social\SocialPublisher;
 use App\Services\Social\SocialStudio;
@@ -68,6 +70,14 @@ it('protects previews downloads and venue-generated batches from other venues', 
     $this->actingAs($this->scenario->ownerA)->get(route('social.zip', $batch))->assertDownload();
     $this->get('/social/grafiche/'.$batch->id.'/0.jpg')->assertForbidden();
     $this->get(SocialStudio::imageUrl($batch, 0))->assertOk()->assertHeader('content-type', 'image/jpeg');
+});
+
+it('non lascia scaricare lo ZIP del pacchetto a chi è di un locale sospeso', function () {
+    $batch = app(SocialStudio::class)->generate($this->date->event->city, $this->date->business_date->format('Y-m-d'), collect([$this->date]), SocialFormat::Portrait, [], $this->scenario->ownerA, $this->scenario->venueA->id);
+    Venue::query()->whereKey($this->scenario->venueA->id)->update(['status' => VenueStatus::Suspended->value]);
+
+    $this->actingAs($this->scenario->ownerA)->get(route('social.zip', $batch))->assertForbidden();
+    $this->actingAs($this->admin)->get(route('social.zip', $batch))->assertDownload();
 });
 
 it('renders studio settings and dashboard for admins only', function () {

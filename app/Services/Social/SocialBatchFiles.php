@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Social;
 
 use App\Enums\SocialFormat;
+use App\Exceptions\SocialStudioException;
 use App\Models\EventOccurrence;
 use App\Models\SocialBatch;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +26,7 @@ final class SocialBatchFiles
      * L'anteprima JPEG della grafica di una serata, in formato verticale,
      * tenuta un'ora in cache con l'impronta della serata nella chiave.
      *
-     * @throws RuntimeException se la grafica non si può disegnare (il titolo non ci sta)
+     * @throws SocialStudioException se la grafica non si può disegnare (il titolo non ci sta)
      */
     public function preview(EventOccurrence $occurrence): string
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\EventStatus;
 use App\Enums\OccurrenceStatus;
 use App\Enums\SocialPublicationStatus;
+use App\Exceptions\SocialStudioException;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\Organizer;
@@ -12,9 +13,12 @@ use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Models\User;
+use App\Services\Social\SocialGraphic;
+use App\Services\Social\SocialStudio;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -272,4 +276,91 @@ it('pianifica la pulizia dei pacchetti ogni notte', function (): void {
 
     expect($events)->toHaveCount(1)
         ->and($events->first()->getExpression())->toBe('40 4 * * *');
+});
+
+/**
+ * Sostituisce il disegno delle grafiche (`SocialGraphic` è final, non si
+ * simula con Mockery): `$render` riceve gli argomenti di `render`.
+ */
+function p10Graphic(Closure $render): void
+{
+    app()->instance(SocialGraphic::class, new class($render)
+    {
+        public function __construct(private readonly Closure $render) {}
+
+        public function render(mixed ...$arguments): string
+        {
+            return ($this->render)(...$arguments);
+        }
+    });
+}
+
+/*
+ * Il disco dell'hosting (10 GB): dopo ogni pacchetto di un locale la pulizia
+ * gira subito per quel locale, e un locale prepara al massimo trenta
+ * pacchetti nelle ultime 24 ore. Senza i due tetti, dieci pacchetti al
+ * minuto da cento immagini restavano sul disco fino alle 04:40.
+ */
+it('pulisce subito i pacchetti del locale oltre i dodici e ferma il locale a trenta pacchetti in 24 ore', function (): void {
+    p10Graphic(fn (): string => 'jpeg');
+    $old = collect(range(1, 13))->map(fn (int $i): SocialBatch => p10StoredBatch($this, $this->s->venueA->id, 100 + $i));
+    $other = p10StoredBatch($this, $this->s->venueB->id, 500);
+    Sanctum::actingAs($this->s->editorA);
+
+    $first = p10Batch($this, $this->s->occurrenceA);
+
+    // 13 vecchi + 1 nuovo: i due più vecchi se ne vanno subito, con le immagini; l'altro locale non si tocca.
+    expect(SocialBatch::query()->where('venue_id', $this->s->venueA->id)->count())->toBe(12)
+        ->and(SocialBatch::query()->whereKey($first)->exists())->toBeTrue()
+        ->and(SocialBatch::query()->whereKey($other->id)->exists())->toBeTrue();
+    foreach ($old->slice(11) as $gone) {
+        expect(SocialBatch::query()->whereKey($gone->id)->exists())->toBeFalse();
+        Storage::disk('local')->assertMissing('social/'.$gone->id.'/01-serata.jpg');
+    }
+    Storage::disk('local')->assertExists('social/'.$old->first()->id.'/01-serata.jpg');
+
+    // Fino a trenta pacchetti in 24 ore (dieci secondi fra uno e l'altro, sotto il limite di dieci al minuto).
+    foreach (range(2, SocialStudio::DAILY_LIMIT_PER_VENUE) as $ignored) {
+        $this->travel(10)->seconds();
+        p10Batch($this, $this->s->occurrenceA);
+    }
+    $this->travel(10)->seconds();
+    $this->postJson($this->url.'/batches', ['date' => '2026-09-11', 'occurrences' => [$this->s->occurrenceA->id]])
+        ->assertTooManyRequests()
+        ->assertJsonPath('error.code', 'RATE_LIMITED')
+        ->assertJsonPath('error.message', __('social.daily_limit', ['count' => 30]))
+        ->assertJsonPath('error.fields.generate.0', __('social.daily_limit', ['count' => 30]));
+    expect(SocialBatch::query()->where('venue_id', $this->s->venueA->id)->count())->toBe(12);
+
+    // Il tetto è del locale: il locale B prepara ancora; e il giorno dopo anche il locale A.
+    Sanctum::actingAs($this->s->ownerB);
+    $this->postJson('/api/v1/management/venues/'.$this->s->venueB->id.'/social/batches', ['date' => '2026-09-12', 'occurrences' => [$this->s->occurrenceB->id]])->assertCreated();
+    Sanctum::actingAs($this->s->editorA);
+    $this->travel(1)->days();
+    p10Batch($this, $this->s->occurrenceA);
+});
+
+/*
+ * Solo gli errori previsti dello studio arrivano al client: un errore
+ * qualunque (qui uno del database) va al gestore degli errori e diventa un
+ * 500 senza messaggio, non un 422 con l'SQL dentro.
+ */
+it('restituisce come 422 solo gli errori previsti della grafica, il resto è un errore interno senza dettagli', function (): void {
+    config(['app.debug' => false]);
+    Sanctum::actingAs($this->s->editorA);
+    $body = ['date' => '2026-09-11', 'occurrences' => [$this->s->occurrenceA->id]];
+    $preview = '/api/v1/management/venues/'.$this->s->venueA->id.'/events/'.$this->s->publishedEventA->id.'/dates/'.$this->s->occurrenceA->id.'/social-preview';
+
+    p10Graphic(fn () => throw SocialStudioException::textOverflow());
+    $this->postJson($this->url.'/batches', $body)->assertUnprocessable()
+        ->assertJsonPath('error.fields.generate.0', __('social.text_overflow'));
+    $this->getJson($preview)->assertUnprocessable()->assertJsonPath('error.fields.preview.0', __('social.text_overflow'));
+
+    p10Graphic(fn () => throw new RuntimeException('SQLSTATE[42S02]: select * from `segreta`'));
+    Cache::flush();
+    foreach ([$this->postJson($this->url.'/batches', $body), $this->getJson($preview)] as $response) {
+        $response->assertServerError()->assertJsonPath('error.code', 'SERVER_ERROR');
+        expect((string) $response->getContent())->not->toContain('SQLSTATE')->not->toContain('segreta');
+    }
+    expect(SocialBatch::query()->count())->toBe(0);
 });

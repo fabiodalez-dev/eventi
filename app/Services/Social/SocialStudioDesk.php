@@ -149,8 +149,9 @@ final class SocialStudioDesk
     /**
      * Prepara il pacchetto di un giorno. Il titolo scritto a mano vale solo
      * per una serata (`title` fra gli errori). Gli errori della grafica (un
-     * titolo troppo lungo da disegnare, lo spazio su disco) restano
-     * `RuntimeException`, come in `SocialStudio::generate`.
+     * titolo troppo lungo da disegnare, lo spazio su disco, il tetto
+     * giornaliero del locale) sono `SocialStudioException`, come in
+     * `SocialStudio::generate`.
      *
      * @param  list<int>  $ids
      * @param  array{monochrome: bool, show_address: bool, show_price: bool, image_fit: string, title: string}  $options

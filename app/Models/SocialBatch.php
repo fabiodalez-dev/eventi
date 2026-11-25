@@ -39,7 +39,11 @@ use Illuminate\Support\Facades\Storage;
  * dipende dal pacchetto.
  *
  * I pacchetti dei locali non hanno mai pubblicazioni (`SocialPublisher`
- * rifiuta quelli con `venue_id`): per loro vale solo il conto dei dodici.
+ * rifiuta quelli con `venue_id`): per loro vale solo il conto dei dodici, e
+ * la pulizia gira anche subito dopo ogni pacchetto nuovo (`pruneOwner`,
+ * chiamata da `SocialStudio::generate`). Aspettare la notte lasciava a un
+ * locale centinaia di pacchetti al giorno sul disco (circa 135 KB per
+ * immagine, fino a cento immagini per pacchetto).
  */
 class SocialBatch extends Model
 {
@@ -74,9 +78,39 @@ class SocialBatch extends Model
     /** @return Builder<static> */
     public function prunable(): Builder
     {
+        return self::beyondKept();
+    }
+
+    /**
+     * La pulizia di un solo pannello, subito dopo un pacchetto nuovo
+     * (`SocialStudio::generate`): con la stessa regola della notte, così il
+     * disco di un locale non cresce oltre i dodici pacchetti fra una notte e
+     * l'altra. Restituisce quanti pacchetti ha tolto.
+     */
+    public static function pruneOwner(int $cityId, ?int $venueId): int
+    {
+        $pruned = 0;
+        self::beyondKept($cityId, $venueId)->get()->each(function (self $batch) use (&$pruned): void {
+            $batch->prune();
+            $pruned++;
+        });
+
+        return $pruned;
+    }
+
+    /**
+     * I pacchetti oltre i dodici più recenti del loro pannello che nessuna
+     * pubblicazione usa più; con `$cityId` solo quelli di un pannello
+     * (`$venueId` nullo è la redazione della città).
+     *
+     * @return Builder<static>
+     */
+    private static function beyondKept(?int $cityId = null, ?int $venueId = null): Builder
+    {
         // La posizione di ogni pacchetto fra quelli del suo pannello, dal più recente (lo stesso ordine di `recent`).
         $ranked = DB::table('social_batches')->select('id')
-            ->selectRaw('row_number() over (partition by city_id, venue_id order by created_at desc, id desc) as position');
+            ->selectRaw('row_number() over (partition by city_id, venue_id order by created_at desc, id desc) as position')
+            ->when($cityId !== null, fn ($query) => $query->where('city_id', $cityId)->where('venue_id', $venueId));
         $statuses = array_map(fn (SocialPublicationStatus $status): string => $status->value, self::LIVE_PUBLICATION_STATUSES);
 
         return static::query()
