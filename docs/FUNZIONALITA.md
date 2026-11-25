@@ -1,6 +1,6 @@
 # inCittà — Funzionalità della piattaforma
 
-*Panoramica per ruoli e opportunità commerciali. Aggiornata al 25 novembre 2026.*
+*Panoramica per ruoli e opportunità commerciali. Aggiornata al 26 novembre 2026.*
 
 <!--
 COME SI AGGIORNA QUESTO FILE
@@ -146,6 +146,11 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Controllo ingressi senza rete** — Lo scanner riconosce i QR anche offline e invia le letture appena torna la connessione. *Sito e app.*
 - **Personale di ingresso per singola data** — Assegna lo staff a una data con uno scanner limitato a quella sola data; si entra solo accettando l'invito. *Sito e app.*
 - **Gestione eventi nell'app** — Staff, scanner, informazioni pratiche, costi e rapporti economici senza aprire il pannello web; la voce compare solo a chi gestisce un locale, un'organizzazione o gli ingressi di una data, e chi gestisce più locali o organizzazioni sceglie su quale lavorare. *Android.*
+- **Eventi dall'app** — Elenco con prossimi, passati e bozze; creazione con l'essenziale in cima, bozza, modifica, invio in revisione o pubblicazione, pubblicazione programmata, duplica, elimina, locandina, listino, import da Facebook, avvisi «stessa sera in zona» e chiusure, descrizione formattata come sul sito. *Android.*
+- **Biglietteria completa dall'app** — Prenotazioni con filtri e ricerca, annullamento con motivo, impostazioni e domande, storico dei messaggi, esportazione CSV e PDF da aprire o condividere. *Android.*
+- **Profilo del locale e dell'organizzazione dall'app** — Tutte le sezioni del pannello, con logo e copertina ritagliati, galleria, orari e chiusure, «Prima di andare», avviso ai follower e strumenti di condivisione. *Android.*
+- **Commenti e recensioni dall'app** — Moderazione dei commenti agli eventi, risposta alle recensioni ricevute e segnalazione alla redazione. *Android.*
+- **Collaboratori e inviti dall'app** — Invito, nuovo invio, ritiro e rimozione dei collaboratori, «Il tuo accesso» per lasciare il locale, e risposta agli inviti ricevuti direttamente nell'app con l'account confermato. *Android.*
 - **Avviso «stessa sera in zona»** — Mentre sceglie l'orario, vede fino a sei eventi di altri entro 2 km alla stessa ora. *Solo web.*
 - **Chiusure straordinarie e ferie** — Giorni di chiusura che prevalgono sugli orari settimanali, con «Chiuso fino al…» sul sito e un avviso a chi crea date in quei giorni. *Sito e app.*
 - **Avvisi a chi segue il locale** — Pausa, chiusura o riapertura sulla scheda e come notifica ai follower, al massimo una volta a settimana. *Sito e app.*
@@ -319,7 +324,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Altri campi della pagina del locale** — Fascia di prezzo, lingue parlate, animali ammessi, prenotazione consigliata.
 - **Personale di ingresso per locale** — Oggi si assegna data per data.
 - **Chat e gruppi persistenti, pubblicità a click, aggiornamenti in tempo reale** — Rinviati.
-- **Tutto il pannello del locale e dell'organizzatore nell'app Android** — Eventi, date, biglietteria completa, profilo, statistiche, sponsorizzazioni, collaboratori, import del calendario, grafiche social, commenti e recensioni: in costruzione a pacchetti; dal 25 novembre ci sono le fondamenta (accesso per locale e organizzazione, caricamento delle immagini, navigazione della gestione).
+- **Il resto del pannello del locale e dell'organizzatore nell'app Android** — Date e ricorrenze, statistiche, sponsorizzazioni, import del calendario, registrazione e rivendicazione, grafiche social, riepilogo e notifiche: in costruzione a pacchetti dopo eventi, biglietteria, profilo, commenti, recensioni e collaboratori.
 
 ## Registro degli aggiornamenti
 
@@ -339,3 +344,4 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **18 novembre 2026** — Aggiunte le funzioni entrate dal 15 settembre: community verificata, «ci vado», commenti, sondaggi, passaggi in auto, analytics completi, link e QR tracciati, acquisto delle sponsorizzazioni, strumenti per le date (domande, messaggi, assenze, lista stampabile, personale su invito, ingressi senza rete), chiusure e avvisi dei locali, co-organizzatori, e una sezione per il pianificato.
 - **15 settembre 2026** — Prima versione.
 - **25 novembre 2026** — Fondamenta della gestione completa nell'app Android: l'app sa quali locali e organizzazioni gestisci e con quali permessi, sceglie il soggetto su cui lavorare e mostra «Gestione eventi» solo a chi gestisce qualcosa; la biglietteria nell'app non perde più la schermata ruotando il telefono e ritenta le letture rimaste anche a schermata chiusa. Nuove API di gestione per locale e organizzazione (soggetti, elenchi e limiti, locandina, logo, copertina e galleria del locale) che rispettano le stesse regole dei pannelli: il membro di un locale sospeso non può scrivere nemmeno dall'app. Le campagne sponsorizzate degli organizzatori compaiono anche nell'app. *Sito e app.*
+- **26 novembre 2026** — Nell'app Android la gestione di eventi, biglietteria completa, profilo del locale e dell'organizzazione, commenti, recensioni, collaboratori e inviti, con le stesse regole e gli stessi limiti del pannello. Correzioni che valgono anche sul sito: solo l'organizzatore principale può cambiare città e locale di un evento, la prima data non può essere più vecchia di sette giorni e le ricorrenze non generano date passate, le bozze delle organizzazioni non si pubblicano dal locale e il loro duplicato nasce senza organizzazione, gli inviti dei locali sospesi non si accettano. *Sito e app.*
