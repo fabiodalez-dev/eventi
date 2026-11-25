@@ -58,7 +58,11 @@ final class SocialStudio
                 abort_unless($user->can('update', $occurrence->event), 403);
             }
         }
-        if ($venueId !== null && RateLimiter::tooManyAttempts(self::dailyKey($venueId), self::DAILY_LIMIT_PER_VENUE)) {
+        // Il posto si prenota prima di disegnare, con un incremento atomico: con un
+        // controllo e un conteggio separati, richieste parallele dello stesso
+        // locale passerebbero tutte il controllo e supererebbero il tetto.
+        if ($venueId !== null && RateLimiter::increment(self::dailyKey($venueId), 86400) > self::DAILY_LIMIT_PER_VENUE) {
+            RateLimiter::decrement(self::dailyKey($venueId), 86400);
             throw SocialStudioException::dailyLimit(self::DAILY_LIMIT_PER_VENUE);
         }
         $batch = SocialBatch::create(['city_id' => $city->id, 'date' => $date, 'format' => $format->value, 'options' => $options, 'items' => [], 'user_id' => $user?->id, 'venue_id' => $venueId]);
@@ -82,12 +86,14 @@ final class SocialStudio
         } catch (Throwable $e) {
             Storage::disk('local')->deleteDirectory('social/'.$batch->id);
             $batch->delete();
+            if ($venueId !== null) {
+                // Contano solo i pacchetti riusciti: un titolo che non ci sta restituisce il posto.
+                RateLimiter::decrement(self::dailyKey($venueId), 86400);
+            }
             throw $e;
         }
 
         if ($venueId !== null) {
-            // Conta solo i pacchetti riusciti: un titolo che non ci sta non consuma il tetto.
-            RateLimiter::hit(self::dailyKey($venueId), 86400);
             // Una pulizia che non riesce non toglie il pacchetto appena pronto: ci riprova la notte.
             rescue(fn (): int => SocialBatch::pruneOwner($city->id, $venueId));
         }

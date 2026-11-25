@@ -20,6 +20,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -355,6 +356,8 @@ it('restituisce come 422 solo gli errori previsti della grafica, il resto è un 
     $this->postJson($this->url.'/batches', $body)->assertUnprocessable()
         ->assertJsonPath('error.fields.generate.0', __('social.text_overflow'));
     $this->getJson($preview)->assertUnprocessable()->assertJsonPath('error.fields.preview.0', __('social.text_overflow'));
+    // Il posto del tetto giornaliero si prenota prima di disegnare e torna indietro se la grafica non riesce.
+    expect(RateLimiter::attempts('social-batches:venue:'.$this->s->venueA->id))->toBe(0);
 
     p10Graphic(fn () => throw new RuntimeException('SQLSTATE[42S02]: select * from `segreta`'));
     Cache::flush();
