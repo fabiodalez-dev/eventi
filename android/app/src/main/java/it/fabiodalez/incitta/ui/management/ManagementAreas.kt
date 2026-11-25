@@ -34,8 +34,6 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
     Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help, CollaboratorsRoute),
     Import(R.string.management_area_import, R.string.management_area_import_help, CalendarImportRoute),
     Social(R.string.management_area_social, R.string.management_area_social_help, SocialStudioRoute()),
-    Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help),
-    Social(R.string.management_area_social, R.string.management_area_social_help),
     Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help, ManagementNoticesRoute()),
     Registration(R.string.management_area_registration, R.string.management_area_registration_help, ApplicationsRoute());
 

@@ -37,6 +37,7 @@ import it.fabiodalez.incitta.ui.management.common.ManagementRow
 import it.fabiodalez.incitta.ui.management.events.EventEditorRoute
 import it.fabiodalez.incitta.ui.management.events.EventOverviewRoute
 import it.fabiodalez.incitta.ui.management.events.EventsListRoute
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
 import it.fabiodalez.incitta.ui.management.events.StatusBadge
 import it.fabiodalez.incitta.ui.management.events.formatEventDate
 import it.fabiodalez.incitta.ui.management.profile.VenueSectionRoute
@@ -65,8 +66,8 @@ internal class OverviewNavigation(private val navController: NavController, priv
     fun tickets(occurrenceId: Long) = navController.navigate(TicketingDateRoute(occurrenceId))
     fun eventStatistics(id: Long) = navController.navigate(SubjectAnalyticsRoute(subject = subject.key, type = "event", id = id))
     fun sponsor(id: Long) = navController.navigate(SponsorshipsRoute(subject = subject.key, event = id))
-    /* Le grafiche social (P10) si aprono dalla loro area quando c'è. */
-    val social: (() -> Unit)? get() = ManagementArea.Social.entry?.let { entry -> { navController.navigate(entry) } }
+    /** «Grafica social» di un prossimo evento; `null` se la card non la porta. */
+    fun social(card: DashboardCard): (() -> Unit)? = overviewSocialRoute(subject, card)?.let { route -> { navController.navigate(route) } }
     /** Un numero del cartellone: l'elenco degli eventi sulla scheda giusta. */
     fun list(tab: EventsTab) = navController.navigate(EventsListRoute(tab.value))
     /** «Nuovo evento»: il modulo sopra l'elenco, così dopo il salvataggio si torna fra gli eventi come nel pannello. */
@@ -82,6 +83,15 @@ internal class OverviewNavigation(private val navController: NavController, priv
     fun area(area: ManagementArea) { area.entry?.let { navController.navigate(it) } }
     fun allAreas() = navController.navigate(ManagementAreasRoute)
 }
+
+/**
+ * «Grafica social» di una card dei prossimi eventi: lo studio di P10 del
+ * locale scelto, ristretto a quell'evento (`?event=` del pannello). Come nella
+ * scheda dell'evento servono il collegamento del server (solo locale) e il
+ * permesso dello studio.
+ */
+internal fun overviewSocialRoute(subject: ManagementSubject, card: DashboardCard): SocialStudioRoute? =
+    SocialStudioRoute(subject = subject.key, event = card.event.id).takeIf { card.links.social && subject.permissions.socialUse && card.event.id > 0 }
 
 /** Le aree nei tre gruppi di «Vai a», come `ManagementContext::shortcuts`: solo quelle fatte e permesse. */
 internal data class ShortcutGroup(val title: Int, val areas: List<ManagementArea>, val createEvent: Boolean = false)
@@ -224,7 +234,7 @@ private fun EventTile(card: DashboardCard, zone: ZoneId, navigation: OverviewNav
                 if (links.edit) add(R.string.overview_link_edit to { navigation.edit(card.event.id) })
             } else {
                 if (links.edit) add(R.string.overview_link_edit to { navigation.edit(card.event.id) })
-                navigation.social?.takeIf { links.social }?.let { open -> add(R.string.overview_link_social to open) }
+                navigation.social(card)?.let { open -> add(R.string.overview_link_social to open) }
                 if (links.sponsor) add(R.string.overview_link_sponsor to { navigation.sponsor(card.event.id) })
             }
         }

@@ -32,6 +32,7 @@ import it.fabiodalez.incitta.ui.management.feedback.CommentsModerationRoute
 import it.fabiodalez.incitta.ui.management.notifications.ManagementNoticesViewModel
 import it.fabiodalez.incitta.ui.management.notifications.PanelResolution
 import it.fabiodalez.incitta.ui.management.notifications.resolvePanel
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -114,6 +115,11 @@ class NotificationsViewModelTest {
         assertEquals(SubjectAnalyticsRoute(subject = "venue:12", type = "event", id = 34), (stats as PanelResolution.Native).route)
         val sponsor = resolvePanel(repository, ManagementDestination.Panel(venue, PanelPage.Sponsorships), enabled = true)
         assertEquals(SponsorshipsRoute(subject = "venue:12"), (sponsor as PanelResolution.Native).route)
+        /* Lo studio social (P10), ristretto all'evento come `?event=` del pannello. */
+        val social = resolvePanel(repository, ManagementDestination.Panel(venue, PanelPage.Social(eventId = 34)), enabled = true)
+        assertEquals(SocialStudioRoute(subject = "venue:12", event = 34), (social as PanelResolution.Native).route)
+        val studio = resolvePanel(repository, ManagementDestination.Panel(venue, PanelPage.Social()), enabled = true)
+        assertEquals(SocialStudioRoute(subject = "venue:12"), (studio as PanelResolution.Native).route)
         val home = resolvePanel(repository, ManagementDestination.Panel(venue, PanelPage.Home), enabled = true)
         assertNull((home as PanelResolution.Native).route)
     }
@@ -140,6 +146,12 @@ class NotificationsViewModelTest {
         assertFalse(ManagementArea.Dates in missing)
         assertFalse(ManagementArea.Notifications in missing)
         assertTrue(missing.all { !it.implemented })
+        /* Con il riepilogo (P11) e lo studio social (P10) nell'app non manca più nulla: il pulsante del pannello web non compare. */
+        assertTrue(missing.isEmpty())
+        val all = listOf("events_create", "ticketing_manage", "profile_update", "collaborators_manage", "import_manage", "analytics_view", "sponsorships_view", "social_use", "comments_moderate", "reviews_reply")
+        assertTrue(webOnlyAreas(ManagedVenue(id = 12, slug = "circolo-aurora", role = "owner", permissions = all.associateWith { true }).toSubject(), hasCheckinDates = true).isEmpty())
+        val organizer = ManagedOrganizer(id = 3, permissions = all.associateWith { true }).toSubject()
+        assertTrue(webOnlyAreas(organizer, hasCheckinDates = true).isEmpty())
         val withoutSocial = webOnlyAreas(ManagedVenue(id = 12, slug = "circolo-aurora", role = "editor").toSubject(), hasCheckinDates = false)
         assertFalse(ManagementArea.Social in withoutSocial)
     }

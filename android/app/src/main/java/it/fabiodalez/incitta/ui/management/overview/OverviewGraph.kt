@@ -17,6 +17,7 @@ import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.management.ManagementArea
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.availableAreas
+import it.fabiodalez.incitta.ui.management.webOnlyAreas
 import it.fabiodalez.incitta.ui.management.common.ManagementRow
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
 import it.fabiodalez.incitta.ui.management.home.ManagementHomeRoute
@@ -66,11 +67,19 @@ private fun ManagementAreasScreen(context: ManagementGraphContext) {
             }
         }
         if (areas.isEmpty()) Text(stringResource(R.string.management_home_no_areas), color = Muted)
-        Spacer(Modifier.height(4.dp))
-        Text(stringResource(R.string.management_home_more_web), color = Muted)
-        OutlinedButton(
-            onClick = { uriHandler.openUri(BuildConfig.API_BASE_URL.substringBefore("/api/") + "/" + current.webPath) },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(stringResource(R.string.management_home_open_web)) }
+        /*
+         * Il pannello web solo per le aree permesse che nell'app non ci sono
+         * ancora, nominate (P12). Con tutte le aree fatte l'elenco è vuoto e
+         * il pulsante non compare.
+         */
+        val webOnly = webOnlyAreas(current, hasCheckinDates)
+        if (webOnly.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(stringResource(R.string.management_home_more_web, webOnly.map { stringResource(it.title) }.joinToString(", ")), color = Muted)
+            OutlinedButton(
+                onClick = { uriHandler.openUri(BuildConfig.API_BASE_URL.substringBefore("/api/") + "/" + current.webPath) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) { Text(stringResource(R.string.management_home_open_web)) }
+        }
     }
 }

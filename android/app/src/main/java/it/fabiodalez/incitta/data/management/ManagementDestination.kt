@@ -11,8 +11,9 @@ import java.net.URI
  * Elenco chiuso: un indirizzo che non è qui torna `null` e si apre nel
  * browser come prima. P12 ha chiuso il giro: ogni pagina di `/gestione/…` e
  * di `/organizza/…` che ha una schermata nativa è qui (`Panel`, più
- * `Feedback` per commenti e recensioni); restano al browser solo le pagine
- * senza schermata (oggi «Social», P10) e i file (CSV, PDF).
+ * `Feedback` per commenti e recensioni), con lo studio social di P10 e il
+ * riepilogo di P11; restano al browser solo le pagine senza schermata e i
+ * file (CSV, PDF).
  * Gli avvisi a chi gestisce arrivano con un indirizzo interno
  * (`incitta://gestione/…`, vedi `ManagementNoticeTarget.uri`) che porta gli id e non
  * gli slug, così l'app non indovina il soggetto da un indirizzo pensato per
@@ -92,11 +93,11 @@ internal sealed interface ManagementDestination {
             SponsorshipReturn.parse(uri)?.let { return SponsorshipCheckout(it) }
             if (Regex("^/inviti-locali/[0-9]{1,18}/[0-9]{1,18}/[0-9]{1,18}$").matches(path) || Regex("^/inviti-ingressi/[0-9]{1,18}/[0-9]{1,18}$").matches(path)) return Invitations
             if (path == "/gestione" || path == "/organizza") return Start
-            parsePanel(path, url)
+            parsePanel(path, uri.rawQuery, url)
         }.getOrNull()
 
         /* `/gestione/{slug}/…` e `/organizza/{slug}/…`: le pagine con una schermata nativa, una per una. */
-        private fun parsePanel(path: String, url: String): ManagementDestination? {
+        private fun parsePanel(path: String, query: String?, url: String): ManagementDestination? {
             val match = Regex("^/(gestione|organizza)/([a-z0-9][a-z0-9-]{0,190})((?:/[a-z0-9-]{1,191}){0,3})$").matchEntire(path) ?: return null
             val kind = if (match.groupValues[1] == "gestione") SubjectKind.Venue else SubjectKind.Organizer
             val slug = match.groupValues[2]
@@ -119,6 +120,8 @@ internal sealed interface ManagementDestination {
                     PanelPage.SubjectAnalytics(rest[1], rest[2].takeIf { Regex("^[1-9][0-9]{0,17}$").matches(it) }?.toLongOrNull() ?: return null)
                 rest == listOf("statistiche-sponsorizzazioni") -> PanelPage.SponsorshipAnalytics
                 rest == listOf("sponsorizzazioni") -> PanelPage.Sponsorships
+                /* Lo studio social c'è solo nel pannello del locale; `?event=` lo restringe a un evento (P10). */
+                venue && rest == listOf("social") -> PanelPage.Social(queryLong(query, "event"))
                 else -> return null
             }
             return Panel(SubjectRef(kind, slug = slug), page, webUrl = url)
@@ -154,7 +157,7 @@ internal data class SubjectRef(val kind: SubjectKind, val slug: String? = null, 
 
 /** Le pagine del pannello che hanno una schermata nativa. */
 internal sealed interface PanelPage {
-    /** La pagina del soggetto (finché non c'è il riepilogo di P11, il menu delle aree). */
+    /** La pagina del soggetto: il riepilogo (P11). */
     data object Home : PanelPage
     data object Events : PanelPage
     data object NewEvent : PanelPage
@@ -171,6 +174,8 @@ internal sealed interface PanelPage {
     data class SubjectAnalytics(val type: String, val id: Long) : PanelPage
     data object SponsorshipAnalytics : PanelPage
     data object Sponsorships : PanelPage
+    /** Lo studio social del locale (P10), ristretto a un evento con `?event=`. */
+    data class Social(val eventId: Long? = null) : PanelPage
 }
 
 /** Quale schermata di P13: l'elenco delle richieste o uno dei tre moduli. */

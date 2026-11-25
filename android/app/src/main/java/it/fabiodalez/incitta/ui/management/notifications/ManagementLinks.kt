@@ -17,6 +17,7 @@ import it.fabiodalez.incitta.ui.management.events.EventsListRoute
 import it.fabiodalez.incitta.ui.management.feedback.CommentsModerationRoute
 import it.fabiodalez.incitta.ui.management.home.ManagementHomeRoute
 import it.fabiodalez.incitta.ui.management.profile.ProfileRoute
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipAnalyticsRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import kotlinx.coroutines.CancellationException
@@ -53,7 +54,7 @@ internal suspend fun resolvePanel(repository: ManagementRepository, destination:
     val key = subject.key
     val route: Any? = when (val page = destination.page) {
         PanelPage.Home -> null
-        PanelPage.Events -> EventsListRoute
+        PanelPage.Events -> EventsListRoute()
         PanelPage.NewEvent -> EventEditorRoute()
         is PanelPage.Event -> {
             val id = page.id ?: page.slug?.let { slug ->
@@ -72,6 +73,7 @@ internal suspend fun resolvePanel(repository: ManagementRepository, destination:
         is PanelPage.SubjectAnalytics -> SubjectAnalyticsRoute(subject = key, type = page.type, id = page.id)
         PanelPage.SponsorshipAnalytics -> SponsorshipAnalyticsRoute(subject = key)
         PanelPage.Sponsorships -> SponsorshipsRoute(subject = key)
+        is PanelPage.Social -> SocialStudioRoute(subject = key, event = page.eventId ?: 0)
     }
     return PanelResolution.Native(subject, route)
 }
@@ -81,7 +83,7 @@ internal suspend fun resolvePanel(repository: ManagementRepository, destination:
  * ricomincia dalla sua pagina: le schermate di prima parlano di un locale che
  * non è più quello scelto, e la pagina del soggetto legge la scelta solo
  * quando nasce. Con lo stesso soggetto si torna alla sua pagina e si apre la
- * schermata sopra, così «indietro» porta sempre al menu del soggetto.
+ * schermata sopra, così «indietro» porta sempre al riepilogo del soggetto.
  */
 internal fun openNative(navController: NavHostController, repository: ManagementRepository, resolution: PanelResolution.Native) {
     val sameSubject = repository.selectedSubjectKey == resolution.subject.key

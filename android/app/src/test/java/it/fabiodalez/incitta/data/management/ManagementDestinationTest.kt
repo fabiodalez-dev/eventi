@@ -16,8 +16,8 @@ class ManagementDestinationTest {
 
     @Test fun pagesWithoutANativeScreenStayInTheBrowser() {
         listOf(
-            /* P10 non c'è ancora in questo ramo: la pagina «Social» resta al sito. */
-            "https://eventi.fabiodalez.it/gestione/teatro-verdi/social",
+            /* Lo studio social è solo del locale: l'organizzazione non ha la pagina. */
+            "https://eventi.fabiodalez.it/organizza/jazz-club/social",
             "https://eventi.fabiodalez.it/gestione/login",
             "https://eventi.fabiodalez.it/organizza/password-reset/request",
             "https://eventi.fabiodalez.it/gestione/teatro-verdi/eventi/concerto/csv",
@@ -65,6 +65,9 @@ class ManagementDestinationTest {
             "/statistiche-condivisioni/event/41" to PanelPage.SubjectAnalytics("event", 41),
             "/statistiche-sponsorizzazioni" to PanelPage.SponsorshipAnalytics,
             "/sponsorizzazioni" to PanelPage.Sponsorships,
+            "/social" to PanelPage.Social(),
+            "/social?event=41" to PanelPage.Social(eventId = 41),
+            "/social?event=0" to PanelPage.Social(),
         ).forEach { (rest, page) ->
             val url = "https://eventi.fabiodalez.it/gestione/teatro-verdi$rest"
             assertEquals(url, ManagementDestination.Panel(venue, page, url), panel(url))

@@ -19,7 +19,9 @@ import it.fabiodalez.incitta.data.management.dashboardProgrammePath
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.home.ManagementHomeRoute
 import it.fabiodalez.incitta.ui.management.home.ManagementHomeViewModel
+import it.fabiodalez.incitta.ui.management.overview.overviewSocialRoute
 import it.fabiodalez.incitta.ui.management.overview.shortcutGroups
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -123,6 +125,16 @@ class OverviewTest {
         assertFalse(organizer[0].createEvent)
         assertTrue(organizer.flatMap { it.areas }.none { it == ManagementArea.Collaborators || it == ManagementArea.Import || it == ManagementArea.Profile })
         assertTrue(organizer.none { it.areas.isEmpty() && !it.createEvent })
+    }
+
+    @Test fun theSocialButtonOfAnUpcomingEventOpensTheStudioOfThatEvent() {
+        val card = json.decodeFromString<DashboardEnvelope>(payload).data.upcoming.single()
+        val withStudio = ManagedVenue(id = 12, slug = "circolo-aurora", role = "owner", permissions = mapOf("social_use" to true)).toSubject()
+        /* P10: lo studio del locale scelto, ristretto all'evento della card. */
+        assertEquals(SocialStudioRoute(subject = "venue:12", event = 42), overviewSocialRoute(withStudio, card))
+        /* Senza il permesso dello studio, o senza il collegamento del server (l'organizzazione), il pulsante non c'è. */
+        assertNull(overviewSocialRoute(subjects.venues.single().toSubject(), card))
+        assertNull(overviewSocialRoute(withStudio, card.copy(links = card.links.copy(social = false))))
     }
 
     @Test fun loadsTheSummaryOfTheChosenSubjectAndReloadsWhenItChanges() = runTest(dispatcher) {
