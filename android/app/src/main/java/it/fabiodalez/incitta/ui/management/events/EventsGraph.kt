@@ -6,13 +6,18 @@ import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.dates.EventDatesRoute
 import it.fabiodalez.incitta.ui.management.managementViewModel
 import it.fabiodalez.incitta.ui.management.analytics.SubjectAnalyticsRoute
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.EventTicketingRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDateRoute
 import kotlinx.serialization.Serializable
 
-/* Le rotte degli eventi. L'id dell'evento finisce nello stato salvato della voce (`id`); 0 è «nuovo evento». */
-@Serializable internal data object EventsListRoute
+/*
+ * Le rotte degli eventi. L'id dell'evento finisce nello stato salvato della
+ * voce (`id`); 0 è «nuovo evento». `tab` apre l'elenco su una scheda
+ * (`upcoming`, `drafts`…), come i numeri del cartellone del riepilogo (P11).
+ */
+@Serializable internal data class EventsListRoute(val tab: String = "")
 @Serializable internal data class EventOverviewRoute(val id: Long)
 @Serializable internal data class EventEditorRoute(val id: Long = 0L)
 @Serializable internal data class EventPreviewRoute(val id: Long)
@@ -39,6 +44,7 @@ internal fun NavGraphBuilder.eventsGraph(context: ManagementGraphContext) {
             onDates = { id -> context.navController.navigate(EventDatesRoute(id)) },
             onStatistics = { subject, eventId -> context.navController.navigate(SubjectAnalyticsRoute(subject = subject, type = "event", id = eventId)) },
             onSponsor = { key, eventId -> context.navController.navigate(SponsorshipsRoute(subject = key, event = eventId)) },
+            onSocial = { key, eventId -> context.navController.navigate(SocialStudioRoute(subject = key, event = eventId)) },
             onOpenCopy = { id ->
                 context.navController.navigate(EventEditorRoute(id)) { popUpTo<EventsListRoute>() }
             })

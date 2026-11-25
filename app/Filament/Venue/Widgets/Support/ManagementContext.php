@@ -32,6 +32,7 @@ use App\Models\Organizer;
 use App\Models\User;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Management\DashboardSummary;
 use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
@@ -44,6 +45,10 @@ use Illuminate\Database\Eloquent\Builder;
  * (`/organizza`). I riquadri del riepilogo sono gli stessi nei due pannelli e
  * chiedono a questa classe le tre cose che cambiano: di quali eventi si
  * parla, in che città (per «oggi»), e quali pagine si possono aprire.
+ *
+ * Le prime due le risponde `DashboardSummary`, lo stesso servizio del
+ * riepilogo dell'app (`GET S/dashboard`); qui restano gli indirizzi delle
+ * pagine del pannello.
  *
  * Non è un widget: la scoperta automatica dei widget la salta.
  */
@@ -61,25 +66,15 @@ final class ManagementContext
     }
 
     /**
-     * La città che decide che cos'è «oggi». L'organizzazione non ha una città
-     * propria: vale quella della sede principale dei suoi eventi, altrimenti
-     * la prima del catalogo.
+     * La città che decide che cos'è «oggi» (`DashboardSummary::city`):
+     * quella del locale, o per l'organizzazione quella del suo evento più
+     * recente.
      */
     public static function city(): ?City
     {
         $tenant = self::tenant();
 
-        if ($tenant instanceof Venue) {
-            return $tenant->city ?? City::query()->find($tenant->city_id);
-        }
-
-        if ($tenant instanceof Organizer) {
-            $cityId = self::events()->reorder()->orderByDesc('id')->value('city_id');
-
-            return City::query()->find($cityId) ?? City::query()->orderBy('id')->first();
-        }
-
-        return null;
+        return $tenant === null ? null : app(DashboardSummary::class)->city($tenant);
     }
 
     /**
@@ -89,15 +84,8 @@ final class ManagementContext
     public static function occurrences(): ?EventOccurrenceQuery
     {
         $tenant = self::tenant();
-        $city = self::city();
 
-        if ($tenant === null || $city === null) {
-            return null;
-        }
-
-        $query = EventOccurrenceQuery::for($city);
-
-        return $tenant instanceof Venue ? $query->atVenue($tenant) : $query->byOrganizer($tenant);
+        return $tenant === null ? null : app(DashboardSummary::class)->occurrences($tenant);
     }
 
     /**
@@ -108,13 +96,8 @@ final class ManagementContext
     public static function events(): Builder
     {
         $tenant = self::tenant();
-        $query = Event::query();
 
-        return match (true) {
-            $tenant instanceof Venue => $query->where('venue_id', $tenant->getKey()),
-            $tenant instanceof Organizer => $query->where('organizer_id', $tenant->getKey()),
-            default => $query->whereRaw('1 = 0'),
-        };
+        return $tenant === null ? Event::query()->whereRaw('1 = 0') : app(DashboardSummary::class)->events($tenant);
     }
 
     /** @return class-string<resource> */

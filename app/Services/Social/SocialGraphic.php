@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Social;
 
 use App\Enums\SocialFormat;
+use App\Exceptions\SocialStudioException;
 use App\Http\Resources\V1\PriceResource;
 use App\Models\EventOccurrence;
 use App\Support\Poster;
@@ -13,7 +14,6 @@ use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Encoders\JpegEncoder;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Typography\FontFactory;
-use RuntimeException;
 
 /** Fixed editorial zones, measured with the same font used to draw. Never ellipsize event data. */
 final class SocialGraphic
@@ -148,7 +148,7 @@ final class SocialGraphic
                 return [$lines, $size];
             }
         }
-        throw new RuntimeException(__('social.text_overflow'));
+        throw SocialStudioException::textOverflow();
     }
 
     private function width(string $text, string $font, int $size): int

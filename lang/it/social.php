@@ -13,6 +13,7 @@ return [
     'options' => 'Personalizza le grafiche', 'monochrome' => 'Locandina in bianco e nero', 'address' => 'Mostra indirizzo', 'price' => 'Mostra prezzo', 'short_title' => 'Titolo alternativo (solo con un evento selezionato)', 'title_single' => 'Il titolo alternativo si applica a un solo evento alla volta.',
     'select_all' => 'Seleziona tutti', 'generate' => 'Prepara le grafiche selezionate', 'generating' => 'Preparazione delle immagini…', 'download' => 'Scarica tutte le grafiche (.zip)', 'ready' => 'Grafiche pronte', 'preview' => 'Anteprima grafica', 'choose_events' => 'Scegli almeno un evento da preparare.',
     'all_day' => 'Tutto il giorno', 'text_overflow' => 'Un testo è troppo lungo per una grafica leggibile. Seleziona solo questo evento e imposta un titolo alternativo più breve, oppure correggi il nome o l’indirizzo del luogo.', 'storage_error' => 'Non è stato possibile salvare le grafiche. Riprova.',
+    'daily_limit' => 'Il locale ha già preparato :count pacchetti di grafiche nelle ultime 24 ore, il massimo consentito. Riapri uno dei pacchetti recenti oppure riprova domani.',
     'caption' => 'Gli eventi di :city del :date', 'caption_label' => 'Didascalia del post', 'publish' => 'Pubblica sui canali collegati', 'confirm' => 'Confermi la pubblicazione delle grafiche preparate sui canali attivi? Il post sarà visibile al pubblico.', 'queued' => 'Pubblicazione messa in coda. Controlla l’esito nello storico.',
     'settings' => 'Collega account e programma', 'settings_title' => 'Account e pubblicazione social', 'settings_lead' => 'Questa configurazione serve solo per pubblicare senza uscire dal sito. Per scaricare le grafiche non devi compilare nulla.',
     'connection_name' => 'Nome del collegamento', 'token' => 'Token di accesso della Pagina Facebook', 'token_help' => 'Lascia vuoto per conservare quello salvato. Il token è cifrato e non viene mostrato. Serve una Pagina Facebook e, per Instagram, un account professionale collegato.',
@@ -61,6 +62,7 @@ return [
         'open_batch' => 'Apri',
         'publication' => 'Pubblica o programma',
         'history_empty' => 'Nessuna pubblicazione ancora.',
+        'batch_gone' => 'Le grafiche di questa pubblicazione non ci sono più: il pacchetto è stato tolto dalla pulizia dei pacchetti vecchi.',
     ],
     'schedule' => [
         'title' => 'Programma la pubblicazione',

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\OccurrenceStatus;
+use App\Exceptions\SocialStudioException;
 use App\Filament\Admin\Pages\Social as AdminSocial;
 use App\Filament\Concerns\InteractsWithSocialStudio;
 use App\Filament\Venue\Pages\Social as VenueSocial;
@@ -10,6 +11,8 @@ use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Models\Venue;
+use App\Services\Social\SocialGraphic;
+use App\Services\Social\SocialStudio;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Queue;
@@ -151,4 +154,45 @@ it('scrive il periodo dello studio in parole', function (): void {
     expect($page->periodLabel())->toBe('oggi');
     $page->from = $page->until = '2026-11-22';
     expect($page->periodLabel())->toBe('solo dom 22 nov');
+});
+
+/** Sostituisce il disegno delle grafiche (`SocialGraphic` è final, non si simula con Mockery). */
+function venueSocialGraphic(Closure $render): void
+{
+    app()->instance(SocialGraphic::class, new class($render)
+    {
+        public function __construct(private readonly Closure $render) {}
+
+        public function render(mixed ...$arguments): string
+        {
+            return ($this->render)(...$arguments);
+        }
+    });
+}
+
+it('nel pannello tiene solo i dodici pacchetti più recenti del locale e lo ferma a trenta in 24 ore', function (): void {
+    venueSocialGraphic(fn (): string => 'jpeg');
+    $page = openVenueSocial($this)->assertSet('selected', [$this->s->occurrenceA->id]);
+
+    foreach (range(1, SocialStudio::DAILY_LIMIT_PER_VENUE) as $ignored) {
+        $page->call('generate')->assertHasNoErrors();
+    }
+    expect(SocialBatch::query()->where('venue_id', $this->s->venueA->id)->count())->toBe(12)
+        ->and(Storage::disk('local')->directories('social'))->toHaveCount(12);
+
+    $page->call('generate')
+        ->assertHasErrors(['generate'])
+        ->assertNotified(__('social.daily_limit', ['count' => 30]));
+    expect(SocialBatch::query()->where('venue_id', $this->s->venueA->id)->count())->toBe(12);
+});
+
+it('nel pannello mostra gli errori previsti della grafica e lascia gli altri al gestore degli errori', function (): void {
+    venueSocialGraphic(fn () => throw SocialStudioException::textOverflow());
+    openVenueSocial($this)->call('generate')
+        ->assertHasErrors(['generate'])
+        ->assertNotified(__('social.text_overflow'));
+
+    venueSocialGraphic(fn () => throw new RuntimeException('SQLSTATE[42S02]: select * from `segreta`'));
+    expect(fn () => openVenueSocial($this)->call('generate'))->toThrow(RuntimeException::class, 'SQLSTATE');
+    expect(SocialBatch::query()->count())->toBe(0);
 });

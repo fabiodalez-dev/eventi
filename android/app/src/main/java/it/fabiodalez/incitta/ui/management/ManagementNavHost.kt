@@ -27,7 +27,10 @@ import it.fabiodalez.incitta.ui.management.feedback.feedbackGraph
 import it.fabiodalez.incitta.ui.management.feedback.feedbackRouteFor
 import it.fabiodalez.incitta.ui.management.home.ManagementHomeRoute
 import it.fabiodalez.incitta.ui.management.home.homeGraph
+import it.fabiodalez.incitta.ui.management.notifications.PanelResolution
 import it.fabiodalez.incitta.ui.management.notifications.notificationsGraph
+import it.fabiodalez.incitta.ui.management.notifications.openNative
+import it.fabiodalez.incitta.ui.management.notifications.resolvePanel
 import it.fabiodalez.incitta.ui.management.overview.overviewGraph
 import it.fabiodalez.incitta.ui.management.profile.profileGraph
 import it.fabiodalez.incitta.ui.management.registration.registrationGraph
@@ -108,6 +111,7 @@ internal fun ManagementNavHost(
      * porta anche lui alla sua schermata.
      */
     var handled by androidx.compose.runtime.saveable.rememberSaveable(destination) { mutableStateOf(false) }
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     LaunchedEffect(destination) {
         if (handled || destination == null) return@LaunchedEffect
         handled = true
@@ -119,6 +123,13 @@ internal fun ManagementNavHost(
             is ManagementDestination.Registration -> navController.navigate(registrationRouteFor(destination))
             is ManagementDestination.SponsorshipCheckout -> navController.navigate(sponsorshipsRouteFor(destination)) {
                 popUpTo<SponsorshipsRoute> { inclusive = true }
+            }
+            /* P12: le pagine del pannello e gli avvisi a chi gestisce. */
+            ManagementDestination.Start -> Unit
+            is ManagementDestination.Panel -> when (val resolved = resolvePanel(repository, destination, landing is ManagementLanding.Subject)) {
+                is PanelResolution.Native -> openNative(navController, repository, resolved)
+                is PanelResolution.Web -> runCatching { uriHandler.openUri(resolved.url) }
+                PanelResolution.Nothing -> Unit
             }
         }
     }

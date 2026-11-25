@@ -501,6 +501,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onManagement = { managementDestination = null; managementOpen = true },
                         onInvitations = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Invitations; managementOpen = true },
                         onApplications = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Registration(it.fabiodalez.incitta.data.management.RegistrationForm.Applications); managementOpen = true },
+                        onManagementLink = { url -> openDestination(url) },
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,

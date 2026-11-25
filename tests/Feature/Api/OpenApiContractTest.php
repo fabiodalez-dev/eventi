@@ -157,6 +157,35 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/analytics/channels')
         ->and($document['paths']['/management/venues/{venue}/analytics/channels'])->toHaveKeys(['get', 'post']);
 
+    // P10 (25/11/2026): lo studio delle grafiche social del locale e l'anteprima della grafica di una data, per i due soggetti.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/social/catalog',
+        '/management/venues/{venue}/social/calendar',
+        '/management/venues/{venue}/social/day',
+        '/management/venues/{venue}/social/events',
+        '/management/venues/{venue}/social/batches',
+        '/management/venues/{venue}/social/batches/{batch}',
+        '/management/venues/{venue}/social/batches/{batch}/images/{index}',
+        '/management/venues/{venue}/social/batches/{batch}/zip',
+        '/management/venues/{venue}/events/{event}/dates/{occurrence}/social-preview',
+        '/management/organizers/{organizer}/events/{event}/dates/{occurrence}/social-preview',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/social/catalog')
+        ->and($document['paths']['/management/venues/{venue}/social/batches'])->toHaveKeys(['get', 'post']);
+    // P11 (25/11/2026): il riepilogo dei due soggetti, il programma in PDF solo del locale.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/dashboard',
+        '/management/venues/{venue}/dashboard/programme',
+        '/management/organizers/{organizer}/dashboard',
+    ])->and($document['paths'])->not->toHaveKey('/management/organizers/{organizer}/dashboard/programme')
+        ->and(collect($document['paths']['/management/venues/{venue}/dashboard/programme']['get']['parameters'])->pluck('name')->all())->toContain('week');
+    // P12 (25/11/2026): gli avvisi a chi gestisce il soggetto e lo slug di un evento del pannello.
+    expect($document['paths'])->toHaveKeys([
+        '/management/venues/{venue}/notifications',
+        '/management/venues/{venue}/events/by-slug/{slug}',
+        '/management/organizers/{organizer}/notifications',
+        '/management/organizers/{organizer}/events/by-slug/{slug}',
+    ])->and(collect($document['paths']['/management/venues/{venue}/notifications']['get']['parameters'])->pluck('name')->all())->toContain('cursor', 'limit');
+
     $inspect = function (mixed $node) use (&$inspect): void {
         if (! is_array($node)) {
             return;

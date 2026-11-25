@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Venue\Widgets;
 
-use App\Enums\EventStatus;
 use App\Filament\Venue\Widgets\Support\ManagementContext;
+use App\Services\Management\DashboardSummary;
 use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Number;
@@ -44,16 +44,16 @@ class VenueOverviewWidget extends Widget
      */
     public function numbers(): array
     {
-        // Una query nuova per numero: il motore temporale si modifica sul posto.
-        $count = fn (string $window): int => ManagementContext::occurrences()?->{$window}()->count() ?? 0;
+        $tenant = ManagementContext::tenant();
+        $counts = $tenant === null ? ['today' => 0, 'upcoming' => 0, 'drafts' => 0] : app(DashboardSummary::class)->counts($tenant);
         $resource = ManagementContext::eventResource();
         $list = fn (string $tab): ?string => $resource::canViewAny() ? $resource::getUrl('index', ['tab' => $tab]) : null;
         $format = fn (int $value): string => Number::format($value, locale: 'it');
 
         return [
-            ['key' => 'today', 'label' => __('manage.dashboard.today'), 'value' => $format($count('today')), 'hint' => __('manage.dashboard.today_hint'), 'url' => $list('upcoming')],
-            ['key' => 'upcoming', 'label' => __('manage.dashboard.upcoming'), 'value' => $format($count('upcoming')), 'hint' => __('manage.dashboard.upcoming_hint'), 'url' => $list('upcoming')],
-            ['key' => 'drafts', 'label' => __('manage.dashboard.drafts'), 'value' => $format(ManagementContext::events()->where('status', EventStatus::Draft)->count()), 'hint' => __('manage.dashboard.drafts_hint'), 'url' => $list('drafts')],
+            ['key' => 'today', 'label' => __('manage.dashboard.today'), 'value' => $format($counts['today']), 'hint' => __('manage.dashboard.today_hint'), 'url' => $list('upcoming')],
+            ['key' => 'upcoming', 'label' => __('manage.dashboard.upcoming'), 'value' => $format($counts['upcoming']), 'hint' => __('manage.dashboard.upcoming_hint'), 'url' => $list('upcoming')],
+            ['key' => 'drafts', 'label' => __('manage.dashboard.drafts'), 'value' => $format($counts['drafts']), 'hint' => __('manage.dashboard.drafts_hint'), 'url' => $list('drafts')],
         ];
     }
 

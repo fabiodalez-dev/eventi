@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 25/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **342 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **360 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -683,3 +683,48 @@ Una riga d'ordine: `{id, placement{value,label}, months, months_label, mode, eve
 Limiti: le letture hanno il secchio `management-sponsorships` (60 al minuto), le scritture `management-sponsorship-writes` (20–30 al minuto), le statistiche `management-sponsorship-analytics` (30 al minuto); il tetto vero degli invii resta quello del pannello, condiviso.
 
 La vecchia `GET /v1/management/campaigns` resta per le app già installate; con l'area di gestione accesa l'app legge le campagne da qui.
+
+## Gestione: grafiche social (P10, 25 novembre 2026)
+
+Lo studio delle grafiche social del locale (W-SO-01…09) e l'anteprima della grafica di una data (W-DT-12). Decisione 3 del piano: la scelta delle serate e le opzioni sono dell'app, le immagini le disegna il server con lo stesso `SocialStudio` del pannello. Le regole che stavano nella pagina «Social» (periodi, giorno di partenza, calendario, un giorno per pacchetto, titolo solo con una serata, ultimi dodici pacchetti) sono in `App\Services\Social\SocialStudioDesk`, usato anche da `InteractsWithSocialStudio`; anteprima, immagini e ZIP in `App\Services\Social\SocialBatchFiles`, usato anche da `SocialDownloadController`. Lo studio esiste solo sotto `venues/{venue}` (sotto `organizers/{organizer}` 404) e lo apre ogni membro del locale, referente o collaboratore, come la pagina. Il parametro `event` restringe lo studio a un evento del locale (`update` sull'evento; un evento di un altro locale è 404).
+
+| Metodo e percorso | Note |
+|---|---|
+| `GET V/social/catalog` | `period` (`today`, `week`, `next30` predefinito, `custom` con `from`/`until`, messi in ordine e tenuti entro un anno), `search` (100), `limit` (24 per volta, fino a 240), `event`. `data[]{id, event_id, title, starts_at, timezone, is_all_day, business_date, status{value,label}, selectable, demo, poster, venue}`, anche le serate annullate o rinviate (`selectable` falso); `meta{period, from, until, today, timezone, total, limit, page_size, max_cards, event{id,title}}` |
+| `GET V/social/calendar` | `month` (`Y-m`), `date` (il giorno scelto), `search`, `event`: sei settimane da lunedì, `data[]{date, day, count, in_month, today, selected}`, `meta{month, label, previous, next, today}` |
+| `GET V/social/day` | `date`, `event`: le serate che si possono preparare quel giorno (stessa forma delle card). Senza `date` è il giorno da cui si apre la pagina: oggi, con `event` la sua prossima data, e se lì non c'è niente la prima serata in programma dei prossimi trenta giorni. `meta{date, label, today, timezone, max_selection, title_max, event}` |
+| `GET V/social/events?q=` | gli eventi del locale per il foglio «Scegli un evento» (`upcoming[]`, `past[]`, forma di `EventChoices`) |
+| `POST V/social/batches` | `date`, `occurrences[]` (da 1 a 100, tutte di quel giorno e preparabili: altrimenti 403), `format` (`portrait` predefinito, `square`, `story`), `monochrome`, `show_address`, `show_price` (veri se assenti), `image_fit` (`contain` predefinito, `cover`), `title` (300, solo con una serata: altrimenti 422 su `title`), `event`. 201 con il pacchetto; una grafica che non si disegna (un titolo troppo lungo) è 422 su `generate` |
+| `GET V/social/batches` | gli ultimi dodici pacchetti del locale `{id, date, format{value,label,width,height}, count, created_at}`, `meta.keep` |
+| `GET V/social/batches/{batch}` | il pacchetto con `timezone`, `caption` e `items[]{index, title, filename, occurrence_id, event_id, time, venue, url}`: `url` è l'immagine firmata del sito (`social.image`, sette giorni), da guardare senza token. Un pacchetto di un altro locale è 404 (`SocialBatchPolicy::view`) |
+| `GET V/social/batches/{batch}/images/{index}` | il JPEG, per «Salva nella galleria» e «Condividi» |
+| `GET V/social/batches/{batch}/zip` | lo ZIP con immagini e didascalie, divise in caroselli da dieci, come «Scarica tutte le grafiche» |
+| `GET S/events/{event}/dates/{occurrence}/social-preview` | l'anteprima JPEG della grafica della data (verticale), `EventPolicy::update`; vale per il locale e per l'organizzazione. Le righe di `GET S/events/{event}/dates` hanno `social_preview`, vero solo per l'organizzazione (il pulsante «Grafica social» del suo elenco delle date) |
+
+Limiti: le letture e i file `management-social` (60 al minuto per persona), la preparazione `management-social-generate` (10 al minuto), l'anteprima lo stesso secchio del sito (`social-preview`, 120 al minuto). La preparazione è sincrona come nel pannello: con molte serate può avvicinarsi al tempo massimo di risposta dell'hosting.
+
+**Pulizia.** `SocialBatch` è `Prunable` e `model:prune` gira ogni notte alle 04:40 (`routes/console.php`): restano i dodici pacchetti più recenti di ogni locale e della redazione di ogni città (quelli che lo studio mostra), più quelli con una pubblicazione programmata, in coda, in corso, fallita o incerta, e quelli con pubblicazioni di oggi o di ieri. Le immagini in `storage/app/social/{id}` si cancellano con il pacchetto. Le pubblicazioni invece restano: dal 26/11/2026 `social_publications.social_batch_id` è nullable con `nullOnDelete` (migrazione `2026_11_26_100000_keep_social_publications_without_batch`), quindi lo storico della redazione mostra anche le pubblicazioni dei pacchetti cancellati, con la nota che le grafiche non ci sono più e senza «Riprova»; `social:daily` riconosce il carosello già pubblicato dalla `dedupe_key`, che non dipende dal pacchetto.
+
+## Gestione: riepilogo (P11, 25 novembre 2026)
+
+La prima pagina dei due pannelli senza il rapporto (W-DB-01…08, W-PB-02): l'app lo legge da `GET S/analytics/summary` e dalla pagina del soggetto delle statistiche (P5). Le domande dei riquadri stanno in `App\Services\Management\DashboardSummary`, che chiedono sia i widget del pannello sia l'API: oggi, prossimi, bozze e ultime visite hanno una risposta sola. Stesse rotte sotto `/v1/management/venues/{venue}/…` e `/v1/management/organizers/{organizer}/…`, con la porta `ResolveManagementSubject`; permesso: membro del soggetto (`canAccessTenant`), come la pagina del pannello. Token obbligatorio, `Cache-Control: private, no-store`.
+
+- `GET /dashboard` (secchio `management-dashboard`, 60 al minuto): `subject{type, id, name}`, `timezone` (il fuso con cui il pannello scrive le ore; le ore sono in UTC), `missing_location` (solo locale: il punto coincide con il centro della città), `counts{today, upcoming, drafts}` («Il tuo cartellone»), `today[]` (le serate di oggi), `upcoming[]` (cinque eventi, uno per evento, oggi escluso), `recent_views{days: 7, items[]}` (le tre schede più viste negli ultimi sette giorni, con `views`), `programme{available, this_week, next_week}` (solo locale, i due lunedì; `available` è falso finché il locale non è approvato) oppure `null`. Ogni card è `{event{id, slug, title, status{value, label}, poster}, date{id, starts_at, place, status{value, label}, scheduled}|null, views|null, links{edit, tickets_occurrence_id, statistics, social, sponsor}}`: i collegamenti sono quelli che il pannello mette sulla card, con le stesse condizioni (`EventPolicy::update`, `BookingPolicy::manage` sulla prossima data, statistiche solo dell'organizzatore principale, grafiche social solo del locale, sponsorizzazione solo per un evento pubblicato). Due regole del pannello restano com'erano: le date dell'organizzazione comprendono gli eventi co-organizzati, le bozze e le ultime visite solo quelli con il suo `organizer_id`; «oggi» lo decide la città del locale, per l'organizzazione quella del suo evento più recente. Le scorciatoie «Vai a» le compone l'app da `permissions`.
+- `GET /dashboard/programme?week=AAAA-MM-GG` (solo locale): il programma della settimana in PDF, lo stesso foglio di `/locali/{slug}/programma.pdf` (`App\Services\Events\VenueProgramme`), come allegato. `week` è un giorno qualsiasi della settimana; senza, questa settimana; una data scritta male risponde 422. Come la pagina pubblica esiste solo per un locale approvato (altrimenti 404) e consuma lo stesso secchio `venue-programme` (30 al minuto).
+
+## Gestione: notifiche e chiusura del giro (P12, 25 novembre 2026)
+
+Gli avvisi a chi gestisce (`NotificationType::isForVenueStaff`: `event_published`, `event_rejected`, `event_new_comment`, `venue_inactive`) portano ora, accanto all'`url` pensato per l'email, la schermata della gestione da aprire nell'app. L'email non cambia.
+
+### Campi nuovi
+
+- Archivio (`GET /v1/me/notifications`, `data` della riga): `management{subject_type (venue|organizer), subject_id, area (event|comments|home), id}`. `event` è la scheda dell'evento (`id` dell'evento), `comments` i commenti di quell'evento da moderare, `home` la pagina del locale (`id` nullo). Il soggetto è quello da cui la persona vede il contenuto nei pannelli, con la stessa barriera `User::canAccessTenant` e le regole di `ManagedContent`: prima il locale dell'evento se ne è membro attivo, poi l'organizzazione principale, poi una co-organizzatrice (per i commenti solo la principale). Il campo si scrive all'invio e manca se la persona non gestisce quel soggetto: allora vale l'`url`. Le righe scritte prima non lo hanno. Lo calcola `App\Services\Management\ManagementNoticeTarget`.
+- Push FCM degli stessi tipi: gli stessi dati piatti, perché FCM vuole stringhe: `management_subject_type`, `management_subject_id`, `management_area`, `management_id` (vuoto per `home`).
+- `GET /v1/me/notification-preferences`: `venue_report_available`, vero per chi ha accettato l'accesso ad almeno un locale; è la stessa regola della pagina delle preferenze del sito (`App\Support\Notifications\VenueReportPreference`), e dice all'app quando mostrare l'interruttore `venue_report`. Gli avvisi a chi gestisce non hanno interruttore, il rapporto mensile sì.
+
+### Rotte (sotto `V` e `O`, porta `ResolveManagementSubject`)
+
+| Rotta | Permesso | Cosa fa |
+|---|---|---|
+| `GET S/notifications?cursor=&limit=` | membro del soggetto | gli avvisi a chi gestisce con `management` di questo soggetto, dal più recente, con la forma di `GET /me/notifications` (`id`, `type`, `data`, `read`, `read_at`, `created_at`) e `meta{next_cursor, has_more, unread_count}`. Si segnano come letti con `PATCH /me/notifications/{id}/read` |
+| `GET S/events/by-slug/{slug}` | `EventPolicy::view` | `data{id, slug, title}` di un evento del soggetto (`ManagedContent::events()`): gli indirizzi del pannello portano lo slug, l'app apre la scheda per id. 404 per un evento di altri |

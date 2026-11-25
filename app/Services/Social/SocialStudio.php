@@ -5,26 +5,50 @@ declare(strict_types=1);
 namespace App\Services\Social;
 
 use App\Enums\SocialFormat;
+use App\Exceptions\SocialStudioException;
 use App\Models\City;
 use App\Models\EventOccurrence;
 use App\Models\SocialBatch;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use RuntimeException;
 use Throwable;
 
+/**
+ * Disegna e salva un pacchetto di grafiche, per il pannello e per l'app.
+ *
+ * **Il disco.** Ogni immagine pesa circa 135 KB e un pacchetto arriva a cento
+ * immagini, su un hosting con 10 GB di quota. Per un locale valgono quindi
+ * due tetti, qui perché pannello e API passano entrambi da questo punto: al
+ * massimo `DAILY_LIMIT_PER_VENUE` pacchetti nelle ultime 24 ore, e dopo ogni
+ * pacchetto nuovo si tolgono subito quelli oltre i dodici più recenti
+ * (`SocialBatch::pruneOwner`, la stessa regola della pulizia notturna).
+ *
+ * Il tetto si conta con `RateLimiter` e non sulle righe di `social_batches`:
+ * con la pulizia immediata un locale non ha mai più di dodici righe, e
+ * contarle non fermerebbe nessuno.
+ *
+ * Gli errori previsti (un testo che non sta, lo spazio su disco, il tetto)
+ * sono `SocialStudioException`; ogni altra eccezione va al gestore degli
+ * errori.
+ */
 final class SocialStudio
 {
+    /** Quanti pacchetti può preparare un locale nelle ultime 24 ore. */
+    public const DAILY_LIMIT_PER_VENUE = 30;
+
     /** @param Collection<int, EventOccurrence> $dates
      * @param  array<string, mixed>  $options
+     *
+     * @throws SocialStudioException
      */
     public function generate(City $city, string $date, Collection $dates, SocialFormat $format, array $options, ?User $user, ?int $venueId = null): SocialBatch
     {
         if ($dates->isEmpty()) {
-            throw new RuntimeException(__('social.choose_events'));
+            throw SocialStudioException::chooseEvents();
         }
         foreach ($dates as $occurrence) {
             if ($venueId !== null && $occurrence->event->venue_id !== $venueId) {
@@ -34,6 +58,13 @@ final class SocialStudio
                 abort_unless($user->can('update', $occurrence->event), 403);
             }
         }
+        // Il posto si prenota prima di disegnare, con un incremento atomico: con un
+        // controllo e un conteggio separati, richieste parallele dello stesso
+        // locale passerebbero tutte il controllo e supererebbero il tetto.
+        if ($venueId !== null && RateLimiter::increment(self::dailyKey($venueId), 86400) > self::DAILY_LIMIT_PER_VENUE) {
+            RateLimiter::decrement(self::dailyKey($venueId), 86400);
+            throw SocialStudioException::dailyLimit(self::DAILY_LIMIT_PER_VENUE);
+        }
         $batch = SocialBatch::create(['city_id' => $city->id, 'date' => $date, 'format' => $format->value, 'options' => $options, 'items' => [], 'user_id' => $user?->id, 'venue_id' => $venueId]);
         $items = [];
         try {
@@ -42,7 +73,7 @@ final class SocialStudio
                 $path = 'social/'.$batch->id.'/'.$filename;
                 $bytes = app(SocialGraphic::class)->render($occurrence, $format, $options);
                 if (! Storage::disk('local')->put($path, $bytes)) {
-                    throw new RuntimeException(__('social.storage_error'));
+                    throw SocialStudioException::storageError();
                 }
                 $items[] = ['occurrence_id' => $occurrence->id, 'event_id' => $occurrence->event_id, 'title' => $occurrence->event->title, 'path' => $path, 'filename' => $filename, 'source_updated_at' => $occurrence->getRawOriginal('updated_at'), 'event_updated_at' => $occurrence->event->getRawOriginal('updated_at')];
                 $venue = $occurrence->event->venue;
@@ -55,10 +86,24 @@ final class SocialStudio
         } catch (Throwable $e) {
             Storage::disk('local')->deleteDirectory('social/'.$batch->id);
             $batch->delete();
+            if ($venueId !== null) {
+                // Contano solo i pacchetti riusciti: un titolo che non ci sta restituisce il posto.
+                RateLimiter::decrement(self::dailyKey($venueId), 86400);
+            }
             throw $e;
         }
 
+        if ($venueId !== null) {
+            // Una pulizia che non riesce non toglie il pacchetto appena pronto: ci riprova la notte.
+            rescue(fn (): int => SocialBatch::pruneOwner($city->id, $venueId));
+        }
+
         return $batch;
+    }
+
+    private static function dailyKey(int $venueId): string
+    {
+        return 'social-batches:venue:'.$venueId;
     }
 
     public static function imageUrl(SocialBatch $batch, int $index): string

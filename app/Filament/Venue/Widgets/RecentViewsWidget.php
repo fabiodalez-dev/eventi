@@ -6,8 +6,7 @@ namespace App\Filament\Venue\Widgets;
 
 use App\Filament\Venue\Widgets\Support\ManagementContext;
 use App\Models\Event;
-use App\Models\EventViewDaily;
-use Carbon\CarbonImmutable;
+use App\Services\Management\DashboardSummary;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Collection;
 
@@ -22,7 +21,7 @@ use Illuminate\Support\Collection;
  */
 class RecentViewsWidget extends Widget
 {
-    public const DAYS = 7;
+    public const DAYS = DashboardSummary::RECENT_DAYS;
 
     protected static ?int $sort = 4;
 
@@ -44,22 +43,9 @@ class RecentViewsWidget extends Widget
     private static function rows(): Collection
     {
         return once(function (): Collection {
-            $timezone = ManagementContext::city()->timezone ?? (string) config('app.timezone');
-            $from = CarbonImmutable::now($timezone)->subDays(self::DAYS - 1)->toDateString();
+            $tenant = ManagementContext::tenant();
 
-            /** @var Collection<int, object{event_id: int, views: int|string}> $rows */
-            $rows = EventViewDaily::query()
-                ->whereIn('event_id', ManagementContext::events()->select('id'))
-                ->where('date', '>=', $from)
-                ->groupBy('event_id')
-                ->selectRaw('event_id, SUM(views) as views')
-                ->havingRaw('SUM(views) > 0')
-                ->orderByDesc('views')
-                ->limit(3)
-                ->toBase()
-                ->get();
-
-            return $rows;
+            return $tenant === null ? new Collection : app(DashboardSummary::class)->recentViews($tenant);
         });
     }
 

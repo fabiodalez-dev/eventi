@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Il riepilogo del locale o dell'organizzazione (P11): gli stessi testi della prima pagina dei pannelli. -->
+<resources>
+    <string name="overview_subheading">Come vanno i tuoi eventi.</string>
+    <string name="overview_error">Non sono riuscito a caricare il riepilogo.</string>
+    <string name="overview_refreshing">Aggiorno il riepilogo</string>
+
+    <!-- Avviso della mappa (solo locale). -->
+    <string name="overview_location_title">Non siete ancora sulla mappa</string>
+    <string name="overview_location_body">Il vostro segnaposto è sul centro della città insieme a tutti gli altri: spostatelo sulla vostra porta, così chi cerca «vicino a me» vi trova davvero.</string>
+    <string name="overview_location_action">Mettici sulla mappa</string>
+
+    <!-- Il tuo cartellone. -->
+    <string name="overview_summary">Il tuo cartellone</string>
+    <string name="overview_summary_description">Quante serate hai oggi, quante in arrivo e cosa resta da pubblicare.</string>
+    <string name="overview_today">Oggi</string>
+    <string name="overview_today_hint">Date in programma nella giornata di oggi.</string>
+    <string name="overview_upcoming">Prossimi</string>
+    <string name="overview_upcoming_hint">Date da oggi in avanti.</string>
+    <string name="overview_drafts">Bozze</string>
+    <string name="overview_drafts_hint">Eventi da completare o pubblicare.</string>
+    <string name="overview_count_open">%1$s: %2$s. %3$s Apri l’elenco.</string>
+    <string name="overview_new_event">Nuovo evento</string>
+
+    <!-- Oggi e prossimi eventi. -->
+    <string name="overview_today_schedule">In programma oggi</string>
+    <string name="overview_today_schedule_description">Le serate di oggi, con quello che serve a portata di mano.</string>
+    <string name="overview_upcoming_heading">Prossimi eventi</string>
+    <string name="overview_upcoming_description">Le prossime date in cartellone. Tocca un evento per modificarlo, vederne le statistiche, preparare le grafiche o sponsorizzarlo.</string>
+    <string name="overview_upcoming_empty">Nessuna data in arrivo</string>
+    <string name="overview_upcoming_empty_body">Crea un evento: bastano titolo, data, categoria e prezzo, il resto si aggiunge quando vuoi.</string>
+    <string name="overview_all_events">Tutti i tuoi eventi</string>
+    <string name="overview_poster">Locandina di %1$s</string>
+    <string name="overview_card_open">Apri la scheda di %1$s</string>
+    <string name="overview_link_for">%1$s: %2$s</string>
+
+    <!-- Collegamenti delle card, come nel pannello. -->
+    <string name="overview_link_edit">Modifica</string>
+    <string name="overview_link_tickets">Biglietteria</string>
+    <string name="overview_link_statistics">Statistiche</string>
+    <string name="overview_link_social">Grafiche social</string>
+    <string name="overview_link_sponsor">Sponsorizza</string>
+
+    <!-- Ultime visite. -->
+    <string name="overview_recent_views">Ultime visite</string>
+    <string name="overview_recent_views_description">Le schede più aperte negli ultimi %1$d giorni.</string>
+    <plurals name="overview_views_count">
+        <item quantity="one">%1$s visita</item>
+        <item quantity="other">%1$s visite</item>
+    </plurals>
+    <string name="overview_open_statistics">Apri le statistiche</string>
+
+    <!-- Programma in PDF (solo locale). -->
+    <string name="overview_programme">Programma della settimana</string>
+    <string name="overview_programme_hint">Un foglio A4 con le date da lunedì a domenica e il QR della tua scheda, da appendere in bacheca.</string>
+    <string name="overview_programme_this_week">Stampa il programma della settimana</string>
+    <string name="overview_programme_next_week">Settimana prossima</string>
+    <string name="overview_programme_busy">Preparo il PDF…</string>
+
+    <!-- Vai a. -->
+    <string name="overview_shortcuts">Vai a</string>
+    <string name="overview_shortcuts_description">Tutte le pagine della gestione, a un tocco.</string>
+    <string name="overview_group_events">I tuoi eventi</string>
+    <string name="overview_group_audience">Pubblico e numeri</string>
+    <string name="overview_group_venue">Il tuo locale</string>
+    <string name="overview_group_organizer">La tua organizzazione</string>
+    <string name="overview_all_areas">Tutte le aree</string>
+    <string name="overview_all_areas_help">L’elenco completo di quello che puoi fare dall’app</string>
+
+    <!-- Il rapporto sotto i riquadri, come nel pannello: si apre dalle statistiche (P5). -->
+    <string name="overview_report">Il rapporto completo</string>
+    <string name="overview_report_description">Visite, clic, salvataggi e condivisioni di %1$s, con i grafici e le tabelle.</string>
+    <string name="overview_report_open">Apri il rapporto</string>
+</resources>

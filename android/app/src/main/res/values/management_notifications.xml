@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P12: gli avvisi a chi gestisce e il rapporto mensile. -->
+<resources>
+    <string name="management_notices_title">Notifiche</string>
+    <string name="management_notices_always">Gli avvisi di evento pubblicato o rifiutato, di nuovo commento e di locale fermo da tempo arrivano sempre a chi gestisce: non si possono spegnere. Dove riceverli (email, telefono o solo archivio) lo scegli nelle notifiche del tuo profilo.</string>
+    <string name="management_notices_report">Rapporto mensile per email</string>
+    <string name="management_notices_report_help">Il riepilogo del mese dei locali che gestisci: visite, clic e condivisioni.</string>
+    <string name="management_notices_report_on">Il rapporto mensile arriverà per email.</string>
+    <string name="management_notices_report_off">Il rapporto mensile non arriverà più.</string>
+    <string name="management_notices_list">Avvisi ricevuti</string>
+    <string name="management_notices_empty">Nessun avviso per ora. Qui arrivano gli eventi pubblicati o rifiutati, i nuovi commenti agli eventi e l’avviso di locale fermo da tempo.</string>
+    <string name="management_notices_unread">Da leggere</string>
+    <string name="management_notices_more">Carica altri avvisi</string>
+    <string name="management_notices_open_failed">Questo avviso riguarda un locale o un’organizzazione che non gestisci più.</string>
+    <string name="management_notices_no_subject">Non gestisci questo locale o questa organizzazione.</string>
+    <string name="management_link_native">Apri nella gestione dell’app</string>
+    <string name="management_link_web">Apri il pannello web</string>
+</resources>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Grafiche social (P10): la pagina «Social» del pannello del locale e la «Grafica social» delle date dell'organizzazione. I testi sono quelli della pagina (lang/it/social.php). -->
+<resources>
+    <!-- La pagina -->
+    <string name="social_title">Grafiche social</string>
+    <string name="social_lead">Scegli le serate, decidi formato e stile, scarica le grafiche già in ordine. Non serve collegare un account social.</string>
+    <string name="social_venue_missing">Le grafiche social sono dei locali: scegli un locale che gestisci.</string>
+
+    <!-- Evento (arrivo dalla scheda dell'evento) -->
+    <string name="social_only_event">Stai guardando solo le serate di «%1$s».</string>
+    <string name="social_clear_event">Mostra tutti gli eventi del giorno</string>
+    <string name="social_choose_event">Solo un evento</string>
+    <string name="social_choose_event_title">Scegli un evento del locale</string>
+    <string name="social_choose_event_hint">Lo studio mostra solo le sue serate e parte dalla sua prossima data.</string>
+
+    <!-- 1. Scegli le serate -->
+    <string name="social_choose">1. Scegli le serate</string>
+    <string name="social_choose_hint">Tocca una serata per preparare la sua grafica. Le serate dello stesso giorno finiscono nello stesso pacchetto.</string>
+    <string name="social_period_today">Oggi</string>
+    <string name="social_period_week">Questa settimana</string>
+    <string name="social_period_next30">Prossimi 30 giorni</string>
+    <string name="social_period_custom">Personalizzato</string>
+    <string name="social_from">Dal</string>
+    <string name="social_until">Al</string>
+    <string name="social_pick_date">Scegli il giorno</string>
+    <string name="social_search">Cerca una serata</string>
+    <string name="social_search_placeholder">Titolo, artista, organizzatore…</string>
+    <string name="social_calendar">Calendario delle serate</string>
+    <string name="social_previous_month">Mese precedente</string>
+    <string name="social_next_month">Mese successivo</string>
+    <string-array name="social_weekdays">
+        <item>Lun</item>
+        <item>Mar</item>
+        <item>Mer</item>
+        <item>Gio</item>
+        <item>Ven</item>
+        <item>Sab</item>
+        <item>Dom</item>
+    </string-array>
+    <plurals name="social_day_count">
+        <item quantity="one">%1$s, una serata</item>
+        <item quantity="other">%1$s, %2$d serate</item>
+    </plurals>
+    <string name="social_day_none">%1$s, nessuna serata</string>
+    <plurals name="social_results">
+        <item quantity="one">Una serata nel periodo</item>
+        <item quantity="other">%1$d serate nel periodo</item>
+    </plurals>
+    <string name="social_results_none">Nessuna serata nel periodo</string>
+    <string name="social_empty">Nessuna serata in questo periodo. Allarga il periodo o cambia la ricerca. Compaiono solo le serate pubblicate.</string>
+    <string name="social_more">Mostra altre serate</string>
+    <string name="social_pick_label">Scegli %1$s, %2$s</string>
+    <string name="social_remove_label">Togli %1$s, %2$s</string>
+    <string name="social_not_available">Non si può preparare</string>
+    <string name="social_demo">Dimostrativo</string>
+    <string name="social_demo_hint">Gli eventi dimostrativi compaiono solo qui: il carosello automatico della redazione non li pubblica.</string>
+    <string name="social_all_day">tutto il giorno</string>
+    <string name="social_picked">Scelta</string>
+
+    <!-- 2. Formato e stile -->
+    <string name="social_style">2. Formato e stile</string>
+    <string name="social_style_hint">Le scelte valgono per tutte le grafiche del pacchetto.</string>
+    <string name="social_day">Giorno delle grafiche</string>
+    <plurals name="social_selected_count">
+        <item quantity="one">Una serata scelta</item>
+        <item quantity="other">%1$d serate scelte</item>
+    </plurals>
+    <string name="social_selected_none">Nessuna serata scelta</string>
+    <string name="social_nothing_selected">Scegli almeno una serata dall’elenco qui sopra.</string>
+    <string name="social_selection">Serate nel pacchetto</string>
+    <string name="social_preview_alt">Anteprima grafica: %1$s</string>
+    <string name="social_select_all">Seleziona tutti</string>
+    <string name="social_format">Formato delle immagini</string>
+    <string name="social_format_portrait">Post verticale · 1080 × 1350</string>
+    <string name="social_format_square">Post quadrato · 1080 × 1080</string>
+    <string name="social_format_story">Storia · 1080 × 1920</string>
+    <string name="social_image_fit">Inquadratura della locandina</string>
+    <string name="social_contain">Mostra la locandina intera</string>
+    <string name="social_cover">Riempi lo spazio (ritaglia i bordi)</string>
+    <string name="social_options">Personalizza le grafiche</string>
+    <string name="social_monochrome">Locandina in bianco e nero</string>
+    <string name="social_address">Mostra indirizzo</string>
+    <string name="social_price">Mostra prezzo</string>
+    <string name="social_short_title">Titolo alternativo (solo con un evento selezionato)</string>
+    <string name="social_title_counter">%1$d/%2$d</string>
+    <string name="social_generate">Prepara le grafiche selezionate</string>
+    <string name="social_generating">Preparazione delle immagini…</string>
+    <string name="social_too_many">Al massimo %1$d serate per pacchetto.</string>
+
+    <!-- 3. Grafiche pronte -->
+    <string name="social_ready">3. Grafiche pronte</string>
+    <string name="social_ready_hint">Le ultime grafiche preparate, le dodici più recenti. Quelle più vecchie si cancellano da sole.</string>
+    <string name="social_ready_empty">Qui compaiono le grafiche quando premi «Prepara le grafiche selezionate».</string>
+    <plurals name="social_recent_item">
+        <item quantity="one">%1$s · %2$s · 1 immagine</item>
+        <item quantity="other">%1$s · %2$s · %3$d immagini</item>
+    </plurals>
+    <string name="social_prepared_at">Preparato %1$s</string>
+    <string name="social_open_batch">Apri</string>
+
+    <!-- Un pacchetto -->
+    <string name="social_batch_title">Grafiche pronte</string>
+    <string name="social_batch_missing">Questo pacchetto non c’è più: si tengono solo i dodici più recenti.</string>
+    <string name="social_snapshot">Queste sono le immagini preparate. Se cambi selezione o impostazioni, prepara di nuovo le grafiche.</string>
+    <string name="social_image_label">%1$d. %2$s</string>
+    <string name="social_image_alt">Grafica %1$d: %2$s</string>
+    <string name="social_save">Salva nella galleria</string>
+    <string name="social_share">Condividi</string>
+    <string name="social_share_chooser">Condividi la grafica</string>
+    <string name="social_saved">Grafica salvata nelle immagini, cartella inCitta.</string>
+    <string name="social_save_failed">Non sono riuscito a salvare la grafica. Prova con «Condividi».</string>
+    <string name="social_share_failed">Sul telefono non c’è un’app per condividere questo file.</string>
+    <string name="social_caption_label">Didascalia del post</string>
+    <string name="social_copy_caption">Copia la didascalia</string>
+    <string name="social_caption_copied">Didascalia copiata.</string>
+    <string name="social_zip">Tutte le grafiche (.zip)</string>
+    <string name="social_zip_share">Condividi lo ZIP</string>
+    <string name="social_zip_open">Apri lo ZIP</string>
+    <string name="social_zip_hint">Le immagini e la didascalia in un file solo, divise in caroselli da dieci.</string>
+    <string name="social_downloading">Scaricamento…</string>
+
+    <!-- Grafica social di una data (W-DT-12) -->
+    <string name="social_date_preview">Grafica social</string>
+    <string name="social_date_preview_title">Grafica social della data</string>
+    <string name="social_close">Chiudi</string>
+</resources>

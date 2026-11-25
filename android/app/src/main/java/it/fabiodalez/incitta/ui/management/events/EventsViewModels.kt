@@ -75,7 +75,8 @@ internal data class EventsListUiState(
 
 internal class EventsListViewModel(private val repository: ManagementRepository, private val saved: SavedStateHandle) : ViewModel() {
     private val state = MutableStateFlow(EventsListUiState(
-        tab = EventsTab.entries.firstOrNull { it.value == saved.get<String>(KEY_TAB) } ?: EventsTab.All,
+        /* La scheda scelta prima, altrimenti quella chiesta dalla rotta (il cartellone del riepilogo), altrimenti «Tutti». */
+        tab = EventsTab.entries.firstOrNull { it.value == (saved.get<String>(KEY_TAB) ?: saved.get<String>(KEY_ROUTE_TAB)) } ?: EventsTab.All,
         status = saved[KEY_STATUS],
         query = saved[KEY_QUERY] ?: "",
     ))
@@ -157,6 +158,8 @@ internal class EventsListViewModel(private val repository: ManagementRepository,
 
     companion object {
         const val KEY_TAB = "events_tab"
+        /* L'argomento `tab` di `EventsListRoute`. */
+        const val KEY_ROUTE_TAB = "tab"
         const val KEY_STATUS = "events_status"
         const val KEY_QUERY = "events_query"
     }

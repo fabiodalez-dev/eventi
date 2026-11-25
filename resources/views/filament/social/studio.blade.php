@@ -327,12 +327,13 @@
                             <li class="flex flex-col gap-2 py-3 text-sm text-gray-950 dark:text-white" wire:key="publication-{{ $publication->id }}">
                                 <span>{{ \App\Filament\Support\PanelDate::moment($publication->created_at, $timezone) }} · {{ ucfirst($publication->platform) }} · {{ __('social.part') }} {{ $publication->part + 1 }} · <strong>{{ __('social.'.$publication->status->value.'_status') }}</strong>@if ($publication->scheduled_at) · {{ __('pannelli-social.studio.expected', ['date' => \App\Filament\Support\PanelDate::event($publication->scheduled_at, $timezone)]) }}@endif</span>
                                 @if ($publication->error)<span class="text-gray-600 dark:text-gray-400">{{ $publication->error }}</span>@endif
+                                @if ($publication->hasLostBatch())<span class="text-gray-600 dark:text-gray-400" data-social-batch-gone>{{ __('social.studio.batch_gone') }}</span>@endif
                                 <span class="flex flex-wrap gap-2">
                                     @if ($publication->status === \App\Enums\SocialPublicationStatus::Scheduled)
                                         <x-filament::button size="sm" color="gray" wire:click="reschedulePublication({{ $publication->id }})">{{ __('social.schedule.reschedule') }}</x-filament::button>
                                         <x-filament::button size="sm" color="gray" wire:click="cancelScheduledPublication({{ $publication->id }})">{{ __('social.schedule.cancel') }}</x-filament::button>
                                     @endif
-                                    @if (in_array($publication->status, [\App\Enums\SocialPublicationStatus::Failed, \App\Enums\SocialPublicationStatus::Uncertain], true))
+                                    @if (! $publication->hasLostBatch() && in_array($publication->status, [\App\Enums\SocialPublicationStatus::Failed, \App\Enums\SocialPublicationStatus::Uncertain], true))
                                         <x-filament::button size="sm" color="gray" wire:click="retryPublication({{ $publication->id }})" wire:confirm="{{ __('social.retry_confirm') }}">{{ __('social.retry') }}</x-filament::button>
                                     @endif
                                 </span>

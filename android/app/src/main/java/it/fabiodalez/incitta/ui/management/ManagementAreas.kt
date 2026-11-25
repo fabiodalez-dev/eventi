@@ -12,6 +12,9 @@ import it.fabiodalez.incitta.ui.management.registration.ApplicationsRoute
 import it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import it.fabiodalez.incitta.ui.management.calendarimport.CalendarImportRoute
+import it.fabiodalez.incitta.ui.management.social.SocialStudioRoute
+import it.fabiodalez.incitta.ui.management.home.ManagementHomeRoute
+import it.fabiodalez.incitta.ui.management.notifications.ManagementNoticesRoute
 
 /**
  * Le aree della gestione, una per pacchetto del piano. `entry` è la rotta
@@ -19,8 +22,9 @@ import it.fabiodalez.incitta.ui.management.calendarimport.CalendarImportRoute
  * Il pacchetto che la porta tocca solo la sua riga e il suo grafo.
  */
 internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any? = null) {
-    Overview(R.string.management_area_overview, R.string.management_area_overview_help),
-    Events(R.string.management_area_events, R.string.management_area_events_help, EventsListRoute),
+    /* Il riepilogo è la pagina del soggetto (P11): si atterra lì. */
+    Overview(R.string.management_area_overview, R.string.management_area_overview_help, ManagementHomeRoute),
+    Events(R.string.management_area_events, R.string.management_area_events_help, EventsListRoute()),
     Dates(R.string.management_area_dates, R.string.management_area_dates_help),
     Ticketing(R.string.management_area_ticketing, R.string.management_area_ticketing_help, TicketingDatesRoute),
     Profile(R.string.management_area_profile, R.string.management_area_profile_help, ProfileRoute),
@@ -29,8 +33,8 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
     Feedback(R.string.management_area_feedback, R.string.management_area_feedback_help, FeedbackRoute()),
     Collaborators(R.string.management_area_collaborators, R.string.management_area_collaborators_help, CollaboratorsRoute),
     Import(R.string.management_area_import, R.string.management_area_import_help, CalendarImportRoute),
-    Social(R.string.management_area_social, R.string.management_area_social_help),
-    Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help),
+    Social(R.string.management_area_social, R.string.management_area_social_help, SocialStudioRoute()),
+    Notifications(R.string.management_area_notifications, R.string.management_area_notifications_help, ManagementNoticesRoute()),
     Registration(R.string.management_area_registration, R.string.management_area_registration_help, ApplicationsRoute());
 
     val implemented: Boolean get() = entry != null
@@ -60,3 +64,11 @@ internal enum class ManagementArea(val title: Int, val help: Int, val entry: Any
 /** Le aree da mostrare nel menu del soggetto: solo quelle fatte e permesse, nell'ordine del pannello. */
 internal fun availableAreas(subject: ManagementSubject, hasCheckinDates: Boolean): List<ManagementArea> =
     ManagementArea.entries.filter { it.implemented && it.allowedFor(subject, hasCheckinDates) }
+
+/**
+ * Le aree permesse che nell'app non ci sono ancora: per quelle resta il
+ * pannello web, e la pagina del soggetto lo dice (P12). Le date non contano:
+ * stanno dentro l'evento, come nei pannelli.
+ */
+internal fun webOnlyAreas(subject: ManagementSubject, hasCheckinDates: Boolean): List<ManagementArea> =
+    ManagementArea.entries.filter { !it.implemented && it != ManagementArea.Dates && it.allowedFor(subject, hasCheckinDates) }
