@@ -8,11 +8,10 @@ use App\Enums\ImportRunStatus;
 use App\Enums\ImportSourceType;
 use App\Filament\Support\ImportPreviewRows;
 use App\Filament\Venue\Support\CurrentVenue;
-use App\Jobs\Import\ImportSourceJob;
 use App\Models\ImportSource;
 use App\Services\Import\CsvImportDriver;
-use App\Services\Import\ImportRunner;
 use App\Services\Import\ImportUrlGuard;
+use App\Services\Import\VenueCalendarImport;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -46,6 +45,9 @@ use Throwable;
  * Insieme al filtro delle parole escluse è ciò che tiene fuori le voci interne
  * — «riunione staff», «chiuso per ferie» — che in un calendario di lavoro
  * convivono con i concerti.
+ *
+ * Le regole (collegare, leggere, sospendere, scollegare, dove va il file
+ * caricato) stanno in `VenueCalendarImport`, che usa anche l'API dell'app.
  */
 class CalendarImport extends Page implements HasForms
 {
@@ -96,15 +98,7 @@ class CalendarImport extends Page implements HasForms
 
     public function mount(): void
     {
-        $source = $this->source();
-
-        $this->getForm('form')?->fill([
-            'type' => $source?->type->value ?? ImportSourceType::Ics->value,
-            'url' => $source !== null && str_starts_with((string) $source->url, CsvImportDriver::UPLOAD_PREFIX) ? null : $source?->url,
-            'exclude_keywords' => $source !== null
-                ? $source->mapping['exclude_keywords'] ?? config('import.exclude_keywords')
-                : config('import.exclude_keywords'),
-        ]);
+        $this->getForm('form')?->fill(app(VenueCalendarImport::class)->formDefaults($this->source()));
     }
 
     /**
@@ -116,11 +110,7 @@ class CalendarImport extends Page implements HasForms
      */
     public function source(): ?ImportSource
     {
-        return ImportSource::query()
-            ->where('venue_id', CurrentVenue::get()->getKey())
-            ->whereIn('type', [ImportSourceType::Ics->value, ImportSourceType::Csv->value])
-            ->latest('id')
-            ->first();
+        return app(VenueCalendarImport::class)->source(CurrentVenue::get());
     }
 
     public function form(Schema $schema): Schema
@@ -206,13 +196,16 @@ class CalendarImport extends Page implements HasForms
         abort_unless(static::canAccess(), 403);
         $data = $this->getForm('form')?->getState() ?? [];
 
-        $source = $this->draftSource($data);
-
         $this->previewRows = [];
         $this->previewError = null;
 
         try {
-            $dates = app(ImportRunner::class)->preview($source);
+            $dates = app(VenueCalendarImport::class)->preview(
+                CurrentVenue::get(),
+                $this->typeFrom($data),
+                $this->urlFrom($data),
+                $this->keywordsFrom($data),
+            );
 
             $this->previewRows = ImportPreviewRows::make($dates, CurrentVenue::timezone());
         } catch (Throwable $exception) {
@@ -239,22 +232,12 @@ class CalendarImport extends Page implements HasForms
             return;
         }
 
-        $venue = CurrentVenue::get();
-
-        $source = $this->source() ?? new ImportSource;
-
-        $source->fill([
-            'city_id' => $venue->city_id,
-            'venue_id' => $venue->getKey(),
-            'type' => $this->typeFrom($data),
-            'url' => $this->urlFrom($data),
-            'mapping' => ['exclude_keywords' => array_values($data['exclude_keywords'] ?? [])],
-            'is_active' => true,
-        ]);
-
-        $source->save();
-
-        ImportSourceJob::dispatch($source->getKey());
+        app(VenueCalendarImport::class)->connect(
+            CurrentVenue::get(),
+            $this->typeFrom($data),
+            $this->urlFrom($data),
+            $this->keywordsFrom($data),
+        );
 
         Notification::make()
             ->title(__('manage.calendar.notifications.connected'))
@@ -282,7 +265,7 @@ class CalendarImport extends Page implements HasForms
                         return;
                     }
 
-                    $report = app(ImportRunner::class)->run($source);
+                    $report = app(VenueCalendarImport::class)->run($source);
 
                     Notification::make()
                         ->title(__('manage.calendar.notifications.run_done'))
@@ -309,7 +292,7 @@ class CalendarImport extends Page implements HasForms
                         return;
                     }
 
-                    $source->update(['is_active' => ! $source->is_active]);
+                    app(VenueCalendarImport::class)->setActive($source, ! $source->is_active);
 
                     Notification::make()
                         ->title($source->is_active
@@ -329,7 +312,11 @@ class CalendarImport extends Page implements HasForms
                 ->requiresConfirmation()
                 ->modalDescription(__('manage.calendar.actions.disconnect_confirm'))
                 ->action(function (): void {
-                    $this->source()?->delete();
+                    $source = $this->source();
+
+                    if ($source !== null) {
+                        app(VenueCalendarImport::class)->disconnect($source);
+                    }
 
                     $this->previewed = false;
                     $this->previewRows = [];
@@ -348,27 +335,12 @@ class CalendarImport extends Page implements HasForms
     }
 
     /**
-     * Una sorgente non salvata, che serve solo all'anteprima.
-     *
      * @param  array<string, mixed>  $data
+     * @return list<string>
      */
-    private function draftSource(array $data): ImportSource
+    private function keywordsFrom(array $data): array
     {
-        $venue = CurrentVenue::get();
-
-        $source = $this->source() ?? new ImportSource;
-
-        $source->fill([
-            'city_id' => $venue->city_id,
-            'venue_id' => $venue->getKey(),
-            'type' => $this->typeFrom($data),
-            'url' => $this->urlFrom($data),
-            'mapping' => ['exclude_keywords' => array_values($data['exclude_keywords'] ?? [])],
-        ]);
-
-        $source->setRelation('venue', $venue);
-
-        return $source;
+        return array_values(array_map('strval', (array) ($data['exclude_keywords'] ?? [])));
     }
 
     /** @param array<string, mixed> $data */

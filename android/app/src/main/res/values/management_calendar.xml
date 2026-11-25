@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P9: il calendario collegato del locale. Gli stessi testi della pagina «Calendario collegato» del pannello web. -->
+<resources>
+    <string name="calendar_import_title">Calendario collegato</string>
+    <string name="calendar_import_lead">Collega il calendario che usi già e le tue date arrivano da sole.</string>
+    <string name="calendar_import_none">Nessun calendario collegato</string>
+
+    <!-- Stato del collegamento -->
+    <string name="calendar_import_status_heading">Stato del collegamento</string>
+    <string name="calendar_import_status_state">Stato</string>
+    <string name="calendar_import_status_active">Attivo</string>
+    <string name="calendar_import_status_suspended">Sospeso</string>
+    <string name="calendar_import_status_last_run">Ultima lettura</string>
+    <string name="calendar_import_status_never">Mai</string>
+    <string name="calendar_import_status_outcome">Esito</string>
+    <string name="calendar_import_status_address">Indirizzo</string>
+    <string name="calendar_import_status_uploaded">File CSV caricato</string>
+
+    <!-- Azioni sulla sorgente -->
+    <string name="calendar_import_run_now">Leggi adesso</string>
+    <string name="calendar_import_suspend">Sospendi</string>
+    <string name="calendar_import_resume">Riattiva</string>
+    <string name="calendar_import_disconnect">Scollega</string>
+    <string name="calendar_import_disconnect_title">Scollegare il calendario?</string>
+    <string name="calendar_import_disconnect_confirm">Le date già pubblicate restano dove sono: si interrompe solo la lettura del calendario.</string>
+
+    <!-- Modulo -->
+    <string name="calendar_import_form_heading">Indirizzo del calendario</string>
+    <string name="calendar_import_form_help">Serve il collegamento in formato iCal (finisce per .ics). In Google Calendar lo trovi in Impostazioni del calendario, sezione «Integra calendario»: usa l\'indirizzo pubblico se il calendario è pubblico, altrimenti l\'indirizzo segreto in formato iCal.</string>
+    <string name="calendar_import_form_type">Che cosa colleghi</string>
+    <string name="calendar_import_form_type_ics">Un calendario (ICS)</string>
+    <string name="calendar_import_form_type_csv">Un foglio di date (CSV)</string>
+    <string name="calendar_import_form_url">Collegamento al calendario</string>
+    <string name="calendar_import_form_url_help">Incolla qui l\'indirizzo. Viene letto ogni ora e le tue date restano aggiornate.</string>
+    <string name="calendar_import_form_csv_help">Un foglio con una riga per data e le intestazioni nella prima riga: titolo, data (o inizio), ora, fine, descrizione, link, luogo, id. Puoi incollare l\'indirizzo di un Google Sheet «pubblicato come CSV» oppure caricare il file.</string>
+    <string name="calendar_import_form_file">Oppure carica il file CSV</string>
+    <string name="calendar_import_form_file_help">Un file caricato si legge una volta; per tenerlo aggiornato ricaricalo, o usa un indirizzo.</string>
+    <string name="calendar_import_form_file_choose">Scegli il file CSV</string>
+    <string name="calendar_import_form_file_change">Scegli un altro file</string>
+    <string name="calendar_import_form_file_remove">Togli il file</string>
+    <string name="calendar_import_form_file_chosen">File scelto: %1$s</string>
+    <string name="calendar_import_form_file_unreadable">Non riesco a leggere questo file. Scegline un altro.</string>
+    <string name="calendar_import_form_file_too_large">Il file è troppo grande: al massimo %1$d MB.</string>
+    <string name="calendar_import_form_file_empty">Il file è vuoto.</string>
+    <string name="calendar_import_form_exclude">Parole che tengono fuori una data</string>
+    <string name="calendar_import_form_exclude_help">Le date il cui titolo contiene una di queste parole non vengono pubblicate. Servono a lasciare fuori le voci interne del tuo calendario, come le riunioni o le chiusure.</string>
+    <string name="calendar_import_form_exclude_placeholder">Aggiungi una parola</string>
+    <string name="calendar_import_form_exclude_add">Aggiungi</string>
+    <string name="calendar_import_form_exclude_remove">Togli la parola %1$s</string>
+    <string name="calendar_import_form_exclude_none">Nessuna parola: entrano tutte le date.</string>
+
+    <!-- Anteprima e collegamento -->
+    <string name="calendar_import_preview">Anteprima</string>
+    <string name="calendar_import_connect">Collega il calendario</string>
+    <string name="calendar_import_update">Aggiorna il collegamento</string>
+    <string name="calendar_import_preview_required">Guarda prima l\'anteprima: le date che vedi sono esattamente quelle che verranno pubblicate.</string>
+    <string name="calendar_import_preview_heading">Cosa verrà pubblicato</string>
+    <string name="calendar_import_preview_description">Le prime date del tuo calendario, con il filtro già applicato.</string>
+    <string name="calendar_import_preview_empty">Il calendario non porta alcuna data importabile.</string>
+    <string name="calendar_import_preview_cancelled">Annullato alla sorgente</string>
+    <string name="calendar_import_preview_where_none">Luogo non indicato</string>
+</resources>
