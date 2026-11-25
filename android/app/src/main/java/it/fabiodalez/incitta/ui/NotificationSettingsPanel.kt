@@ -93,6 +93,9 @@ fun NotificationSettingsPanel(session: Session, standalone: Boolean = false) {
             NotificationToggle(stringResource(R.string.notification_weekly), prefs.venueDigest, !busy) { preferences = prefs.copy(venueDigest = it) }
             NotificationToggle(stringResource(R.string.notification_reminders), prefs.reminders, !busy) { preferences = prefs.copy(reminders = it) }
             NotificationToggle(stringResource(R.string.notification_sold_out), prefs.soldOut, !busy) { preferences = prefs.copy(soldOut = it) }
+            NotificationToggle(stringResource(R.string.notification_comments), prefs.comments, !busy) { preferences = prefs.copy(comments = it) }
+            /* Come la pagina del sito: il rapporto mensile solo a chi gestisce un locale. */
+            if (prefs.venueReportAvailable) NotificationToggle(stringResource(R.string.notification_venue_report), prefs.venueReport, !busy) { preferences = prefs.copy(venueReport = it) }
             NotificationTime(stringResource(R.string.notification_time), prefs.dailyDigestTime?.take(5) ?: "17:00", !busy) { preferences = prefs.copy(dailyDigestTime = it) }
             // La proposta della sera porta con sé quando arriva: un interruttore senza
             // giorni e ora lascerebbe la persona a indovinare che cosa ha acceso.
@@ -196,7 +199,7 @@ fun NotificationSettingsPanel(session: Session, standalone: Boolean = false) {
                 }
                 val intent = android.content.Intent(context, it.fabiodalez.incitta.MainActivity::class.java).apply {
                     action = android.content.Intent.ACTION_VIEW
-                    data = android.net.Uri.parse(item.data.url)
+                    data = android.net.Uri.parse(item.data.target)
                     putExtra("notification_user_id", session.user.id)
                     flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }

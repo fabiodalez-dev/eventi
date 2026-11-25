@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}, onApplications: () -> Unit = {}) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}, onApplications: () -> Unit = {}, onManagementLink: (String) -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -77,12 +77,14 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     if (session.user.managementLinks.isNotEmpty()) {
                         Text("Gestione", style = MaterialTheme.typography.titleLarge)
                         session.user.managementLinks.forEach { link ->
-                            ProfileRow(link.label, "Apri il pannello web", when (link.icon) {
+                            /* P12: i pannelli e la biglietteria hanno le loro schermate nell'app; resta al sito solo ciò che non c'è (la newsletter della redazione). */
+                            val native = it.fabiodalez.incitta.data.management.ManagementDestination.parse(link.url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) != null
+                            ProfileRow(link.label, androidx.compose.ui.res.stringResource(if (native) it.fabiodalez.incitta.R.string.management_link_native else it.fabiodalez.incitta.R.string.management_link_web), when (link.icon) {
                                 "newsletter" -> Icons.Outlined.Email
                                 "tickets" -> Icons.Outlined.ConfirmationNumber
                                 "venue" -> Icons.Outlined.Storefront
                                 else -> Icons.Outlined.Dashboard
-                            }) { uriHandler.openUri(link.url) }
+                            }) { if (native) onManagementLink(link.url) else uriHandler.openUri(link.url) }
                         }
                     }
                 }

@@ -9,9 +9,14 @@ import java.net.URI
  * collegamento cliccato fuori dall'app continua ad aprire il browser.
  *
  * Elenco chiuso: un indirizzo che non è qui torna `null` e si apre nel
- * browser come prima. Le voci si aggiungono con i pacchetti (eventi, date,
- * profilo, …) quando la schermata nativa esiste: la biglietteria, i commenti
- * e le recensioni.
+ * browser come prima. P12 ha chiuso il giro: ogni pagina di `/gestione/…` e
+ * di `/organizza/…` che ha una schermata nativa è qui (`Panel`, più
+ * `Feedback` per commenti e recensioni); restano al browser solo le pagine
+ * senza schermata (oggi «Social», P10) e i file (CSV, PDF).
+ * Gli avvisi a chi gestisce arrivano con un indirizzo interno
+ * (`incitta://gestione/…`, vedi `ManagementNoticeTarget.uri`) che porta gli id e non
+ * gli slug, così l'app non indovina il soggetto da un indirizzo pensato per
+ * l'email.
  * Gli id servono solo a scegliere la schermata: il permesso lo decide sempre
  * il server quando la schermata carica i dati.
  */
@@ -48,10 +53,21 @@ internal sealed interface ManagementDestination {
      * del soggetto, che controlla l'ordine con il server.
      */
     data class SponsorshipCheckout(val result: SponsorshipReturn) : ManagementDestination
+    /** `/gestione` e `/organizza` (il rapporto mensile, la pagina dopo l'accesso): la gestione, dove si atterra di solito. */
+    data object Start : ManagementDestination
+    /**
+     * Una pagina del pannello di un soggetto (`/gestione/{slug}/…`,
+     * `/organizza/{slug}/…`) o un avviso a chi gestisce. `webUrl` è
+     * l'indirizzo da aprire nel browser se la persona non gestisce (più)
+     * quel soggetto o la gestione nell'app è spenta; gli avvisi non ce
+     * l'hanno, e allora si resta nella gestione.
+     */
+    data class Panel(val subject: SubjectRef, val page: PanelPage, val webUrl: String? = null) : ManagementDestination
 
     companion object {
         fun parse(url: String, allowedOrigin: String): ManagementDestination? = runCatching {
             val uri = URI(url)
+            if (uri.scheme == NOTICE_SCHEME) return parseNotice(uri)
             val allowed = URI(allowedOrigin)
             if (uri.scheme != allowed.scheme || uri.host != allowed.host || uri.port != allowed.port || uri.userInfo != null) return null
             val path = uri.path.orEmpty().trimEnd('/')
@@ -75,9 +91,86 @@ internal sealed interface ManagementDestination {
             }
             SponsorshipReturn.parse(uri)?.let { return SponsorshipCheckout(it) }
             if (Regex("^/inviti-locali/[0-9]{1,18}/[0-9]{1,18}/[0-9]{1,18}$").matches(path) || Regex("^/inviti-ingressi/[0-9]{1,18}/[0-9]{1,18}$").matches(path)) return Invitations
-            null
+            if (path == "/gestione" || path == "/organizza") return Start
+            parsePanel(path, url)
         }.getOrNull()
+
+        /* `/gestione/{slug}/…` e `/organizza/{slug}/…`: le pagine con una schermata nativa, una per una. */
+        private fun parsePanel(path: String, url: String): ManagementDestination? {
+            val match = Regex("^/(gestione|organizza)/([a-z0-9][a-z0-9-]{0,190})((?:/[a-z0-9-]{1,191}){0,3})$").matchEntire(path) ?: return null
+            val kind = if (match.groupValues[1] == "gestione") SubjectKind.Venue else SubjectKind.Organizer
+            val slug = match.groupValues[2]
+            if (slug in PANEL_RESERVED) return null
+            val rest = match.groupValues[3].removePrefix("/").split('/').filter(String::isNotEmpty)
+            val venue = kind == SubjectKind.Venue
+            val page: PanelPage = when {
+                rest.isEmpty() -> PanelPage.Home
+                rest == listOf("eventi") -> PanelPage.Events
+                rest == listOf("eventi", if (venue) "nuovo" else "create") -> PanelPage.NewEvent
+                rest.size == 2 && rest[0] == "eventi" -> PanelPage.Event(slug = rest[1])
+                rest.size == 3 && rest[0] == "eventi" && rest[2] == (if (venue) "modifica" else "edit") -> PanelPage.Event(slug = rest[1], edit = true)
+                rest == listOf(if (venue) "locale" else "profile") -> PanelPage.Profile
+                venue && rest == listOf("collaboratori") -> PanelPage.Collaborators
+                venue && rest == listOf("il-tuo-accesso") -> PanelPage.MyAccess
+                venue && rest == listOf("calendario") -> PanelPage.CalendarImport
+                rest == listOf("statistiche") -> PanelPage.Statistics
+                rest == listOf("statistiche-condivisioni") -> PanelPage.ShareAnalytics
+                rest.size == 3 && rest[0] == "statistiche-condivisioni" && rest[1] in ANALYTICS_TYPES ->
+                    PanelPage.SubjectAnalytics(rest[1], rest[2].takeIf { Regex("^[1-9][0-9]{0,17}$").matches(it) }?.toLongOrNull() ?: return null)
+                rest == listOf("statistiche-sponsorizzazioni") -> PanelPage.SponsorshipAnalytics
+                rest == listOf("sponsorizzazioni") -> PanelPage.Sponsorships
+                else -> return null
+            }
+            return Panel(SubjectRef(kind, slug = slug), page, webUrl = url)
+        }
+
+        /* `incitta://gestione/{venue|organizer}/{id}/{event|comments|home}[/{id}]`, da `ManagementNoticeTarget.uri`. */
+        private fun parseNotice(uri: URI): ManagementDestination? {
+            if (uri.host != NOTICE_HOST || uri.userInfo != null || uri.port != -1) return null
+            val match = Regex("^/(venue|organizer)/([1-9][0-9]{0,17})/(event|comments|home)(?:/([1-9][0-9]{0,17}))?$").matchEntire(uri.path.orEmpty()) ?: return null
+            val kind = if (match.groupValues[1] == "venue") SubjectKind.Venue else SubjectKind.Organizer
+            val subject = SubjectRef(kind, id = match.groupValues[2].toLongOrNull() ?: return null)
+            val id = match.groupValues[4].takeIf(String::isNotEmpty)?.toLongOrNull()
+            val page = when (match.groupValues[3]) {
+                NOTICE_EVENT -> PanelPage.Event(id = id ?: return null)
+                NOTICE_COMMENTS -> PanelPage.Comments(id ?: return null)
+                else -> if (id == null) PanelPage.Home else return null
+            }
+            return Panel(subject, page)
+        }
     }
+}
+
+/* Le pagine del pannello che non sono di un soggetto. */
+private val PANEL_RESERVED = setOf("login", "logout", "password-reset")
+/* I soggetti della pagina di dettaglio delle statistiche (`EventAnalyticsPage::detailUrl`). */
+private val ANALYTICS_TYPES = setOf("event", "venue", "organizer")
+
+/** Il locale o l'organizzazione di un indirizzo: per slug dal sito, per id dagli avvisi. */
+internal data class SubjectRef(val kind: SubjectKind, val slug: String? = null, val id: Long? = null) {
+    fun matches(subject: ManagementSubject): Boolean =
+        subject.kind == kind && (if (slug != null) subject.slug == slug else id != null && subject.id == id)
+}
+
+/** Le pagine del pannello che hanno una schermata nativa. */
+internal sealed interface PanelPage {
+    /** La pagina del soggetto (finché non c'è il riepilogo di P11, il menu delle aree). */
+    data object Home : PanelPage
+    data object Events : PanelPage
+    data object NewEvent : PanelPage
+    /** Un evento per id (avvisi) o per slug (pannello); `edit` apre la modifica invece della scheda. */
+    data class Event(val id: Long? = null, val slug: String? = null, val edit: Boolean = false) : PanelPage
+    /** I commenti di un evento da moderare (avviso di nuovo commento). */
+    data class Comments(val eventId: Long) : PanelPage
+    data object Profile : PanelPage
+    data object Collaborators : PanelPage
+    data object MyAccess : PanelPage
+    data object CalendarImport : PanelPage
+    data object Statistics : PanelPage
+    data object ShareAnalytics : PanelPage
+    data class SubjectAnalytics(val type: String, val id: Long) : PanelPage
+    data object SponsorshipAnalytics : PanelPage
+    data object Sponsorships : PanelPage
 }
 
 /** Quale schermata di P13: l'elenco delle richieste o uno dei tre moduli. */

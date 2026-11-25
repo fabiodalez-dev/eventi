@@ -2,7 +2,7 @@
 <!-- La pagina del locale o dell'organizzazione e il menu delle aree. -->
 <resources>
     <string name="management_home_areas">Cosa puoi fare dall’app</string>
-    <string name="management_home_more_web">Le altre funzioni della gestione (eventi, profilo, statistiche e il resto) arrivano nell’app con i prossimi aggiornamenti. Nel frattempo le trovi nel pannello web.</string>
+    <string name="management_home_more_web">Restano per ora solo sul pannello web: %1$s.</string>
     <string name="management_home_open_web">Apri il pannello web</string>
     <string name="management_home_no_areas">Con il tuo ruolo, per ora, qui non ci sono funzioni da usare nell’app.</string>
     <string name="management_home_error">Non sono riuscito a caricare i tuoi locali e le tue organizzazioni.</string>

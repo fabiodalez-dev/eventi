@@ -19,6 +19,11 @@ data class NotificationPreferences(
     @SerialName("tonight_days") val tonightDays: List<Int> = listOf(5, 6),
     @SerialName("tonight_time") val tonightTime: String = "18:00",
     @SerialName("push_available") val pushAvailable: Boolean = false,
+    /* Risposte e reazioni ai propri commenti, come la pagina delle preferenze del sito. */
+    val comments: Boolean = true,
+    /* Il rapporto mensile dei locali gestiti (W-ST-10): l'interruttore c'è solo con `venue_report_available`. */
+    @SerialName("venue_report") val venueReport: Boolean = true,
+    @SerialName("venue_report_available") val venueReportAvailable: Boolean = false,
 )
 
 @Serializable
@@ -34,7 +39,16 @@ data class NotificationInterests(
 data class InterestSelection(val categories: List<Long>, val venues: List<Long>)
 
 @Serializable
-data class InboxContent(val title: String = "", val body: String = "", val url: String = "")
+data class InboxContent(
+    val title: String = "",
+    val body: String = "",
+    val url: String = "",
+    /* Gli avvisi a chi gestisce (P12): la schermata della gestione da aprire al posto dell'`url`. */
+    val management: it.fabiodalez.incitta.data.management.ManagementNoticeTarget? = null,
+) {
+    /** Dove porta il tocco: la gestione nell'app quando il server l'ha detto, altrimenti l'`url`. */
+    val target: String get() = it.fabiodalez.incitta.data.management.noticeTarget(management, url)
+}
 
 @Serializable
 data class InboxNotification(val id: String, val data: InboxContent, val read: Boolean = false)

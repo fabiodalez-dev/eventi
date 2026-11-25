@@ -59,6 +59,7 @@ class ManagementFoundationsTest {
         assertNull(ManagementArea.Dates.entry)
         assertEquals(it.fabiodalez.incitta.ui.management.analytics.AnalyticsRoute(), ManagementArea.Analytics.entry)
         assertEquals(it.fabiodalez.incitta.ui.management.sponsorships.SponsorshipsRoute(), ManagementArea.Sponsorships.entry)
+        assertEquals(it.fabiodalez.incitta.ui.management.notifications.ManagementNoticesRoute(), ManagementArea.Notifications.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {
