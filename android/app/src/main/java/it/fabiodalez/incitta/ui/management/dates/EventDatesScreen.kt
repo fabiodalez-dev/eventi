@@ -18,6 +18,7 @@ import it.fabiodalez.incitta.data.management.ManagedEventOccurrence
 import it.fabiodalez.incitta.data.management.SubjectKind
 import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.management.ManagementGraphContext
+import it.fabiodalez.incitta.ui.management.social.SocialPreviewDialog
 import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
@@ -110,13 +111,18 @@ internal fun EventDatesScreen(
                         onSoldOut = { pending = DateAction.SoldOut(date) },
                         onDelete = { pending = DateAction.Delete(date) },
                         onTickets = date.ticketingDateId?.let { id -> { onTickets(id) } },
-                        onPoster = { fileError = null; viewModel.downloadPoster(date, androidContext.cacheDir) })
+                        onPoster = { fileError = null; viewModel.downloadPoster(date, androidContext.cacheDir) },
+                        onSocialPreview = { fileError = null; viewModel.downloadSocialPreview(date, androidContext.cacheDir) })
                 }
                 if (state.nextPage != null) OutlinedButton(enabled = !state.busy, onClick = viewModel::more, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.management_dates_more))
                 }
             }
         }
+    }
+
+    state.socialPreview?.let { preview ->
+        SocialPreviewDialog(preview.file, meta?.event?.title.orEmpty(), onDismiss = viewModel::consumeSocialPreview)
     }
 
     when (val action = pending) {
@@ -178,6 +184,7 @@ private fun DateCard(
     onDelete: () -> Unit,
     onTickets: (() -> Unit)?,
     onPoster: () -> Unit,
+    onSocialPreview: () -> Unit = {},
 ) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -208,6 +215,7 @@ private fun DateCard(
                     Text(stringResource(R.string.management_dates_cancel), color = MaterialTheme.colorScheme.error)
                 }
                 onTickets?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_dates_tickets)) } }
+                if (date.socialPreview) OutlinedButton(enabled = !busy, onClick = onSocialPreview, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.social_date_preview)) }
                 if (date.posterPdf) OutlinedButton(enabled = !busy, onClick = onPoster, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_dates_poster)) }
                 if (date.abilities.delete) OutlinedButton(enabled = !busy, onClick = onDelete, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.management_dates_delete), color = MaterialTheme.colorScheme.error)

@@ -97,6 +97,8 @@ internal class ManagementRepository(
     val analytics: ManagementAnalyticsSource? = null,
     /* Le sponsorizzazioni (P6). */
     val sponsorships: ManagementSponsorshipsSource? = null,
+    /* Le grafiche social del locale (P10). */
+    val social: ManagementSocialSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -205,6 +207,7 @@ internal class ManagementRepository(
             dates = ManagementDatesApi(client, session.token),
             analytics = ManagementAnalyticsApi(client, session.token),
             sponsorships = ManagementSponsorshipsApi(client, session.token),
+            social = ManagementSocialApi(client, session.token),
         )
     }
 }

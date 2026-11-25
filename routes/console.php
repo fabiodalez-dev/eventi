@@ -9,6 +9,7 @@ use App\Models\CheckinStaffInvitation;
 use App\Models\GoogleCalendarConnection;
 use App\Models\MobileAuthChallenge;
 use App\Models\SearchMiss;
+use App\Models\SocialBatch;
 use App\Models\SponsorshipGrant;
 use App\Models\User;
 use App\Models\WhatsappChallenge;
@@ -82,6 +83,14 @@ Schedule::command('queue:work google_calendar --queue=google-calendar --stop-whe
     ->everyMinute()->withoutOverlapping(12)->runInBackground()->doNotMonitor();
 Schedule::command('social:publish-due')->everyMinute()->withoutOverlapping(5);
 Schedule::command('social:daily')->everyMinute()->withoutOverlapping(30);
+
+/*
+ * I pacchetti del Social Studio oltre i dodici più recenti di ogni locale (e
+ * della redazione di ogni città), con le loro immagini: la regola, e quali
+ * pacchetti una pubblicazione tiene in vita, sta in `SocialBatch::prunable()`.
+ */
+Schedule::command('model:prune', ['--model' => SocialBatch::class])
+    ->dailyAt('04:40')->doNotMonitor();
 
 /* Rinnova le pagine calde ben prima del TTL minimo di trenta minuti. */
 Schedule::command('page-cache:warm')

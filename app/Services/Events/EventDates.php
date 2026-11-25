@@ -142,6 +142,8 @@ final class EventDates
             'ticketing_date_id' => $gate->allows('manage', [Booking::class, $date]) ? (int) $date->getKey() : null,
             'poster_pdf' => $poster,
             'poster_pdf_url' => $poster && Route::has('events.poster') ? route('events.poster', ['slug' => $event->slug, 'occurrence' => $date->url_number]) : null,
+            // «Grafica social» dell'elenco delle date dell'organizzazione (W-DT-12); il locale ha lo studio (P10).
+            'social_preview' => $subject->isOrganizer() && $update,
             'abilities' => [
                 'update' => $update,
                 'delete' => $venue && $gate->allows('delete', $date),
