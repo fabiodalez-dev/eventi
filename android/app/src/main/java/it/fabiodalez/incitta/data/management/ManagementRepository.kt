@@ -79,6 +79,8 @@ internal class ManagementRepository(
     private val scope: CoroutineScope,
     private val retryDelayMillis: Long = RETRY_DELAY_MILLIS,
     send: (suspend (PendingCheckin) -> CheckedInTicket)? = null,
+    /* Profilo del locale e dell'organizzazione (P4). */
+    val profile: ManagementProfileSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -178,6 +180,7 @@ internal class ManagementRepository(
             userId = session.user.id, token = session.token,
             ticketing = ManagementApi(client, session.token), identity = ManagementIdentityApi(client, session.token),
             media = ManagementMediaApi(client, session.token), device = device, scope = scope,
+            profile = ManagementProfileApi(client, session.token),
         )
     }
 }

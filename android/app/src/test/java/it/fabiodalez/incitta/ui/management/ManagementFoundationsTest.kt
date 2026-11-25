@@ -23,16 +23,18 @@ class ManagementFoundationsTest {
     private fun venue(vararg permissions: String) = ManagedVenue(id = 1, role = "owner", permissions = permissions.associateWith { true }).toSubject()
 
     @Test fun onlyBuiltAndAllowedAreasAppear() {
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
+        assertEquals(listOf(ManagementArea.Ticketing, ManagementArea.Profile), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
         assertTrue(availableAreas(venue("events_create"), hasCheckinDates = false).isEmpty())
         /* Chi controlla gli ingressi di qualche data vede la biglietteria anche senza gestirla. */
         assertEquals(listOf(ManagementArea.Ticketing), availableAreas(venue(), hasCheckinDates = true))
         assertEquals(listOf(ManagementArea.Ticketing), availableAreas(ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(), false))
     }
 
-    @Test fun everyAreaOfThePlanExistsAndOnlyTicketingIsBuilt() {
+    @Test fun everyAreaOfThePlanExistsAndTheBuiltOnesHaveAnEntry() {
         assertEquals(13, ManagementArea.entries.size)
-        assertEquals(listOf(ManagementArea.Ticketing), ManagementArea.entries.filter { it.implemented })
+        /* Ogni pacchetto che arriva accende la sua area: qui si controllano quelle già fatte. */
+        assertTrue(ManagementArea.Ticketing.implemented)
+        assertTrue(ManagementArea.Profile.implemented)
         assertSame(TicketingDatesRoute, ManagementArea.Ticketing.entry)
     }
 
