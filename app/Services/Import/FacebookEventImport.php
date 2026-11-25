@@ -182,7 +182,16 @@ class FacebookEventImport
         return $fields;
     }
 
-    public function photo(string $url): TemporaryUploadedFile
+    /**
+     * Scarica la foto di copertina dal server immagini di Facebook e la
+     * controlla (provenienza, peso, tipo, superficie). Restituisce i byte e
+     * l'estensione. La usano il modulo del pannello (`photo()`, file
+     * temporaneo di Livewire) e l'API di gestione, che la consegna alla
+     * raccolta `poster` dell'evento.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function download(string $url): array
     {
         $parts = parse_url($url);
         $host = strtolower((string) ($parts['host'] ?? ''));
@@ -211,6 +220,13 @@ class FacebookEventImport
         $extension = match ($info['mime']) {
             'image/png' => 'png', 'image/webp' => 'webp', default => 'jpg'
         };
+
+        return [$bytes, $extension];
+    }
+
+    public function photo(string $url): TemporaryUploadedFile
+    {
+        [$bytes, $extension] = $this->download($url);
         $name = Str::random(30).'-meta'.base64_encode('evento-facebook.'.$extension).'-.'.$extension;
         FileUploadConfiguration::storage()->put(FileUploadConfiguration::path($name, false), $bytes);
 

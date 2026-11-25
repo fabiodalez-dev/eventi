@@ -9,8 +9,8 @@ use App\Enums\RecurrenceFrequency;
 use App\Enums\Weekday;
 use App\Models\Event;
 use App\Models\EventRecurrence;
+use App\Services\Events\RecurrenceSetup;
 use App\Support\RecurrenceRule;
-use Carbon\CarbonImmutable;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -66,33 +66,16 @@ final class RecurrenceForm
      */
     public static function apply(Event $event, array $data, string $prefix = ''): int
     {
-        $frequency = RecurrenceFrequency::tryFrom((string) ($data[$prefix.'frequency'] ?? ''));
-
-        if (! $frequency instanceof RecurrenceFrequency) {
-            return 0;
-        }
-
         $weekdays = $data[$prefix.'weekdays'] ?? [];
-        $rrule = RecurrenceRule::build($frequency, is_array($weekdays) ? $weekdays : []);
-
         $until = $data[$prefix.'until'] ?? null;
-        $timezone = $event->city->timezone;
 
-        $recurrence = EventRecurrence::query()->updateOrCreate(
-            ['event_id' => $event->getKey()],
-            [
-                'rrule' => $rrule,
-                // Fine giornata locale: chi scrive «fino al 31 dicembre»
-                // intende compresa la sera del 31.
-                'until' => filled($until)
-                    ? CarbonImmutable::parse((string) $until, $timezone)->endOfDay()->utc()->toMutable()
-                    : null,
-            ],
+        // La regola sta in `RecurrenceSetup`, la stessa che usa l'API di gestione.
+        return app(RecurrenceSetup::class)->apply(
+            $event,
+            RecurrenceFrequency::tryFrom((string) ($data[$prefix.'frequency'] ?? '')),
+            is_array($weekdays) ? $weekdays : [],
+            filled($until) ? (string) $until : null,
         );
-
-        $recurrence->setRelation('event', $event);
-
-        return app(GenerateOccurrencesAction::class)($recurrence);
     }
 
     /**

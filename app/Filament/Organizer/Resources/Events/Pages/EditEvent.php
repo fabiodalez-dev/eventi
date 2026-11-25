@@ -8,13 +8,14 @@ use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\User;
-use App\Services\Events\EventReviewRule;
+use App\Services\Events\EventSubmission;
+use App\Services\Events\OrganizerEventEditor;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class EditEvent extends EditRecord
 {
@@ -32,14 +33,14 @@ class EditEvent extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Editing published content requires renewed editorial approval (regola in `EventReviewRule`).
+        // Editing published content requires renewed editorial approval: la regola sta in `OrganizerEventEditor`.
         $tenant = Filament::getTenant();
         $user = auth()->user();
-        if ($tenant instanceof Organizer && $user instanceof User && app(EventReviewRule::class)->sendsToReview($this->eventRecord(), $tenant, $user)) {
-            $data['status'] = 'pending';
+        if (! $tenant instanceof Organizer || ! $user instanceof User) {
+            return $data;
         }
 
-        return $data;
+        return app(OrganizerEventEditor::class)->prepareUpdate($this->eventRecord(), $tenant, $user, $data)[0];
     }
 
     protected function getHeaderActions(): array
@@ -48,13 +49,16 @@ class EditEvent extends EditRecord
             Action::make('preview')->label('Anteprima')->url(fn () => route('events.preview', $this->record))->openUrlInNewTab(),
             Action::make('submit')->label('Invia alla redazione')->visible(fn () => in_array($this->eventRecord()->status, [EventStatus::Draft, EventStatus::Rejected], true))
                 ->requiresConfirmation()->action(function (): void {
-                    Gate::authorize('update', $this->record);
-                    if (! $this->eventRecord()->occurrences()->exists()) {
+                    $user = auth()->user();
+                    abort_unless($user instanceof User, 403);
+                    // La regola sta in `EventSubmission`, la stessa che usa l'API di gestione.
+                    try {
+                        app(EventSubmission::class)->sendToEditors($this->eventRecord(), $user);
+                    } catch (ValidationException) {
                         Notification::make()->danger()->title('Aggiungi almeno una data prima di inviare')->send();
 
                         return;
                     }
-                    $this->record->update(['status' => 'pending']);
                     $this->refreshFormData(['status']);
                 }),
         ];

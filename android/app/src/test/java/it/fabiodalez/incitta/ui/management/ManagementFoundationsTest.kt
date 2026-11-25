@@ -10,6 +10,7 @@ import it.fabiodalez.incitta.ui.management.common.cityIso
 import it.fabiodalez.incitta.ui.management.common.cityLocalDateTime
 import it.fabiodalez.incitta.ui.management.common.pickerDate
 import it.fabiodalez.incitta.ui.management.common.pickerMillis
+import it.fabiodalez.incitta.ui.management.events.EventsListRoute
 import it.fabiodalez.incitta.ui.management.ticketing.TicketingDatesRoute
 import java.io.IOException
 import java.time.LocalDate
@@ -23,17 +24,19 @@ class ManagementFoundationsTest {
     private fun venue(vararg permissions: String) = ManagedVenue(id = 1, role = "owner", permissions = permissions.associateWith { true }).toSubject()
 
     @Test fun onlyBuiltAndAllowedAreasAppear() {
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
-        assertTrue(availableAreas(venue("events_create"), hasCheckinDates = false).isEmpty())
+        /* Gli eventi li vede chiunque entri nel soggetto, come l'elenco del pannello (P1). */
+        assertEquals(listOf(ManagementArea.Events, ManagementArea.Ticketing), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
+        assertEquals(listOf(ManagementArea.Events), availableAreas(venue("events_create"), hasCheckinDates = false))
         /* Chi controlla gli ingressi di qualche data vede la biglietteria anche senza gestirla. */
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(venue(), hasCheckinDates = true))
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(), false))
+        assertEquals(listOf(ManagementArea.Events, ManagementArea.Ticketing), availableAreas(venue(), hasCheckinDates = true))
+        assertEquals(listOf(ManagementArea.Events, ManagementArea.Ticketing), availableAreas(ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(), false))
     }
 
     @Test fun everyAreaOfThePlanExistsAndOnlyTicketingIsBuilt() {
         assertEquals(13, ManagementArea.entries.size)
-        assertEquals(listOf(ManagementArea.Ticketing), ManagementArea.entries.filter { it.implemented })
+        assertEquals(listOf(ManagementArea.Events, ManagementArea.Ticketing), ManagementArea.entries.filter { it.implemented })
         assertSame(TicketingDatesRoute, ManagementArea.Ticketing.entry)
+        assertSame(EventsListRoute, ManagementArea.Events.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {
