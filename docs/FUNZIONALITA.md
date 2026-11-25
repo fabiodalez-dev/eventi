@@ -151,6 +151,11 @@ Promuove la propria attività, mantiene aggiornato il programma e misura l’int
 - **Profilo del locale e dell'organizzazione dall'app** — Tutte le sezioni del pannello, con logo e copertina ritagliati, galleria, orari e chiusure, «Prima di andare», avviso ai follower e strumenti di condivisione. *Android.*
 - **Commenti e recensioni dall'app** — Moderazione dei commenti agli eventi, risposta alle recensioni ricevute e segnalazione alla redazione. *Android.*
 - **Collaboratori e inviti dall'app** — Invito, nuovo invio, ritiro e rimozione dei collaboratori, «Il tuo accesso» per lasciare il locale, e risposta agli inviti ricevuti direttamente nell'app con l'account confermato. *Android.*
+- **Date e ricorrenze dall'app** — Aggiunta, modifica e annullamento delle date (singola o serie), «Ripeti», tutto esaurito sulla prossima data, informazioni pratiche e costi anche per i collaboratori, locandina in PDF, voci del programma. *Android.*
+- **Statistiche dall'app** — Report del locale o dell'organizzazione e degli eventi, tabelle, esportazioni, canali di condivisione con QR, con grafici che riportano anche i numeri in testo. *Android.*
+- **Sponsorizzazioni dall'app** — Abilitazioni con avanzamento, scelta e messa in evidenza degli eventi, stop delle campagne, statistiche e acquisto: tutto nell'app tranne il pagamento, che si apre su Stripe e torna nell'app. *Android.*
+- **Import del calendario dall'app** — Collegamento di un calendario esterno o di un file CSV con anteprima, lettura immediata, sospensione e scollegamento. *Android.*
+- **Registrare o rivendicare dall'app** — Registrazione di un locale o di un'organizzazione, rivendicazione di un locale a catalogo e «Le mie richieste», per chi ha già un account confermato. *Android.*
 - **Avviso «stessa sera in zona»** — Mentre sceglie l'orario, vede fino a sei eventi di altri entro 2 km alla stessa ora. *Solo web.*
 - **Chiusure straordinarie e ferie** — Giorni di chiusura che prevalgono sugli orari settimanali, con «Chiuso fino al…» sul sito e un avviso a chi crea date in quei giorni. *Sito e app.*
 - **Avvisi a chi segue il locale** — Pausa, chiusura o riapertura sulla scheda e come notifica ai follower, al massimo una volta a settimana. *Sito e app.*
@@ -324,7 +329,7 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **Altri campi della pagina del locale** — Fascia di prezzo, lingue parlate, animali ammessi, prenotazione consigliata.
 - **Personale di ingresso per locale** — Oggi si assegna data per data.
 - **Chat e gruppi persistenti, pubblicità a click, aggiornamenti in tempo reale** — Rinviati.
-- **Il resto del pannello del locale e dell'organizzatore nell'app Android** — Date e ricorrenze, statistiche, sponsorizzazioni, import del calendario, registrazione e rivendicazione, grafiche social, riepilogo e notifiche: in costruzione a pacchetti dopo eventi, biglietteria, profilo, commenti, recensioni e collaboratori.
+- **Il resto del pannello del locale e dell'organizzatore nell'app Android** — Grafiche social, riepilogo e notifiche al gestore: l'ultima ondata della gestione nell'app.
 
 ## Registro degli aggiornamenti
 
@@ -345,3 +350,4 @@ Il valore della piattaforma deriva dall’incontro fra offerta locale, pubblico 
 - **15 settembre 2026** — Prima versione.
 - **25 novembre 2026** — Fondamenta della gestione completa nell'app Android: l'app sa quali locali e organizzazioni gestisci e con quali permessi, sceglie il soggetto su cui lavorare e mostra «Gestione eventi» solo a chi gestisce qualcosa; la biglietteria nell'app non perde più la schermata ruotando il telefono e ritenta le letture rimaste anche a schermata chiusa. Nuove API di gestione per locale e organizzazione (soggetti, elenchi e limiti, locandina, logo, copertina e galleria del locale) che rispettano le stesse regole dei pannelli: il membro di un locale sospeso non può scrivere nemmeno dall'app. Le campagne sponsorizzate degli organizzatori compaiono anche nell'app. *Sito e app.*
 - **26 novembre 2026** — Nell'app Android la gestione di eventi, biglietteria completa, profilo del locale e dell'organizzazione, commenti, recensioni, collaboratori e inviti, con le stesse regole e gli stessi limiti del pannello. Correzioni che valgono anche sul sito: solo l'organizzatore principale può cambiare città e locale di un evento, la prima data non può essere più vecchia di sette giorni e le ricorrenze non generano date passate, le bozze delle organizzazioni non si pubblicano dal locale e il loro duplicato nasce senza organizzazione, gli inviti dei locali sospesi non si accettano. *Sito e app.*
+- **26 novembre 2026 (seconda ondata)** — Nell'app Android date e ricorrenze, statistiche, sponsorizzazioni con pagamento su Stripe, import del calendario, registrazione e rivendicazione dei locali, con le regole del pannello. Correzioni che valgono anche sul sito: il periodo personalizzato delle statistiche ha un massimo di due anni e non va oltre oggi, i numeri per data di un evento solo co-organizzato non si vedono più, i file CSV dell'import non si accumulano sul server. *Sito e app.*
