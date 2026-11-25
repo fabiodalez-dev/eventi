@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Shared;
 
-use App\Enums\StatsPeriod;
 use App\Filament\Admin\Pages\EventAnalyticsDetail;
 use App\Filament\Support\EventSelect;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Services\Analytics\AnalyticsWindow;
 use App\Services\Analytics\EventAnalyticsDashboard;
 use App\Services\Analytics\EventAnalyticsExport;
 use App\Services\Analytics\EventShares;
 use App\Services\Analytics\ManagementAnalytics;
 use App\Support\CurrentCity;
 use BackedEnum;
-use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -26,7 +25,6 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
@@ -80,14 +78,14 @@ abstract class EventAnalyticsPage extends Page
 
     public function setPeriod(string $period): void
     {
-        $this->period = in_array($period, ['week', 'month', 'quarter', 'year', 'all'], true) ? $period : 'month';
         $timezone = Filament::getCurrentPanel()?->getId() === 'admin'
             ? app(CurrentCity::class)->timezone()
             : app(ManagementAnalytics::class)->subject()->city->timezone;
-        $until = CarbonImmutable::now($timezone);
-        $days = $this->period === 'year' ? 365 : (StatsPeriod::tryFrom($this->period)?->days() ?? 30);
-        $this->filters['until'] = $until->toDateString();
-        $this->filters['from'] = $this->period === 'all' ? null : $until->subDays($days - 1)->toDateString();
+        // La stessa regola dell'app di gestione: `AnalyticsWindow`.
+        $window = AnalyticsWindow::resolve($period, $timezone);
+        $this->period = $window['period'];
+        $this->filters['until'] = $window['until'];
+        $this->filters['from'] = $window['from'];
         $this->resetPage('analyticsPage');
         unset($this->dashboard);
     }
@@ -268,13 +266,10 @@ abstract class EventAnalyticsPage extends Page
         $venue = Filament::getTenant();
         abort_unless($venue instanceof Venue, 403);
         $shares = app(EventShares::class);
-        if (Str::of((string) $this->channelLabel)->slug()->length() < 2) {
-            Notification::make()->danger()->title(__('event-shares.custom.invalid'))->send();
-
-            return;
-        }
-        if ($shares->customLinks($venue)->count() >= EventShares::MAX_CUSTOM) {
-            Notification::make()->warning()->title(__('event-shares.custom.limit', ['count' => EventShares::MAX_CUSTOM]))->send();
+        // Le stesse due regole dell'app di gestione: `EventShares::channelProblem`.
+        $problem = $shares->channelProblem($venue, $this->channelLabel);
+        if ($problem !== null) {
+            Notification::make()->{$problem === 'limit' ? 'warning' : 'danger'}()->title(EventShares::channelProblemMessage($problem))->send();
 
             return;
         }

@@ -53,6 +53,7 @@ class ManagementFoundationsTest {
         assertTrue(ManagementArea.Events.implemented)
         assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
         assertSame(CollaboratorsRoute, ManagementArea.Collaborators.entry)
+        assertEquals(it.fabiodalez.incitta.ui.management.analytics.AnalyticsRoute(), ManagementArea.Analytics.entry)
     }
 
     @Test fun permissionsDecideTheFutureAreasToo() {

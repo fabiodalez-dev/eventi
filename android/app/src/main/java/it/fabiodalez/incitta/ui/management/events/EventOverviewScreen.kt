@@ -49,7 +49,7 @@ private enum class PendingAction { Publish, Submit, Duplicate, Delete, Schedule,
  * serate; le azioni secondo `abilities` (pubblica o invia alla redazione,
  * modifica, duplica, programma, anteprima, elimina) e i collegamenti
  * (biglietteria della prossima data, riquadro «Ticketing inCittà» del
- * locale, scheda pubblica).
+ * locale, statistiche dell'evento, scheda pubblica).
  */
 @Composable
 internal fun EventOverviewScreen(
@@ -60,6 +60,8 @@ internal fun EventOverviewScreen(
     onTickets: (Long) -> Unit,
     onOpenCopy: (Long) -> Unit,
     onEventTicketing: (venueId: Long, eventId: Long) -> Unit,
+    /* «Statistiche» (P5): la pagina delle statistiche dell'evento, con il soggetto della scheda. */
+    onStatistics: (subjectKey: String, eventId: Long) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val event = state.event.valueOrNull
@@ -96,6 +98,7 @@ internal fun EventOverviewScreen(
                 onPreview = { onPreview(detail.id) },
                 onTickets = onTickets,
                 onEventTicketing = state.subject?.takeIf { showsEventTicketing(it, detail) }?.let { subject -> { onEventTicketing(subject.id, detail.id) } },
+                onStatistics = state.subject?.takeIf { detail.links.statistics }?.let { subject -> { onStatistics(subject.key, detail.id) } },
                 onSite = { detail.publicUrl?.let(uriHandler::openUri) },
                 onPickPoster = pickPoster,
                 onCancelSchedule = viewModel::cancelSchedule)
@@ -132,6 +135,7 @@ private fun Overview(
     onPreview: () -> Unit,
     onTickets: (Long) -> Unit,
     onEventTicketing: (() -> Unit)?,
+    onStatistics: (() -> Unit)?,
     onSite: () -> Unit,
     onPickPoster: () -> Unit,
     onCancelSchedule: () -> Unit,
@@ -177,6 +181,7 @@ private fun Overview(
             if (can.preview) OutlinedButton(onClick = onPreview, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_preview)) }
             detail.links.ticketsOccurrenceId?.let { id -> OutlinedButton(onClick = { onTickets(id) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_tickets)) } }
             onEventTicketing?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_event_ticketing_title)) } }
+            onStatistics?.let { open -> OutlinedButton(onClick = open, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.analytics_hub_title)) } }
             if (detail.publicUrl != null) OutlinedButton(onClick = onSite, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_site)) }
             if (can.schedule) OutlinedButton(enabled = !busy, onClick = { onAction(PendingAction.Schedule) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule)) }
             if (can.cancelSchedule) OutlinedButton(enabled = !busy, onClick = onCancelSchedule, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.management_events_schedule_cancel)) }

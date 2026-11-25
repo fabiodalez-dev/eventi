@@ -124,6 +124,29 @@ final class EventShares
         return $this->create($event ?? $venue, null, $slug);
     }
 
+    /**
+     * Perché un canale nuovo non si può creare, prima di provarci: `invalid`
+     * se il nome non dà almeno due caratteri di slug, `limit` se il locale ha
+     * già i suoi dodici canali. `null` se si può. Le due regole valgono per il
+     * pannello (`EventAnalyticsPage::addChannel`) e per l'app.
+     */
+    public function channelProblem(Venue $venue, ?string $label): ?string
+    {
+        if (Str::of((string) $label)->slug()->length() < 2) {
+            return 'invalid';
+        }
+
+        return $this->customLinks($venue)->count() >= self::MAX_CUSTOM ? 'limit' : null;
+    }
+
+    /** Il messaggio di `channelProblem`, lo stesso nel pannello e nell'app. */
+    public static function channelProblemMessage(string $problem): string
+    {
+        return $problem === 'limit'
+            ? __('event-shares.custom.limit', ['count' => self::MAX_CUSTOM])
+            : __('event-shares.custom.invalid');
+    }
+
     /** @return Collection<int, EventShareLink> */
     public function customLinks(Venue $venue): Collection
     {

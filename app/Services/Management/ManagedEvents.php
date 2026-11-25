@@ -16,6 +16,7 @@ use App\Models\Organizer;
 use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
+use App\Services\Analytics\ManagementAnalytics;
 use App\Services\Events\EventSubmission;
 use App\Support\BeforeGoingDefaults;
 use App\Support\Description;
@@ -203,7 +204,8 @@ final class ManagedEvents
 
         return [
             'tickets_occurrence_id' => $next !== null && Gate::forUser($subject->user)->allows('manage', [Booking::class, $next]) ? (int) $next->getKey() : null,
-            'statistics' => true,
+            // Le statistiche dell'evento sono del locale o dell'organizzatore principale (P5): un evento solo co-organizzato no.
+            'statistics' => ManagementAnalytics::covers($subject->model, $event),
             'social' => $subject->isVenue(),
             'sponsor' => $published,
             'site' => $published,
