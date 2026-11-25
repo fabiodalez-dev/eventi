@@ -191,3 +191,21 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
 it('genera tutte le rotte senza errori di analisi OpenAPI', function (): void {
     $this->artisan('scramble:analyze')->assertSuccessful();
 });
+
+it('tiene docs/openapi.json e il conteggio di docs/API.md allineati alle rotte vere', function (): void {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $staff = User::factory()->create();
+    $staff->assignRole(UserRole::Admin->value);
+    $operations = fn (array $document): array => collect($document['paths'])
+        ->flatMap(fn (array $methods, string $path): array => array_map(fn (string $method): string => strtoupper($method).' '.$path,
+            array_values(array_intersect(array_keys($methods), ['get', 'post', 'put', 'patch', 'delete']))))
+        ->sort()->values()->all();
+
+    $live = $operations($this->actingAs($staff)->getJson('/docs/api.json')->assertOk()->json());
+    $versioned = $operations(json_decode((string) file_get_contents(base_path('docs/openapi.json')), true, flags: JSON_THROW_ON_ERROR));
+
+    // Il JSON versionato è quello che legge chi genera il client dell'app: se manca una rotta, va rigenerato.
+    expect(array_values(array_diff($live, $versioned)))->toBe([])
+        ->and(array_values(array_diff($versioned, $live)))->toBe([]);
+    expect((string) file_get_contents(base_path('docs/API.md')))->toContain('**'.count($versioned).' operazioni**');
+});
