@@ -2,6 +2,7 @@
 
 namespace App\Filament\Organizer\Pages;
 
+use App\Actions\UpdateOrganizerProfile;
 use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
@@ -45,11 +46,15 @@ class Profile extends Page implements HasSchemas
         return __('panel.organizer_profile.lead');
     }
 
+    /**
+     * Solo chi ha creato l'organizzazione, finché è attiva: la regola è
+     * `OrganizerPolicy::updateProfile`, la stessa dell'app.
+     */
     public static function canAccess(): bool
     {
         $tenant = Filament::getTenant();
 
-        return $tenant instanceof Organizer && $tenant->is_active && (int) $tenant->owner_id === (int) auth()->id();
+        return $tenant instanceof Organizer && auth()->user()?->can('updateProfile', $tenant) === true;
     }
 
     private function organizer(): Organizer
@@ -72,7 +77,7 @@ class Profile extends Page implements HasSchemas
                 ->description(__('panel.organizer_profile.presentation_hint'))
                 ->icon('heroicon-o-document-text')
                 ->schema([
-                    DescriptionEditor::make('description')->label(__('panel.organizer_profile.description'))->maxLength(20000),
+                    DescriptionEditor::make('description')->label(__('panel.organizer_profile.description'))->maxLength(UpdateOrganizerProfile::DESCRIPTION_MAX),
                 ]),
             Section::make(__('panel.organizer_profile.contacts'))
                 ->description(__('panel.organizer_profile.contacts_hint'))
@@ -88,7 +93,7 @@ class Profile extends Page implements HasSchemas
 
     public function save(): void
     {
-        $this->organizer()->update($this->form->getState());
+        app(UpdateOrganizerProfile::class)->handle($this->organizer(), $this->form->getState());
         Notification::make()->success()->title(__('panel.organizer_profile.saved'))->send();
     }
 

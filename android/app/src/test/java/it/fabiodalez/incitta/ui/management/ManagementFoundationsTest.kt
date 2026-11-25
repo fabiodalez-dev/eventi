@@ -24,18 +24,32 @@ class ManagementFoundationsTest {
     private fun venue(vararg permissions: String) = ManagedVenue(id = 1, role = "owner", permissions = permissions.associateWith { true }).toSubject()
 
     @Test fun onlyBuiltAndAllowedAreasAppear() {
-        assertEquals(listOf(ManagementArea.Ticketing, ManagementArea.Collaborators), availableAreas(venue("ticketing_manage", "events_create", "profile_update"), hasCheckinDates = false))
-        /* «Collaboratori e accesso» c'è per ogni persona del locale: dentro c'è almeno «Il tuo accesso». */
-        assertEquals(listOf(ManagementArea.Collaborators), availableAreas(venue("events_create"), hasCheckinDates = false))
+        /* La regola, qualunque siano le aree già fatte: compaiono quelle con una schermata e permesse, nell'ordine del menu. */
+        val subjects = listOf(
+            venue("ticketing_manage", "events_create", "profile_update", "comments_moderate", "reviews_reply"),
+            venue("events_create"),
+            venue(),
+            ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(),
+        )
+        subjects.forEach { subject ->
+            listOf(false, true).forEach { checkin ->
+                assertEquals(ManagementArea.entries.filter { it.implemented && it.allowedFor(subject, checkin) }, availableAreas(subject, hasCheckinDates = checkin))
+            }
+        }
+        /* «Collaboratori e accesso» c'è per ogni persona del locale (dentro c'è almeno «Il tuo accesso»), mai per un'organizzazione. */
+        assertTrue(ManagementArea.Collaborators in availableAreas(venue(), hasCheckinDates = false))
+        assertFalse(ManagementArea.Collaborators in availableAreas(subjects.last(), hasCheckinDates = false))
         /* Chi controlla gli ingressi di qualche data vede la biglietteria anche senza gestirla. */
-        assertEquals(listOf(ManagementArea.Ticketing, ManagementArea.Collaborators), availableAreas(venue(), hasCheckinDates = true))
-        assertEquals(listOf(ManagementArea.Ticketing), availableAreas(ManagedOrganizer(id = 3, permissions = mapOf("ticketing_manage" to true)).toSubject(), false))
+        assertTrue(ManagementArea.Ticketing in availableAreas(venue(), hasCheckinDates = true))
+        assertFalse(ManagementArea.Ticketing in availableAreas(venue(), hasCheckinDates = false))
+        assertFalse(ManagementArea.Profile in availableAreas(venue("events_create"), hasCheckinDates = false))
     }
 
     @Test fun everyAreaOfThePlanExistsAndTheBuiltOnesHaveTheirEntry() {
         assertEquals(13, ManagementArea.entries.size)
-        /* Le aree si accendono con i loro pacchetti: qui si controllano solo quelle già fatte. */
+        /* Le aree si accendono con i loro pacchetti: qui si controllano quelle già fatte. */
         assertSame(TicketingDatesRoute, ManagementArea.Ticketing.entry)
+        assertTrue(ManagementArea.Profile.implemented)
         assertEquals(it.fabiodalez.incitta.ui.management.feedback.FeedbackRoute(), ManagementArea.Feedback.entry)
         assertSame(CollaboratorsRoute, ManagementArea.Collaborators.entry)
     }

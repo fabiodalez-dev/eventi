@@ -83,6 +83,8 @@ internal class ManagementRepository(
     val feedback: ManagementFeedbackSource? = null,
     /* P8: collaboratori, «Il tuo accesso», inviti ricevuti. */
     val people: ManagementPeopleSource? = null,
+    /* Profilo del locale e dell'organizzazione (P4). */
+    val profile: ManagementProfileSource? = null,
 ) {
     private val outbox = CheckinOutbox(userId, device::readCheckins, device::writeCheckins, send ?: ticketing::checkIn)
     private val checkinState = MutableStateFlow(CheckinQueue(safePending()))
@@ -184,6 +186,7 @@ internal class ManagementRepository(
             media = ManagementMediaApi(client, session.token), device = device, scope = scope,
             feedback = ManagementFeedbackApi(client, session.token),
             people = ManagementPeopleApi(client, session.token),
+            profile = ManagementProfileApi(client, session.token),
         )
     }
 }
