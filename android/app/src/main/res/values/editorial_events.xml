@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R2 — Eventi della redazione: elenco, scheda, decisioni, cronologia, anteprima, proposte dal pubblico. -->
+<resources>
+    <!-- Elenco -->
+    <string name="editorial_events_title">Eventi</string>
+    <string name="editorial_events_search">Cerca per titolo o locale</string>
+    <string name="editorial_events_empty">Nessun evento con questi criteri.</string>
+    <string name="editorial_events_tab_all">Tutti</string>
+    <string name="editorial_events_tab_pending">In attesa</string>
+    <string name="editorial_events_tab_published">Pubblicati</string>
+    <string name="editorial_events_tab_draft">Bozze</string>
+    <string name="editorial_events_tab_cancelled">Annullati</string>
+    <string name="editorial_events_submissions">Proposte dal pubblico</string>
+    <string name="editorial_events_submissions_help">Eventi segnalati da chi visita il sito, da esaminare</string>
+    <string name="editorial_events_export">Esporta in Excel</string>
+    <string name="editorial_events_export_ready">Il foglio è pronto.</string>
+    <string name="editorial_events_export_share">Condividi</string>
+    <string name="editorial_events_export_open">Apri</string>
+    <string name="editorial_events_export_chooser">Il foglio degli eventi</string>
+    <string name="editorial_events_no_app">Sul telefono non c’è un’app per aprire questo file.</string>
+    <string name="editorial_events_next">%1$s · %2$s</string>
+    <string name="editorial_events_was">Ultima data: %1$s</string>
+    <string name="editorial_events_no_dates">Nessuna data</string>
+    <string name="editorial_events_no_place">Luogo da definire</string>
+    <string name="editorial_events_dates_count">%1$d date</string>
+    <string name="editorial_events_published_on">Pubblicato %1$s</string>
+    <string name="editorial_events_never_published">Mai pubblicato</string>
+    <string name="editorial_events_featured">In evidenza</string>
+    <string name="editorial_events_trashed">Nel cestino</string>
+    <string name="editorial_events_past">Passato</string>
+    <string name="editorial_events_open">Apri la scheda di %1$s</string>
+    <string name="editorial_events_select">Seleziona %1$s</string>
+    <string name="editorial_events_selected">%1$d selezionati</string>
+    <string name="editorial_events_select_help">Tieni premuto su un evento per sceglierne più d’uno.</string>
+    <string name="editorial_events_delete_selected">Elimina i selezionati</string>
+    <string name="editorial_events_clear_selection">Annulla la selezione</string>
+    <string name="editorial_events_bulk_title">Eliminare %1$d eventi?</string>
+    <string name="editorial_events_bulk_text">Vanno nel cestino. Quelli che non puoi eliminare restano dove sono.</string>
+    <string name="editorial_events_bulk_done">Eliminati: %1$d. Non eliminabili: %2$d.</string>
+
+    <!-- Filtri -->
+    <string name="editorial_events_filter_status">Stato</string>
+    <string name="editorial_events_filter_city">Città</string>
+    <string name="editorial_events_filter_venue">Locale</string>
+    <string name="editorial_events_filter_category">Categoria</string>
+    <string name="editorial_events_filter_source">Provenienza</string>
+    <string name="editorial_events_filter_featured">In evidenza</string>
+    <string name="editorial_events_filter_yes">Sì</string>
+    <string name="editorial_events_filter_no">No</string>
+    <string name="editorial_events_filter_quality">Da guardare</string>
+    <string name="editorial_events_filter_published_today">Pubblicati oggi</string>
+    <string name="editorial_events_filter_published_this_week">Pubblicati questa settimana</string>
+    <string name="editorial_events_filter_missing_poster">Senza locandina</string>
+    <string name="editorial_events_filter_incomplete">Incompleti</string>
+    <string name="editorial_events_filter_possible_duplicates">Possibili doppioni</string>
+    <string name="editorial_events_filter_trashed">Cestino</string>
+    <string name="editorial_events_filter_trashed_with">Anche i cestinati</string>
+    <string name="editorial_events_filter_trashed_only">Solo i cestinati</string>
+    <!-- Usata da FilterSheet (comune) per i filtri cercabili: sta qui per non toccare editorial_common.xml mentre lavorano più pacchetti. -->
+    <string name="editorial_filters_search">Cerca: %1$s</string>
+
+    <!-- Azioni -->
+    <string name="editorial_events_action_open">Apri la scheda</string>
+    <string name="editorial_events_action_publish">Pubblica</string>
+    <string name="editorial_events_action_approve_schedule">Approva programmazione</string>
+    <string name="editorial_events_action_unpublish">Togli dalla pubblicazione</string>
+    <string name="editorial_events_action_reject">Rifiuta</string>
+    <string name="editorial_events_action_cancel">Annulla l’evento</string>
+    <string name="editorial_events_action_feature">Metti in evidenza</string>
+    <string name="editorial_events_action_unfeature">Togli dall’evidenza</string>
+    <string name="editorial_events_action_duplicate">Duplica</string>
+    <string name="editorial_events_action_merge">Unisci con un doppione</string>
+    <string name="editorial_events_action_destroy">Elimina</string>
+    <string name="editorial_events_action_restore">Ripristina dal cestino</string>
+    <string name="editorial_events_action_site">Vedi sul sito</string>
+    <string name="editorial_events_action_preview">Anteprima della pagina</string>
+    <string name="editorial_events_action_activity">Cronologia delle modifiche</string>
+    <string name="editorial_events_action_statistics">Statistiche</string>
+    <string name="editorial_events_action_social">Grafiche social</string>
+    <string name="editorial_events_action_sponsor">Sponsorizza</string>
+    <string name="editorial_events_action_more">Altre azioni</string>
+    <string name="editorial_events_web_hint">Si apre nel pannello sul sito.</string>
+
+    <!-- Conferme -->
+    <string name="editorial_events_publish_title">Pubblicare l’evento?</string>
+    <string name="editorial_events_publish_text">Diventa visibile a tutti sul sito e nell’app.</string>
+    <string name="editorial_events_approve_text">La pubblicazione resta programmata: l’evento esce all’ora stabilita.</string>
+    <string name="editorial_events_unpublish_title">Togliere l’evento dalla pubblicazione?</string>
+    <string name="editorial_events_unpublish_text">Torna in bozza e sparisce dal sito. Una pubblicazione programmata si annulla.</string>
+    <string name="editorial_events_reject_title">Rifiutare l’evento?</string>
+    <string name="editorial_events_reject_text">Il motivo lo legge chi ha inserito l’evento.</string>
+    <string name="editorial_events_reject_field">Motivo del rifiuto</string>
+    <string name="editorial_events_cancel_title">Annullare l’evento?</string>
+    <string name="editorial_events_cancel_text">Si annullano anche le date future: %1$d date, salvate da %2$d persone, che riceveranno l’avviso.</string>
+    <string name="editorial_events_cancel_text_generic">Si annullano anche le date future, e chi le ha salvate riceve l’avviso. Il numero lo trovi nella scheda dell’evento.</string>
+    <string name="editorial_events_cancel_text_none">Non ci sono date future da annullare.</string>
+    <string name="editorial_events_cancel_note">Nota per le date (facoltativa)</string>
+    <string name="editorial_events_cancel_confirm">Annulla l’evento</string>
+    <string name="editorial_events_feature_title">Mettere in evidenza?</string>
+    <string name="editorial_events_feature_text">Senza scadenza resta in evidenza finché non lo togli.</string>
+    <string name="editorial_events_feature_until">In evidenza fino a</string>
+    <string name="editorial_events_unfeature_title">Togliere l’evidenza?</string>
+    <string name="editorial_events_unfeature_text">L’evento non comparirà più fra quelli in evidenza.</string>
+    <string name="editorial_events_duplicate_title">Duplicare l’evento?</string>
+    <string name="editorial_events_duplicate_text">La copia nasce in bozza, senza date: le aggiungi tu.</string>
+    <string name="editorial_events_destroy_title">Eliminare l’evento?</string>
+    <string name="editorial_events_destroy_text">Va nel cestino: da lì si può ripristinare.</string>
+    <string name="editorial_events_restore_title">Ripristinare l’evento?</string>
+    <string name="editorial_events_restore_text">Torna fra gli eventi con lo stato che aveva.</string>
+    <string name="editorial_events_confirm">Conferma</string>
+    <string name="editorial_events_close">Chiudi</string>
+
+    <!-- Unisci -->
+    <string name="editorial_events_merge_title">Unisci con un doppione</string>
+    <string name="editorial_events_merge_text">Questa scheda resta; quella che scegli viene assorbita: date, salvataggi, prenotazioni e statistiche passano qui, il suo indirizzo diventa un rimando.</string>
+    <string name="editorial_events_merge_search">Cerca il doppione per titolo</string>
+    <string name="editorial_events_merge_none">Nessun evento della stessa città con questo titolo.</string>
+    <string name="editorial_events_merge_confirm_title">Assorbire «%1$s»?</string>
+    <string name="editorial_events_merge_confirm_text">La scheda assorbita finisce nel cestino. Non si separa più.</string>
+    <string name="editorial_events_merge_confirm">Unisci</string>
+
+    <!-- Scheda -->
+    <string name="editorial_event_next_date">Prossima data</string>
+    <string name="editorial_event_last_date">Ultima data</string>
+    <string name="editorial_event_info">Informazioni</string>
+    <string name="editorial_event_category">Categoria</string>
+    <string name="editorial_event_venue">Locale</string>
+    <string name="editorial_event_city">Città</string>
+    <string name="editorial_event_organizer">Organizzazione</string>
+    <string name="editorial_event_price">Ingresso</string>
+    <string name="editorial_event_tags">Tag</string>
+    <string name="editorial_event_description">Descrizione</string>
+    <string name="editorial_event_no_description">Nessuna descrizione.</string>
+    <string name="editorial_event_dates">Date</string>
+    <string name="editorial_event_upcoming">In programma</string>
+    <string name="editorial_event_past_dates">Passate</string>
+    <string name="editorial_event_no_date_rows">Questo evento non ha date.</string>
+    <string name="editorial_event_editorial">Redazione</string>
+    <string name="editorial_event_source">Provenienza</string>
+    <string name="editorial_event_verification">Verifica</string>
+    <string name="editorial_event_created_by">Inserito da</string>
+    <string name="editorial_event_created_at">Creato</string>
+    <string name="editorial_event_updated_at">Ultima modifica</string>
+    <string name="editorial_event_published_at">Pubblicato</string>
+    <string name="editorial_event_scheduled_at">Pubblicazione programmata</string>
+    <string name="editorial_event_featured_until">In evidenza fino a</string>
+    <string name="editorial_event_featured_open">In evidenza senza scadenza</string>
+    <string name="editorial_event_score">Punteggio della redazione</string>
+    <string name="editorial_event_rejection">Motivo del rifiuto</string>
+    <string name="editorial_event_never">Mai</string>
+    <string name="editorial_event_pages">Pagine collegate</string>
+    <string name="editorial_event_edit_hint">La modifica dei campi e delle date si fa nel pannello sul sito.</string>
+    <string name="editorial_event_edit_web">Modifica sul sito</string>
+    <string name="editorial_event_date_ends">Fine %1$s</string>
+    <string name="editorial_event_date_capacity">Posti: %1$d su %2$d</string>
+    <string name="editorial_event_date_lineup">In scena: %1$s</string>
+    <string name="editorial_event_price_from">da %1$s €</string>
+    <string name="editorial_event_price_range">%1$s–%2$s €</string>
+
+    <!-- Cronologia -->
+    <string name="editorial_activity_title">Cronologia delle modifiche</string>
+    <string name="editorial_activity_empty">Nessuna modifica registrata.</string>
+    <string name="editorial_activity_restore">Ripristina i valori di prima</string>
+    <string name="editorial_activity_restore_title">Ripristinare i valori di prima?</string>
+    <string name="editorial_activity_restore_text">Si rimettono i valori precedenti di: %1$s. Il ripristino resta nella cronologia.</string>
+    <string name="editorial_activity_by">%1$s · %2$s</string>
+
+    <!-- Anteprima -->
+    <string name="editorial_preview_title">Anteprima della pagina</string>
+
+    <!-- Proposte -->
+    <string name="editorial_submissions_title">Proposte dal pubblico</string>
+    <string name="editorial_submissions_search">Cerca per titolo</string>
+    <string name="editorial_submissions_empty">Nessuna proposta con questi criteri. Le proposte arrivano dal modulo «Segnala un evento» del sito.</string>
+    <string name="editorial_submissions_filter_status">Stato</string>
+    <string name="editorial_submissions_from">Da %1$s</string>
+    <string name="editorial_submissions_received">Ricevuta %1$s</string>
+    <string name="editorial_submissions_open">Esamina %1$s</string>
+    <string name="editorial_submission_title">Esamina la proposta</string>
+    <string name="editorial_submission_received">Proposta ricevuta</string>
+    <string name="editorial_submission_contact">Proposta da</string>
+    <string name="editorial_submission_email">Email di contatto</string>
+    <string name="editorial_submission_place">Luogo indicato</string>
+    <string name="editorial_submission_when">Quando</string>
+    <string name="editorial_submission_status">Stato</string>
+    <string name="editorial_submission_text">Testo originale</string>
+    <string name="editorial_submission_notes">Note della revisione</string>
+    <string name="editorial_submission_private">I contatti di chi propone restano privati: non vanno sulla scheda pubblica.</string>
+    <string name="editorial_submission_form">Evento da pubblicare</string>
+    <string name="editorial_submission_form_help">Controlla i dati, scegli il locale e la categoria. «Crea e pubblica» rende subito visibile l’evento.</string>
+    <string name="editorial_submission_field_title">Titolo</string>
+    <string name="editorial_submission_field_description">Descrizione pubblica</string>
+    <string name="editorial_submission_field_venue">Locale</string>
+    <string name="editorial_submission_field_category">Categoria</string>
+    <string name="editorial_submission_field_starts">Inizio</string>
+    <string name="editorial_submission_field_ends">Fine, se nota</string>
+    <string name="editorial_submission_field_price_type">Ingresso</string>
+    <string name="editorial_submission_field_price_min">Prezzo da (€), se noto</string>
+    <string name="editorial_submission_choose">Scegli</string>
+    <string name="editorial_submission_required">Campo da compilare o da correggere.</string>
+    <string name="editorial_submission_publish">Crea e pubblica</string>
+    <string name="editorial_submission_reject">Rifiuta proposta</string>
+    <string name="editorial_submission_reject_title">Rifiutare la proposta?</string>
+    <string name="editorial_submission_reject_text">Il motivo resta interno alla redazione: chi ha proposto non lo riceve.</string>
+    <string name="editorial_submission_reject_field">Motivo del rifiuto (interno)</string>
+    <string name="editorial_submission_open_event">Apri l’evento</string>
+    <string name="editorial_submission_publish_denied">«Crea e pubblica» è per chi può pubblicare eventi (amministrazione).</string>
+</resources>

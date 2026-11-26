@@ -53,7 +53,7 @@ internal fun <T> PagedListScreen(
     filters: List<FilterDefinition> = emptyList(),
     onFilters: (Map<String, String>) -> Unit = {},
     searchLabel: String = stringResource(R.string.editorial_list_search),
-    /* Falso per gli elenchi che nel pannello non hanno una ricerca (le segnalazioni). */
+    /* Falso per gli elenchi che nel pannello non hanno una ricerca (le segnalazioni, la cronologia di una scheda). */
     searchable: Boolean = true,
     emptyText: String = stringResource(R.string.editorial_list_empty),
     header: @Composable ColumnScope.() -> Unit = {},

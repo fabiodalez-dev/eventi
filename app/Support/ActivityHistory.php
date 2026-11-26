@@ -116,6 +116,17 @@ final class ActivityHistory
         return implode(' · ', $parts);
     }
 
+    /** Chi ha fatto la modifica: il nome, «Sistema» senza autore, o un account che non c'è più. */
+    public static function causerLabel(Activity $activity): string
+    {
+        $name = $activity->causer?->getAttribute('name');
+        if (is_string($name) && $name !== '') {
+            return $name;
+        }
+
+        return self::causerPlaceholder($activity);
+    }
+
     /** Chi ha fatto la modifica, quando non c'è più l'account o non c'è mai stato (il sistema). */
     public static function causerPlaceholder(Activity $activity): string
     {

@@ -240,7 +240,7 @@ final class ManagedEvents
      *
      * @return array<string, mixed>
      */
-    private function date(EventOccurrence $date, string $timezone): array
+    public function date(EventOccurrence $date, string $timezone): array
     {
         return [
             'id' => (int) $date->getKey(),
