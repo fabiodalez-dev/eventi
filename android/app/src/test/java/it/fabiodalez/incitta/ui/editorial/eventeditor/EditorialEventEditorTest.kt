@@ -285,4 +285,43 @@ class EditorialEventEditorTest {
         assertTrue(server.calls.contains("DELETE editorial/events/41/dates/70?city=padova"))
         assertTrue(server.calls.count { it.startsWith("GET editorial/events/41/dates") } >= 3)
     }
+
+    @Test
+    fun `una caratteristica creata dal catalogo resta scelta e compare con il suo nome senza toccare la bozza`() {
+        var created = false
+        /* Il catalogo di «Prima di andare» prima e dopo la creazione della caratteristica 12. */
+        fun formOptions(): String {
+            val features = if (created) """[{"value":"7","label":"Guardaroba"},{"value":"12","label":"Interprete LIS"}]""" else """[{"value":"7","label":"Guardaroba"}]"""
+            return options.replace("\"catalog\":{", "\"catalog\":{\"event_features\":$features,")
+        }
+        val server = Server { method, path, _ ->
+            when {
+                method == "GET" && path.startsWith("editorial/events/41/form") -> 200 to """{"data":{"options":${formOptions()},"event":$event}}"""
+                else -> 404 to "{}"
+            }
+        }
+        val viewModel = EventEditorViewModel(repository(server), SavedStateHandle(mapOf(EventEditorViewModel.KEY_ID to 41L)))
+        eventually { viewModel.uiState.value.values != null }
+        assertEquals(listOf("7"), viewModel.uiState.value.catalog.choices("event_features").map { it.value })
+        viewModel.editBase { it.copy(title = "Rassegna d'inverno", featureIds = setOf(7L)) }
+
+        created = true
+        viewModel.featureCreated(12L)
+        eventually { viewModel.uiState.value.catalog.choices("event_features").size == 2 }
+        assertEquals(setOf(7L, 12L), viewModel.uiState.value.draft.base.featureIds)
+        assertEquals("Rassegna d'inverno", viewModel.uiState.value.draft.base.title)
+        assertEquals("Interprete LIS", viewModel.uiState.value.catalog.choices("event_features").last().label)
+        assertEquals(2, server.calls.count { it.startsWith("GET editorial/events/41/form") })
+
+        // Un id non valido non sceglie niente e non chiama il server.
+        viewModel.featureCreated(0L)
+        assertEquals(setOf(7L, 12L), viewModel.uiState.value.draft.base.featureIds)
+        assertEquals(2, server.calls.count { it.startsWith("GET editorial/events/41/form") })
+    }
+
+    @Test
+    fun `il permesso di creare una caratteristica arriva dal server e manca nei server vecchi`() {
+        assertTrue(Json { ignoreUnknownKeys = true }.decodeFromString<EditorCan>("""{"feature":true,"admin":true,"create_feature":true}""").createFeature)
+        assertFalse(Json { ignoreUnknownKeys = true }.decodeFromString<EditorCan>("""{"feature":true,"admin":true}""").createFeature)
+    }
 }

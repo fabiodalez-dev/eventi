@@ -52,7 +52,12 @@ internal data class EditorLimits(
 
 /** Che cosa può scrivere chi compila: l'evidenza (`EventPolicy::feature`) e i campi da admin (indicizzazione, dimostrativo). */
 @Serializable
-internal data class EditorCan(val feature: Boolean = false, val admin: Boolean = false)
+internal data class EditorCan(
+    val feature: Boolean = false,
+    val admin: Boolean = false,
+    /* «Crea caratteristica» (`EventFeaturePolicy::create`): l'app apre il modulo della caratteristica del catalogo (R11). */
+    @SerialName("create_feature") val createFeature: Boolean = false,
+)
 
 /** Le scelte del modulo. `catalog` è il catalogo di «Prima di andare» (`GET /management/options`). */
 @Serializable

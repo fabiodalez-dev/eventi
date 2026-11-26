@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
@@ -205,7 +205,7 @@ internal fun ReportDetail(
             Text(report.subject.label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             if (report.subject.community) {
                 OutlinedButton(onClick = onCommunity, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+                    Icon(Icons.Outlined.Groups, contentDescription = null)
                     Text(stringResource(R.string.moderation_report_community), Modifier.padding(start = 8.dp))
                 }
                 Text(stringResource(R.string.moderation_report_community_help), style = MaterialTheme.typography.bodySmall, color = Muted)

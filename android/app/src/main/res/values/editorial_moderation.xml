@@ -39,7 +39,7 @@
     <string name="moderation_report_save">Salva l’esito</string>
     <string name="moderation_report_saved">Esito salvato.</string>
     <string name="moderation_report_community">Modera il soggetto</string>
-    <string name="moderation_report_community_help">Apre la community, dove si moderano profili, post e commenti.</string>
+    <string name="moderation_report_community_help">Apre la community sulla scheda del contenuto segnalato: lì si moderano profili, post e commenti.</string>
     <string name="moderation_report_delete">Elimina la segnalazione</string>
     <string name="moderation_report_delete_title">Eliminare la segnalazione?</string>
     <string name="moderation_report_delete_text">La segnalazione sparisce per sempre, con il suo esito. Serve la password del tuo account.</string>

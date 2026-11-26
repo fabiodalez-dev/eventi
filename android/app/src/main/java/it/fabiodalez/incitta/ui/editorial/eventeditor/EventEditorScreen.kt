@@ -56,6 +56,8 @@ internal class EditorLinks(
     val onOpenInApp: (String) -> Unit = {},
     /* «Anteprima grafica social» della testata (R-EV-26): lo studio social della redazione, sul sito finché l'app non lo ha (R9). `null` a chi non lo usa. */
     val onSocial: ((Long) -> Unit)? = null,
+    /* «Crea caratteristica» di «Prima di andare»: il modulo della caratteristica nel catalogo (R11), che torna qui con la voce nuova già scelta. */
+    val onCreateFeature: (() -> Unit)? = null,
 )
 
 @Composable
@@ -133,7 +135,16 @@ private fun EditorBody(state: EventEditorUiState, viewModel: EventEditorViewMode
             EditorTab.When -> WhenTab(state, options, viewModel, links)
             EditorTab.Where -> WhereTab(state, options, viewModel)
             EditorTab.Tickets -> TicketsTab(state, options, viewModel, links)
-            EditorTab.BeforeGoing -> it.fabiodalez.incitta.ui.management.events.BeforeGoingSection(state.draft.base, state.catalog) { change -> viewModel.editBase(change) }
+            EditorTab.BeforeGoing -> {
+                it.fabiodalez.incitta.ui.management.events.BeforeGoingSection(state.draft.base, state.catalog) { change -> viewModel.editBase(change) }
+                val createFeature = links.onCreateFeature
+                if (options.can.createFeature && createFeature != null) {
+                    OutlinedButton(onClick = createFeature, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("editor-create-feature")) {
+                        Text(stringResource(R.string.editorial_ee_create_feature))
+                    }
+                    Text(stringResource(R.string.editorial_ee_create_feature_help), style = MaterialTheme.typography.bodySmall)
+                }
+            }
             EditorTab.Content -> ContentTab(state, options, viewModel)
             EditorTab.Extra -> ExtraTab(state, options, viewModel)
             EditorTab.Publish -> PublishTab(state, options, viewModel)

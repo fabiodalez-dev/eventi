@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Visibility
@@ -33,8 +35,9 @@ import java.time.ZoneId
  * La scheda di un evento in sola lettura (R-EV-07): locandina, stato, data
  * che conta, informazioni, descrizione, date nel fuso della città e il
  * riquadro «Redazione», con le decisioni permesse (R-EV-08…14, 17), le
- * pagine collegate (statistiche, grafiche social, sponsorizzazione: sul sito
- * finché l'app non le ha; la scheda pubblica), l'anteprima e la cronologia.
+ * pagine collegate (statistiche e sponsorizzazione nell'app, R10 e R8; le
+ * grafiche social sul sito finché l'app non le ha; la scheda pubblica),
+ * l'anteprima e la cronologia.
  */
 @Composable
 internal fun EventRecordScreen(
@@ -49,6 +52,9 @@ internal fun EventRecordScreen(
     /* «Modifica» e «Gestisci le date» nell'app (R3); `null`: sul sito, come prima. */
     onEdit: ((Long) -> Unit)? = null,
     onDates: ((Long) -> Unit)? = null,
+    /* «Statistiche» (R10) e «Sponsorizza» (R8, R-EV-15) nell'app; `null`: la pagina del pannello di `links`. */
+    onStatistics: ((Long) -> Unit)? = null,
+    onSponsor: ((Long) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val action by viewModel.action.collectAsStateWithLifecycle()
@@ -76,6 +82,8 @@ internal fun EventRecordScreen(
                 onOpenWeb = onOpenWeb,
                 onEdit = onEdit?.let { edit -> { edit(event.id) } },
                 onDates = onDates?.let { dates -> { dates(event.id) } },
+                onStatistics = onStatistics?.let { open -> { open(event.id) } },
+                onSponsor = onSponsor?.let { open -> { open(event.id) } },
             )
         }
     }
@@ -113,6 +121,8 @@ internal fun EventRecordContent(
     onOpenWeb: (String) -> Unit,
     onEdit: (() -> Unit)? = null,
     onDates: (() -> Unit)? = null,
+    onStatistics: (() -> Unit)? = null,
+    onSponsor: (() -> Unit)? = null,
 ) {
     val zone = event.city.zone
     val can = event.can
@@ -160,9 +170,14 @@ internal fun EventRecordContent(
             if (can["preview"] == true) LinkButton(stringResource(R.string.editorial_events_action_preview), Icons.Outlined.Visibility, onPreview)
             if (can["activity"] == true) LinkButton(stringResource(R.string.editorial_events_action_activity), Icons.Outlined.History, onActivity)
             event.links.site?.let { url -> LinkButton(stringResource(R.string.editorial_events_action_site), Icons.AutoMirrored.Outlined.OpenInNew) { runCatching { uriHandler.openUri(url) } } }
-            event.links.statistics?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_statistics), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
+            /* Il server manda il collegamento solo a chi lo apre (`analytics_view`, `SponsorshipPolicy::create`): la sua presenza decide, la schermata nativa lo apre. */
+            event.links.statistics?.let { path ->
+                LinkButton(stringResource(R.string.editorial_events_action_statistics), if (onStatistics != null) Icons.Outlined.BarChart else Icons.AutoMirrored.Outlined.OpenInNew) { if (onStatistics != null) onStatistics() else onOpenWeb(path) }
+            }
             event.links.social?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_social), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
-            event.links.sponsor?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_sponsor), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
+            event.links.sponsor?.let { path ->
+                LinkButton(stringResource(R.string.editorial_events_action_sponsor), if (onSponsor != null) Icons.Outlined.Campaign else Icons.AutoMirrored.Outlined.OpenInNew) { if (onSponsor != null) onSponsor() else onOpenWeb(path) }
+            }
             if (can["edit"] == true && onEdit != null) {
                 LinkButton(stringResource(R.string.editorial_ee_edit), Icons.Outlined.Edit, onEdit)
                 onDates?.let { LinkButton(stringResource(R.string.editorial_ee_open_dates), Icons.Outlined.CalendarMonth, it) }

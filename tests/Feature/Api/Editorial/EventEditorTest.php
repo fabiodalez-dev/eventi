@@ -79,7 +79,9 @@ it('apre il modulo solo a chi crea e modifica eventi nella redazione sbloccata',
                 ->assertJsonPath('data.options.defaults.status', 'draft')
                 ->assertJsonPath('data.options.defaults.price_type', 'unknown')
                 ->assertJsonPath('data.options.defaults.currency', 'EUR')
-                ->assertJsonPath('data.options.can.feature', true);
+                ->assertJsonPath('data.options.can.feature', true)
+                // «Crea caratteristica» del campo «Caratteristiche e servizi»: `EventFeaturePolicy::create`.
+                ->assertJsonPath('data.options.can.create_feature', true);
         }
     }
 

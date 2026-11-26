@@ -10,6 +10,8 @@
     <string name="editorial_ee_edit">Modifica</string>
     <string name="editorial_ee_new_event">Nuovo evento</string>
     <string name="editorial_ee_social">Anteprima grafica social (sul sito)</string>
+    <string name="editorial_ee_create_feature">Crea caratteristica</string>
+    <string name="editorial_ee_create_feature_help">Apre il modulo della caratteristica nel catalogo. Dopo il salvataggio torni qui e la caratteristica nuova è già scelta.</string>
 
     <!-- Schede -->
     <string name="editorial_ee_tab_what">Cosa</string>

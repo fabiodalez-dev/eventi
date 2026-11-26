@@ -21,6 +21,7 @@ use App\Models\Booking;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Event;
+use App\Models\EventFeature;
 use App\Models\EventOccurrence;
 use App\Models\EventRecurrence;
 use App\Models\Organizer;
@@ -105,6 +106,8 @@ final class EditorialEventForm
             'can' => [
                 'feature' => Gate::forUser($actor)->allows('feature', Event::class),
                 'admin' => $actor->hasAnyRole(['admin', 'super_admin']),
+                // «Crea caratteristica» accanto a «Caratteristiche e servizi», come `createOptionAction` del pannello.
+                'create_feature' => Gate::forUser($actor)->allows('create', EventFeature::class),
             ],
             'catalog' => $this->catalog->payload(),
         ];

@@ -106,6 +106,26 @@ internal class EventEditorViewModel(
     fun consumeMessage() = state.update { it.copy(message = null) }
     fun consumeCreated() = state.update { it.copy(createdId = null) }
 
+    /**
+     * Una caratteristica appena creata dal catalogo («Crea caratteristica»):
+     * come `createOptionUsing` del pannello finisce subito fra quelle scelte.
+     * Le scelte del catalogo si rileggono, così compare con il suo nome; la
+     * bozza resta quella che la persona sta scrivendo.
+     */
+    fun featureCreated(id: Long) {
+        if (id <= 0) return
+        editBase { it.copy(featureIds = it.featureIds + id) }
+        viewModelScope.launch {
+            try {
+                val envelope = repository.call { if (eventId > 0) source.editForm(eventId) else source.newForm() }
+                val catalog = ManagementOptions.from(envelope.options.catalog)
+                state.update { it.copy(catalog = catalog) }
+            } catch (e: CancellationException) { throw e } catch (_: Exception) {
+                // Senza la rilettura la scelta resta: il server la convalida al salvataggio, il nome compare alla prossima apertura.
+            }
+        }
+    }
+
     /** La città cambia: il locale scelto non è più fra quelli ammessi (il pannello filtra i locali per città). */
     fun selectCity(id: Long?) {
         val previous = state.value.draft.base.venue

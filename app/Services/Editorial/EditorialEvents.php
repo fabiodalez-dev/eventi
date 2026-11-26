@@ -327,7 +327,8 @@ final class EditorialEvents
                 'activity' => $gate->allows('update', $event),
             ],
             'links' => [
-                // Le pagine della redazione collegate all'evento, aperte sul sito finché l'app non le ha.
+                // Le pagine della redazione collegate all'evento, a chi le apre. L'app apre statistiche e
+                // sponsorizzazione nelle sue schermate; il percorso del pannello resta per le grafiche social e per le versioni vecchie.
                 'statistics' => $can['analytics_view'] ? 'admin/statistiche-condivisioni/event/'.$event->getKey() : null,
                 'social' => $can['social_use'] ? 'admin/social?event='.$event->getKey() : null,
                 'sponsor' => $sponsor ? 'admin/sponsorships/create?event='.$event->getKey() : null,

@@ -8,6 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import it.fabiodalez.incitta.data.editorial.CommunitySection
 import it.fabiodalez.incitta.data.editorial.communityDeskApi
 import it.fabiodalez.incitta.ui.editorial.EditorialArea
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
@@ -27,8 +28,27 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data object CommunityRoute
 
+/**
+ * «Profili e post». `section` (`profiles`, `posts`, `comments`,
+ * `restrictions`) è la scheda di partenza: finisce nello stato salvato con
+ * la stessa chiave che la scheda scelta dalla persona riscrive. Vuota: la
+ * prima scheda, come il menu.
+ */
 @Serializable
-internal data object CommunityModerationRoute
+internal data class CommunityModerationRoute(val section: String = "")
+
+/**
+ * «Modera il soggetto» di una segnalazione (R6): la scheda della community
+ * con il tipo di contenuto segnalato. Il pannello apre la pagina Community e
+ * basta; l'app la apre già sulla voce giusta.
+ */
+internal fun communityRouteForReport(subjectType: String): CommunityModerationRoute = CommunityModerationRoute(
+    when (subjectType) {
+        "community_post" -> CommunitySection.POSTS
+        "community_comment" -> CommunitySection.COMMENTS
+        else -> CommunitySection.PROFILES
+    },
+)
 
 @Serializable
 internal data object CarpoolDeskRoute
@@ -45,7 +65,7 @@ internal fun NavGraphBuilder.communityGraph(context: EditorialGraphContext) {
         CommunityHubScreen(viewModel, stringResource(EditorialArea.Community.title), context.padding, onBack = context::back, onOpen = { page ->
             context.navController.navigate(
                 when (page) {
-                    CommunityPage.Community -> CommunityModerationRoute
+                    CommunityPage.Community -> CommunityModerationRoute()
                     CommunityPage.Carpool -> CarpoolDeskRoute
                 },
             )

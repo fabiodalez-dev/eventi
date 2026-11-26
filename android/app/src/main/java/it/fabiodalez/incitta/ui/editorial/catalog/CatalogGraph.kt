@@ -23,9 +23,17 @@ internal data object CatalogRoute
 @Serializable
 internal data class CatalogListRoute(val kind: String, val canCreate: Boolean = false)
 
-/** Il modulo di una voce: `id` nullo per una voce nuova. */
+/**
+ * Il modulo di una voce: `id` nullo per una voce nuova. `pick`: aperto da un
+ * altro modulo per crearne una (il modale «Crea caratteristica» del
+ * pannello); salvata la voce nuova si torna indietro e il suo id finisce
+ * nello stato della voce di prima, sotto `catalogPickedKey(kind)`.
+ */
 @Serializable
-internal data class CatalogFormRoute(val kind: String, val id: Long? = null)
+internal data class CatalogFormRoute(val kind: String, val id: Long? = null, val pick: Boolean = false)
+
+/** La chiave dello stato salvato in cui il modulo aperto con `pick` lascia l'id della voce creata. */
+internal fun catalogPickedKey(kind: CatalogKind): String = "catalog_picked_${kind.key}"
 
 internal fun NavGraphBuilder.catalogGraph(context: EditorialGraphContext) {
     composable<CatalogRoute> {
@@ -72,8 +80,13 @@ internal fun NavGraphBuilder.catalogGraph(context: EditorialGraphContext) {
             when (val done = state.done) {
                 is CatalogDone.Created -> {
                     viewModel.consumeDone()
-                    markChanged()
-                    context.navController.navigate(CatalogFormRoute(kind.key, done.id)) { popUpTo<CatalogFormRoute> { inclusive = true } }
+                    if (route.pick) {
+                        context.navController.previousBackStackEntry?.savedStateHandle?.set(catalogPickedKey(kind), done.id)
+                        context.back()
+                    } else {
+                        markChanged()
+                        context.navController.navigate(CatalogFormRoute(kind.key, done.id)) { popUpTo<CatalogFormRoute> { inclusive = true } }
+                    }
                 }
                 CatalogDone.Deleted -> {
                     viewModel.consumeDone()
