@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Editorial;
 
-use App\Filament\Admin\Resources\Users\RegistrationState;
+use App\Enums\RegistrationState;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
