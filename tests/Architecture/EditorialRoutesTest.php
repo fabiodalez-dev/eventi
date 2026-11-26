@@ -41,6 +41,8 @@ const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.events.cancel',
     'api.v1.editorial.catalog.cities.update',
     'api.v1.editorial.carpool.cases.hold',
+    // R7: la lettura delle evidenze di un caso (nel pannello chiede la password).
+    'api.v1.editorial.carpool.cases.evidence',
 ];
 
 /** @return Collection<int, RouteDefinition> */

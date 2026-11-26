@@ -160,6 +160,30 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
         ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
+    // R7 della redazione (26/11/2026): community e passaggi.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/community/{section}',
+        '/editorial/community/profiles/{profile}/feature',
+        '/editorial/community/users/{user}/suspend',
+        '/editorial/community/users/{user}/unsuspend',
+        '/editorial/community/{kind}/{id}/hide',
+        '/editorial/community/{kind}/{id}/restore',
+        '/editorial/community/restrictions/{restriction}',
+        '/editorial/carpool/{section}',
+        '/editorial/carpool/cases/{case}',
+        '/editorial/carpool/cases/{case}/manage',
+        '/editorial/carpool/cases/{case}/reply',
+        '/editorial/carpool/cases/{case}/hold',
+        '/editorial/carpool/cases/{case}/freeze',
+        '/editorial/carpool/cases/{case}/evidence',
+        '/editorial/carpool/rides/{offer}/cancel',
+        '/editorial/carpool/reviews/{review}/moderate',
+        '/editorial/carpool/users/{user}/suspend',
+        '/editorial/carpool/users/{user}/restore',
+        '/editorial/carpool/deliveries/{delivery}/retry',
+    ])
+        ->and($document['paths']['/editorial/community/restrictions/{restriction}'])->toHaveKey('delete')
+        ->and($document['paths']['/editorial/carpool/cases/{case}'])->toHaveKey('get');
 
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
