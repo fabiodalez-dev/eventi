@@ -48,7 +48,7 @@ internal enum class EditorialArea(
     Venues(R.string.editorial_area_venues, R.string.editorial_area_venues_help, "admin/venues", VenuesRoute, native = true, badges = listOf("venues_pending", "venue_applications_pending")),
     Users(R.string.editorial_area_users, R.string.editorial_area_users_help, "admin/users", UsersRoute, native = true, badges = listOf("users_registrations")),
     Moderation(R.string.editorial_area_moderation, R.string.editorial_area_moderation_help, "admin/reports", ModerationRoute, native = true, badges = listOf("reports_open", "event_comments_hidden", "catalog_reviews_pending")),
-    Community(R.string.editorial_area_community, R.string.editorial_area_community_help, "admin/community", CommunityRoute, badges = listOf("carpool_open")),
+    Community(R.string.editorial_area_community, R.string.editorial_area_community_help, "admin/community", CommunityRoute, native = true, badges = listOf("carpool_open")),
     Promotion(R.string.editorial_area_promotion, R.string.editorial_area_promotion_help, "admin/sponsorships", PromotionRoute, badges = listOf("sponsorship_orders_awaiting")),
     Social(R.string.editorial_area_social, R.string.editorial_area_social_help, "admin/social", SocialRoute),
     Analytics(R.string.editorial_area_analytics, R.string.editorial_area_analytics_help, "admin/statistiche-condivisioni", AnalyticsRoute),

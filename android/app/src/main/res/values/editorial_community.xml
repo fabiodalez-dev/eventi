@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R7: community e passaggi nella redazione (le pagine «Profili e post» e «Passaggi in auto» del pannello). -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="ed_community_hub_intro">Profili, pubblicazioni e commenti della community; segnalazioni, passaggi e sicurezza dei passaggi in auto.</string>
+    <string name="ed_community_page_title">Profili e post</string>
+    <string name="ed_community_page_help">Evidenza, sospensioni, contenuti nascosti e serate bloccate</string>
+    <string name="ed_carpool_page_title">Passaggi in auto</string>
+    <string name="ed_carpool_page_help">Segnalazioni e assistenza, passaggi, recensioni, persone, registro</string>
+    <string name="ed_community_nothing_allowed">Il tuo ruolo non ha voci in quest’area.</string>
+    <string name="ed_community_reason_help">Ogni decisione chiede una motivazione, che resta nel registro della moderazione.</string>
+
+    <!-- Profili e post -->
+    <string name="ed_community_section_profiles">Profili</string>
+    <string name="ed_community_section_posts">Pubblicazioni</string>
+    <string name="ed_community_section_comments">Commenti</string>
+    <string name="ed_community_section_restrictions">Serate bloccate</string>
+    <string name="ed_community_search_name">Cerca per nome</string>
+    <string name="ed_community_search_text">Cerca nel testo</string>
+    <string name="ed_community_empty_profiles">Nessun profilo</string>
+    <string name="ed_community_empty_posts">Nessuna pubblicazione</string>
+    <string name="ed_community_empty_comments">Nessun commento</string>
+    <string name="ed_community_empty_restrictions">Nessuna serata bloccata</string>
+    <string name="ed_community_handle">\@%1$s</string>
+    <string name="ed_community_featured">In evidenza</string>
+    <string name="ed_community_suspended">Sospeso</string>
+    <string name="ed_community_hidden">Nascosto</string>
+    <string name="ed_community_member">Utente</string>
+    <string name="ed_community_restricted_occurrence">%1$s · %2$s</string>
+    <string name="ed_community_restricted_occurrence_id">Data n. %1$d</string>
+    <string name="ed_community_done">Fatto: la decisione è registrata.</string>
+
+    <!-- Azioni della community: pulsante, titolo e descrizione della finestra -->
+    <string name="ed_community_feature">In evidenza</string>
+    <string name="ed_community_feature_title">Mettere il profilo in evidenza?</string>
+    <string name="ed_community_unfeature">Rimuovi dalla selezione</string>
+    <string name="ed_community_unfeature_title">Togliere il profilo dall’evidenza?</string>
+    <string name="ed_community_feature_text">Il profilo entra o esce dalla selezione mostrata nella community.</string>
+    <string name="ed_community_suspend">Sospendi</string>
+    <string name="ed_community_suspend_title">Sospendere questa persona?</string>
+    <string name="ed_community_suspend_text">Sospendere questa persona dalla community? Profilo, post e commenti verranno nascosti. Serve la password del tuo account se non l’hai scritta negli ultimi 15 minuti.</string>
+    <string name="ed_community_unsuspend">Riattiva</string>
+    <string name="ed_community_unsuspend_title">Riattivare questa persona?</string>
+    <string name="ed_community_unsuspend_text">La persona torna nella community con profilo, post e commenti.</string>
+    <string name="ed_community_hide">Nascondi</string>
+    <string name="ed_community_hide_title">Nascondere questo contenuto?</string>
+    <string name="ed_community_hide_post_text">La pubblicazione sparisce e la persona non può pubblicare di nuovo su questa serata finché non togli il blocco.</string>
+    <string name="ed_community_hide_comment_text">Il commento sparisce per tutti.</string>
+    <string name="ed_community_restore">Ripristina</string>
+    <string name="ed_community_restore_title">Ripristinare questo contenuto?</string>
+    <string name="ed_community_restore_text">Il contenuto torna visibile a chi poteva vederlo prima.</string>
+    <string name="ed_community_remove_restriction">Ripristina</string>
+    <string name="ed_community_remove_restriction_title">Togliere il blocco?</string>
+    <string name="ed_community_remove_restriction_text">Consentire di nuovo la pubblicazione di questa data?</string>
+    <string name="ed_community_confirm">Conferma</string>
+
+    <!-- Passaggi in auto: schede -->
+    <string name="ed_carpool_section_cases">Segnalazioni e assistenza</string>
+    <string name="ed_carpool_section_rides">Passaggi</string>
+    <string name="ed_carpool_section_reviews">Recensioni conducenti</string>
+    <string name="ed_carpool_section_feedback">Feedback privati</string>
+    <string name="ed_carpool_section_users">Utenti e requisiti</string>
+    <string name="ed_carpool_section_audit">Registro sicurezza</string>
+    <string name="ed_carpool_section_deliveries">Consegne notifiche</string>
+    <string name="ed_carpool_search">Cerca per nome, zona o azione</string>
+    <string name="ed_carpool_status">Stato</string>
+    <string name="ed_carpool_empty">Niente da mostrare in questa sezione</string>
+    <string name="ed_carpool_done">Fatto: l’operazione è registrata.</string>
+    <string name="ed_carpool_changed">Qualcuno ha cambiato il caso nel frattempo: l’ho ricaricato. Rileggi prima di agire.</string>
+
+    <!-- Righe -->
+    <string name="ed_carpool_case_row">#%1$d · %2$s</string>
+    <string name="ed_carpool_unassigned">Non assegnato</string>
+    <string name="ed_carpool_open_case">Apri caso</string>
+    <string name="ed_carpool_open_case_label">Apri il caso %1$d</string>
+    <string name="ed_carpool_ride_row">#%1$d · %2$s · %3$s</string>
+    <string name="ed_carpool_capacity_summary">%1$d posti offerti · %2$d richieste complessive</string>
+    <string name="ed_carpool_review_row">%1$s → %2$s · %3$d/5</string>
+    <string name="ed_carpool_review_row_no_rating">%1$s → %2$s</string>
+    <string name="ed_carpool_review_confirmed">Passaggio confermato: %1$s · #%2$d</string>
+    <string name="ed_carpool_feedback_row">%1$s · %2$s · #%3$d</string>
+    <string name="ed_carpool_user_row">%1$s #%2$d</string>
+    <string name="ed_carpool_user_checks">Email verificata: %1$s · WhatsApp verificato: %2$s</string>
+    <string name="ed_carpool_audit_row">#%1$d · %2$s · %3$s · %4$s #%5$s · %6$s</string>
+    <string name="ed_carpool_system">Sistema</string>
+    <string name="ed_carpool_delivery_row">#%1$d · Utente #%2$d · %3$d tentativi</string>
+    <string name="ed_carpool_none">—</string>
+    <string name="ed_carpool_hidden">Nascosta</string>
+    <string name="ed_carpool_suspended_in">Sospeso: %1$s</string>
+    <string name="ed_carpool_scope_social">social</string>
+    <string name="ed_carpool_scope_carpool">passaggi</string>
+    <string name="ed_carpool_scope_global">tutta la community</string>
+
+    <!-- Azioni delle righe -->
+    <string name="ed_carpool_cancel_ride">Annulla passaggio</string>
+    <string name="ed_carpool_cancel_ride_text">Annullare il passaggio e avvisare le persone coinvolte?</string>
+    <string name="ed_carpool_review_hide">Nascondi</string>
+    <string name="ed_carpool_review_hide_text">La recensione sparisce dal profilo del conducente e chi l’ha scritta riceve un avviso.</string>
+    <string name="ed_carpool_review_restore">Ripristina</string>
+    <string name="ed_carpool_review_restore_text">La recensione torna visibile e chi l’ha scritta riceve un avviso.</string>
+    <string name="ed_carpool_suspend_social">Sospendi social</string>
+    <string name="ed_carpool_restore_social">Ripristina social</string>
+    <string name="ed_carpool_suspend_carpool">Sospendi passaggi</string>
+    <string name="ed_carpool_restore_carpool">Ripristina passaggi</string>
+    <string name="ed_carpool_suspend_global">Sospendi tutta la community</string>
+    <string name="ed_carpool_restore_global">Ripristina tutta la community</string>
+    <string name="ed_carpool_suspend_text">La persona riceve un avviso. Serve la password del tuo account se non l’hai scritta negli ultimi 15 minuti.</string>
+    <string name="ed_carpool_restore_text">La persona riceve un avviso.</string>
+    <string name="ed_carpool_retry">Riprova consegna fallita</string>
+    <string name="ed_carpool_retry_text">La notifica torna in coda per un nuovo invio.</string>
+
+    <!-- Il caso -->
+    <string name="ed_carpool_case_title">Caso #%1$d</string>
+    <string name="ed_carpool_case_missing">Il caso non c’è più.</string>
+    <string name="ed_carpool_case_by">Segnalato da %1$s</string>
+    <string name="ed_carpool_case_reason">Motivo: %1$s</string>
+    <string name="ed_carpool_case_received">Arrivato il %1$s</string>
+    <string name="ed_carpool_case_assignee">Assegnato a %1$s</string>
+    <string name="ed_carpool_case_review">%1$d/5 · %2$s</string>
+    <string name="ed_carpool_social_reference">Contenuto social: %1$s #%2$d</string>
+    <string name="ed_carpool_ride_reference">Passaggio #%1$d</string>
+    <string name="ed_carpool_ride_open">Apri il passaggio #%1$d sul sito</string>
+    <string name="ed_carpool_case_actions">Azioni</string>
+    <string name="ed_carpool_op_assign">Assegna a me</string>
+    <string name="ed_carpool_op_note">Aggiungi nota interna</string>
+    <string name="ed_carpool_op_resolve">Risolvi</string>
+    <string name="ed_carpool_op_reopen">Riapri</string>
+    <string name="ed_carpool_op_assign_text">Il caso passa a te e chi l’ha segnalato vede che è in lavorazione.</string>
+    <string name="ed_carpool_op_note_text">La nota resta interna: la legge solo lo staff.</string>
+    <string name="ed_carpool_op_resolve_text">Il caso si chiude come risolto. Si può riaprire.</string>
+    <string name="ed_carpool_op_reopen_text">Il caso torna aperto.</string>
+    <string name="ed_carpool_reply">Invia risposta</string>
+    <string name="ed_carpool_reply_text">Il messaggio arriva soltanto alla persona scelta e il caso passa in attesa di risposta.</string>
+    <string name="ed_carpool_recipient">A chi rispondere</string>
+    <string name="ed_carpool_message">Messaggio</string>
+    <string name="ed_carpool_choose_recipient">Scegli una persona</string>
+    <string name="ed_carpool_freeze_chat">Oscura conversazione</string>
+    <string name="ed_carpool_unfreeze_chat">Rimuovi oscuramento</string>
+    <string name="ed_carpool_freeze_text">La chat del passaggio si oscura per le persone coinvolte; la motivazione resta nel caso come nota interna.</string>
+    <string name="ed_carpool_unfreeze_text">La chat del passaggio torna visibile alle persone coinvolte.</string>
+    <string name="ed_carpool_retention_title">Conservazione delle evidenze</string>
+    <string name="ed_carpool_hold_hint">Conservazione eccezionale limitata a questo caso: motivare la necessità e riesaminarla entro 90 giorni. Scadenza: %1$s</string>
+    <string name="ed_carpool_hold">Preserva le evidenze per 90 giorni</string>
+    <string name="ed_carpool_release">Rilascia la preservazione</string>
+    <string name="ed_carpool_hold_text">Conservazione eccezionale delle evidenze di questo caso per 90 giorni. Va motivata e riesaminata alla scadenza; serve la password del tuo account.</string>
+    <string name="ed_carpool_release_text">Le evidenze tornano ai tempi di conservazione ordinari. Serve la password del tuo account.</string>
+    <string name="ed_carpool_evidence_title">Evidenze del caso</string>
+    <string name="ed_carpool_access_logged">Accesso riservato al caso, con motivazione e registrazione. Non condividere dati non pertinenti.</string>
+    <string name="ed_carpool_inspect">Consulta evidenze</string>
+    <string name="ed_carpool_inspect_text">Accesso riservato al caso, con motivazione e registrazione. Serve la password del tuo account.</string>
+    <string name="ed_carpool_export_on_web">L’esportazione delle evidenze si fa solo dal pannello sul sito.</string>
+    <string name="ed_carpool_export_open">Apri il pannello sul sito</string>
+    <string name="ed_carpool_evidence_messages">Messaggi della chat</string>
+    <string name="ed_carpool_evidence_no_messages">Nessun messaggio leggibile: la chat non c’è, è stata cancellata o è scaduta.</string>
+    <string name="ed_carpool_evidence_audit">Registro</string>
+    <string name="ed_carpool_evidence_audit_row">#%1$d · %2$s · %3$s</string>
+    <string name="ed_carpool_evidence_generated">Letta il %1$s · impronta %2$s</string>
+    <string name="ed_carpool_evidence_close">Chiudi le evidenze</string>
+    <string name="ed_carpool_conversation">Conversazione</string>
+    <string name="ed_carpool_no_messages">Nessun messaggio nel caso.</string>
+    <string name="ed_carpool_message_meta">%1$s · %2$s · %3$s</string>
+    <string name="ed_carpool_internal">Nota interna</string>
+    <string name="ed_carpool_to_staff">All’assistenza</string>
+</resources>
