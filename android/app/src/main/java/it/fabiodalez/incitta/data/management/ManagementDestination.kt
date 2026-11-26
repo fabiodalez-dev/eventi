@@ -42,9 +42,10 @@ internal sealed interface ManagementDestination {
     /**
      * P13: `/le-mie-richieste`, `/registra-il-tuo-locale`,
      * `/registra-la-tua-organizzazione` e `/locali/{locale}/rivendica`, più le
-     * voci del profilo, della home e della scheda del locale. Nell'app si
-     * scrive solo da collegati (la `parse` si chiama solo con una sessione):
-     * un ospite resta sul sito, o accede prima.
+     * voci del profilo, della home e della scheda del locale. Da collegati
+     * si aprono nella gestione; da ospite (Q2) i tre moduli si aprono fuori
+     * dalla gestione (`GuestRegistrationScreen`) e «Le mie richieste» chiede
+     * prima l'accesso.
      */
     data class Registration(val form: RegistrationForm, val slug: String? = null) : ManagementDestination
     /**

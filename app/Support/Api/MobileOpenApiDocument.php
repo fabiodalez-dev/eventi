@@ -25,6 +25,9 @@ final class MobileOpenApiDocument
     /** Letture per la persona collegata fuori da `me/` (P13): richiedono il token e non si mettono in cache. */
     private const PERSONAL_READS = ['venue-applications/lookup', 'venues/{slug}/claim'];
 
+    /** Le letture del modulo di registrazione (Q2): pubbliche con il token facoltativo, come le pagine del sito, e mai in cache. */
+    private const PUBLIC_FORM_READS = ['venue-applications/lookup', 'venues/{slug}/claim', 'me/venue-applications/options'];
+
     public function __invoke(OpenApi $document): void
     {
         $schemas = $this->schemas($document);
@@ -250,6 +253,9 @@ final class MobileOpenApiDocument
         }
         if (in_array($path, self::PERSONAL_READS, true)) {
             $operation->security = [new SecurityRequirement(['http' => []])];
+        }
+        if ($operation->method === 'get' && in_array($path, self::PUBLIC_FORM_READS, true)) {
+            $operation->security = [new SecurityRequirement([]), new SecurityRequirement(['http' => []])];
         }
     }
 

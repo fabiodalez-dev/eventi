@@ -340,7 +340,12 @@ class AppRepository(context: Context) {
         api.post<ApiEnvelope<ApiMessage>, MagicLinkBody>("auth/magic-link", MagicLinkBody(email.trim(), MagicLinkProof.challenge(verifier)))
     }
 
-    suspend fun exchangeMagicToken(rawToken: String): User {
+    /**
+     * `registration` è vero quando il collegamento chiude la registrazione
+     * chiesta da questo telefono (Q2): un modulo compilato da ospite allora
+     * parte da solo. Falso per l'accesso a un account che c'era già.
+     */
+    suspend fun exchangeMagicToken(rawToken: String): MagicSignIn {
         val verifier = store.readMagicVerifier() ?: error("Richiedi un nuovo link da questo dispositivo.")
         val payload = api.post<ApiEnvelope<AuthPayload>, MagicExchangeBody>(
             "auth/magic-link/exchange",
@@ -353,7 +358,7 @@ class AppRepository(context: Context) {
             mergeGuestWishlist()
             refreshServerWishlist()
         }
-        return payload.user
+        return MagicSignIn(payload.user, payload.registration)
     }
 
     suspend fun filteredOccurrencesPage(filters: Map<String, String>, query: String, cursor: String? = null): ApiEnvelope<List<Occurrence>> {
@@ -550,5 +555,8 @@ class AppRepository(context: Context) {
 
     private fun String.urlEncoded(): String = URLEncoder.encode(this, StandardCharsets.UTF_8.toString())
 }
+
+/** L'accesso dal collegamento spedito per posta: l'utente e se chiude una registrazione di questo telefono. */
+data class MagicSignIn(val user: User, val registration: Boolean)
 
 enum class EventFilter { ALL, TODAY, TOMORROW, WEEKEND, FREE }

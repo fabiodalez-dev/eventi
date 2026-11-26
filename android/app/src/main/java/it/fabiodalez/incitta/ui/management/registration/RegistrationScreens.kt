@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.fabiodalez.incitta.BuildConfig
@@ -30,7 +31,6 @@ import it.fabiodalez.incitta.data.management.MyApplication
 import it.fabiodalez.incitta.data.management.VenueApplicationDraft
 import it.fabiodalez.incitta.data.management.prepareImage
 import it.fabiodalez.incitta.ui.Muted
-import it.fabiodalez.incitta.ui.management.ManagementGraphContext
 import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.FormScaffold
@@ -51,10 +51,27 @@ import kotlinx.coroutines.withContext
 /*
  * P13: «Le mie richieste» e i tre moduli, con le card, gli stati e i testi
  * della pagina `/le-mie-richieste` e dei moduli `/registra-il-tuo-locale`,
- * `/locali/{locale}/rivendica`, `/registra-la-tua-organizzazione`. Nell'app
- * si scrive sempre da collegati: niente email da scrivere, niente password,
- * niente «Ho già un account».
+ * `/locali/{locale}/rivendica`, `/registra-la-tua-organizzazione`.
+ *
+ * Q2 (W-AP-02): i tre moduli si aprono anche all'ospite. In fondo, come sul
+ * sito, l'email e la password dell'account da creare («Crea l'account e
+ * invia») oppure «Ho già un account»; dopo la registrazione «Controlla la
+ * posta» prende il posto del modulo, con lo stesso testo che l'indirizzo sia
+ * nuovo o già registrato (D64).
  */
+
+/**
+ * Quello che i moduli chiedono a chi li apre: il margine dello `Scaffold`,
+ * l'email dell'account (`null` per l'ospite), l'uscita e l'accesso di «Ho già
+ * un account». Lo danno la gestione (`registrationGraph`) e l'ingresso
+ * dell'ospite (`GuestRegistrationScreen`).
+ */
+internal class RegistrationChrome(
+    val padding: PaddingValues,
+    val accountEmail: String?,
+    val onExit: () -> Unit,
+    val onSignIn: () -> Unit = {},
+)
 
 /** Dove porta una card o la fine di un modulo: le schermate le apre il grafo. */
 internal sealed interface RegistrationLink {
@@ -62,6 +79,8 @@ internal sealed interface RegistrationLink {
     data object NewOrganizer : RegistrationLink
     data class Claim(val slug: String) : RegistrationLink
     data object Applications : RegistrationLink
+    /* Dopo l'invio automatico della bozza (Q2): «Le mie richieste» al posto del modulo. */
+    data object SentFromDraft : RegistrationLink
 }
 
 /** Il giorno di una data del server, nel fuso del telefono: «17 ottobre 2026». */
@@ -75,7 +94,7 @@ private fun venuePage(slug: String): String = BuildConfig.API_BASE_URL.substring
 @Composable
 internal fun ApplicationsScreen(
     viewModel: ApplicationsViewModel,
-    context: ManagementGraphContext,
+    chrome: RegistrationChrome,
     onBack: () -> Unit,
     onOpen: (RegistrationLink) -> Unit,
     onOpenSubject: (String) -> Unit,
@@ -86,7 +105,7 @@ internal fun ApplicationsScreen(
     LaunchedEffect(state.openSubject) { state.openSubject?.let { viewModel.subjectOpened(); onOpenSubject(it) } }
     ManagementScaffold(
         title = stringResource(R.string.applications_title),
-        padding = context.padding,
+        padding = chrome.padding,
         onBack = onBack,
         subtitle = stringResource(R.string.applications_lead),
         busy = state.busy,
@@ -276,38 +295,148 @@ private fun FormSection(title: String, description: String?, content: @Composabl
     }
 }
 
-/** «Tu, referente»: nome, ruolo, telefono e l'email dell'account, che non si cambia qui. */
+/**
+ * «Tu, referente»: nome, ruolo, telefono e l'email. Da collegati è quella
+ * dell'account, che non si cambia qui; da ospite (`email` nullo) si scrive,
+ * ed è anche l'indirizzo dell'account da creare.
+ */
 @Composable
 private fun ContactSection(
     name: String,
     role: String,
     phone: String,
-    email: String,
+    email: String?,
     errors: FormErrors,
     onName: (String) -> Unit,
     onRole: (String) -> Unit,
     onPhone: (String) -> Unit,
+    guestEmail: String = "",
+    onGuestEmail: (String) -> Unit = {},
     extra: @Composable ColumnScope.() -> Unit = {},
 ) {
     FormSection(stringResource(R.string.application_contact_title), stringResource(R.string.application_contact_description)) {
         FormTextField(name, onName, stringResource(R.string.application_contact_name) + " *", errors, "contact_name", singleLine = true)
         FormTextField(role, onRole, stringResource(R.string.application_contact_role), errors, "contact_role", singleLine = true, help = stringResource(R.string.application_contact_role_hint))
         FormTextField(phone, onPhone, stringResource(R.string.application_contact_phone), errors, "contact_phone", singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.application_contact_email), style = MaterialTheme.typography.labelLarge)
-            Text(email, color = Muted)
-            Text(stringResource(R.string.application_signed_in_as, email), color = Muted, style = MaterialTheme.typography.bodySmall)
+        if (email == null) {
+            FormTextField(
+                guestEmail, onGuestEmail, stringResource(R.string.application_contact_email) + " *", errors, EMAIL_FIELD, singleLine = true,
+                help = stringResource(R.string.application_guest_email_hint),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.application_contact_email), style = MaterialTheme.typography.labelLarge)
+                Text(email, color = Muted)
+                Text(stringResource(R.string.application_signed_in_as, email), color = Muted, style = MaterialTheme.typography.bodySmall)
+            }
         }
         extra()
     }
 }
 
-/** «Cosa succede dopo»: i passi numerati, senza quello della conferma dell'email (nell'app è già confermata). */
+/**
+ * «Cosa succede dopo»: i passi numerati. Da collegati senza quello della
+ * conferma dell'email (nell'app è già confermata); da ospite è il primo.
+ */
 @Composable
-private fun NextSteps(steps: List<Int>) {
+private fun NextSteps(steps: List<Int>, guest: Boolean = false) {
+    val shown = if (guest) listOf(R.string.application_next_confirm) + steps else steps
     FormSection(stringResource(R.string.application_next_title), null) {
-        steps.forEachIndexed { index, step -> Text(stringResource(R.string.application_step, index + 1, stringResource(step)), color = Muted) }
+        shown.forEachIndexed { index, step -> Text(stringResource(R.string.application_step, index + 1, stringResource(step)), color = Muted) }
     }
+}
+
+/** Gli errori del server più quelli trovati qui prima di creare l'account, sotto i loro campi. */
+@Composable
+private fun shownErrors(state: ApplicationFormUi<*>): FormErrors {
+    if (state.required.isEmpty()) return state.errors
+    val context = LocalContext.current
+    return state.errors.copy(fields = state.errors.fields + state.required.mapValues { (_, text) -> context.getString(text, CLAIM_MESSAGE_MIN, MIN_PASSWORD) })
+}
+
+/** Gli eventi di una volta dei moduli: l'accesso di «Ho già un account» e «Le mie richieste» dopo l'invio automatico. */
+@Composable
+private fun FormEvents(
+    state: ApplicationFormUi<*>,
+    onSignInOpened: () -> Unit,
+    onApplicationsOpened: () -> Unit,
+    chrome: RegistrationChrome,
+    onOpen: (RegistrationLink) -> Unit,
+) {
+    LaunchedEffect(state.signIn) { if (state.signIn) { onSignInOpened(); chrome.onSignIn() } }
+    LaunchedEffect(state.landOnApplications) { if (state.landOnApplications) { onApplicationsOpened(); onOpen(RegistrationLink.SentFromDraft) } }
+}
+
+/** Da ospite, in cima come sul sito: chi ha già un account accede e ritrova quello che ha scritto. */
+@Composable
+private fun GuestSignInCard(enabled: Boolean, onSignIn: () -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.application_login_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.application_login_description), color = Muted)
+            OutlinedButton(onClick = onSignIn, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.application_login_action)) }
+        }
+    }
+}
+
+/** «Il tuo account»: la password dell'account da creare, mai salvata sul telefono, e di nuovo «Ho già un account». */
+@Composable
+private fun AccountSection(state: ApplicationFormUi<*>, errors: FormErrors, onPassword: (String) -> Unit, onConfirmation: (String) -> Unit, onSignIn: () -> Unit) {
+    FormSection(stringResource(R.string.application_account_title), stringResource(R.string.application_account_description)) {
+        PasswordField(state.password, onPassword, stringResource(R.string.application_password) + " *", errors, PASSWORD_FIELD, help = stringResource(R.string.application_password_hint, MIN_PASSWORD))
+        PasswordField(state.passwordConfirmation, onConfirmation, stringResource(R.string.application_password_confirmation) + " *", errors, CONFIRMATION_FIELD)
+        Text(stringResource(R.string.application_login_title), color = Muted)
+        TextButton(onClick = onSignIn, enabled = !state.busy, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.application_login_action)) }
+    }
+}
+
+@Composable
+private fun PasswordField(value: String, onChange: (String) -> Unit, label: String, errors: FormErrors, field: String, help: String? = null) {
+    val error = errors.field(field)
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(label) },
+        singleLine = true,
+        isError = error != null,
+        supportingText = (error ?: help)?.let { text -> { Text(text) } },
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * «Controlla la posta» al posto del modulo, dopo «Crea l'account e invia».
+ * Lo stesso testo che l'indirizzo sia nuovo o già registrato (D64): la
+ * differenza la vede solo chi legge la casella.
+ */
+@Composable
+private fun CheckEmailCard(state: ApplicationFormUi<*>, onResend: () -> Unit, onEdit: () -> Unit, onExit: () -> Unit) {
+    val email = state.awaitingEmail ?: return
+    OutlinedCard(Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.application_check_email_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.application_check_email_body, email))
+            Text(stringResource(R.string.application_check_email_phone), color = Muted)
+            state.errors.general?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (state.resent) Text(stringResource(R.string.application_check_email_resent), color = MaterialTheme.colorScheme.primary)
+            if (state.canResend) {
+                Button(onClick = onResend, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.application_check_email_resend)) }
+            } else {
+                Text(stringResource(R.string.application_check_email_no_resend), color = Muted, style = MaterialTheme.typography.bodySmall)
+            }
+            OutlinedButton(onClick = onEdit, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.application_check_email_edit)) }
+            TextButton(onClick = onExit, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.application_sent_events)) }
+        }
+    }
+}
+
+/** Mentre la bozza parte da sola, dopo la conferma dell'email. */
+@Composable
+private fun AutoSendingNotice(state: ApplicationFormUi<*>) {
+    if (state.autoSending) Text(stringResource(R.string.application_auto_sending), color = MaterialTheme.colorScheme.primary)
 }
 
 /** Dopo l'invio, al posto del modulo: com'è andata e cosa succede adesso. */
@@ -337,6 +466,11 @@ private fun SentCard(
     }
 }
 
+/** «Crea l'account e invia» da ospite, il pulsante di sempre da collegati. */
+@Composable
+private fun submitLabel(state: ApplicationFormUi<*>, signedIn: Int): String =
+    stringResource(if (state.guest) R.string.application_guest_submit else signedIn)
+
 private val VENUE_STEPS = listOf(R.string.application_next_review, R.string.application_next_panel, R.string.application_next_publish)
 private val CLAIM_STEPS = listOf(R.string.application_claim_next_review, R.string.application_claim_next_panel)
 private val ORGANIZER_STEPS = listOf(R.string.application_organizer_next_review, R.string.application_organizer_next_panel)
@@ -344,7 +478,7 @@ private val ORGANIZER_STEPS = listOf(R.string.application_organizer_next_review,
 @Composable
 internal fun RegisterVenueScreen(
     viewModel: RegisterVenueViewModel,
-    context: ManagementGraphContext,
+    chrome: RegistrationChrome,
     onBack: () -> Unit,
     onOpen: (RegistrationLink) -> Unit,
 ) {
@@ -359,29 +493,36 @@ internal fun RegisterVenueScreen(
             catch (e: ImageUploadException) { viewModel.imageFailed(e.reason) }
         }
     }
-    val email = state.options.valueOrNull?.accountEmail?.ifBlank { null } ?: context.session.user.email
+    val email = state.options.valueOrNull?.accountEmail?.ifBlank { null } ?: chrome.accountEmail
+    FormEvents(state, viewModel::signInOpened, viewModel::applicationsOpened, chrome, onOpen)
     ManagementScaffold(
         title = stringResource(R.string.register_venue_title),
-        padding = context.padding,
+        padding = chrome.padding,
         onBack = onBack,
         subtitle = stringResource(R.string.register_venue_lead),
         busy = state.busy,
     ) {
         PendingApplications(state, viewModel::confirm, viewModel::discard)
+        AutoSendingNotice(state)
         val sent = state.sent
         if (sent != null) {
             SentCard(
                 sent, VENUE_STEPS, stringResource(R.string.application_sent_another),
                 onSecondary = { viewModel.another { resetVenueDraft(it) } },
-                onEvents = context::exit,
+                onEvents = chrome.onExit,
                 onApplications = { onOpen(RegistrationLink.Applications) },
             )
             return@ManagementScaffold
         }
+        if (state.awaitingEmail != null) {
+            CheckEmailCard(state, viewModel::resend, viewModel::editAgain, chrome.onExit)
+            return@ManagementScaffold
+        }
+        if (state.guest) GuestSignInCard(!state.busy, viewModel::signInInstead)
         CatalogueSearch(catalogue, viewModel::setQuery, viewModel::search, onClaim = { onOpen(RegistrationLink.Claim(it.slug)) })
         val draft = state.draft
-        val errors = state.errors
-        FormScaffold(errors = errors, busy = state.busy, submitLabel = stringResource(R.string.application_submit), onSubmit = viewModel::submit, submitEnabled = state.options !is Loadable.Loading) {
+        val errors = shownErrors(state)
+        FormScaffold(errors = errors, busy = state.busy, submitLabel = submitLabel(state, R.string.application_submit), onSubmit = viewModel::submit, submitEnabled = state.options !is Loadable.Loading) {
             FormSection(stringResource(R.string.register_venue_section), stringResource(R.string.register_venue_section_description)) {
                 FormTextField(draft.venueName, { v -> viewModel.update { it.copy(venueName = v) } }, stringResource(R.string.register_venue_name) + " *", errors, "venue_name", singleLine = true)
                 TypePicker(draft.type, state.options.valueOrNull?.types.orEmpty(), errors.field("type")) { v -> viewModel.update { it.copy(type = v) } }
@@ -420,10 +561,12 @@ internal fun RegisterVenueScreen(
                 onName = { v -> viewModel.update { it.copy(contactName = v) } },
                 onRole = { v -> viewModel.update { it.copy(contactRole = v) } },
                 onPhone = { v -> viewModel.update { it.copy(contactPhone = v) } },
+                guestEmail = state.email, onGuestEmail = viewModel::setEmail,
             ) {
                 FormTextField(draft.message, { v -> viewModel.update { it.copy(message = v.take(5000)) } }, stringResource(R.string.register_message), errors, "message", minLines = 4, help = stringResource(R.string.register_message_hint))
             }
-            NextSteps(VENUE_STEPS)
+            if (state.guest) AccountSection(state, errors, viewModel::setPassword, viewModel::setPasswordConfirmation, viewModel::signInInstead)
+            NextSteps(VENUE_STEPS, guest = state.guest)
             Text(stringResource(R.string.application_privacy_note), color = Muted, style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -504,37 +647,44 @@ private fun TypePicker(value: String, types: List<ApplicationChoice>, error: Str
 @Composable
 internal fun ClaimVenueScreen(
     viewModel: ClaimVenueViewModel,
-    context: ManagementGraphContext,
+    chrome: RegistrationChrome,
     onBack: () -> Unit,
     onOpen: (RegistrationLink) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val target by viewModel.target.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    val email = state.options.valueOrNull?.accountEmail?.ifBlank { null } ?: context.session.user.email
+    val email = state.options.valueOrNull?.accountEmail?.ifBlank { null } ?: chrome.accountEmail
+    FormEvents(state, viewModel::signInOpened, viewModel::applicationsOpened, chrome, onOpen)
     val venue = target.valueOrNull
     ManagementScaffold(
         title = stringResource(R.string.claim_title),
-        padding = context.padding,
+        padding = chrome.padding,
         onBack = onBack,
         subtitle = venue?.let { stringResource(R.string.claim_lead, it.name) },
         busy = state.busy,
     ) {
         PendingApplications(state, viewModel::confirm, viewModel::discard)
+        AutoSendingNotice(state)
         LoadState(target, onRetry = viewModel::loadTarget) { claimed ->
             val sent = state.sent
             if (sent != null) {
                 SentCard(
                     sent, CLAIM_STEPS, stringResource(R.string.claim_back, claimed.name),
                     onSecondary = { uriHandler.openUri(venuePage(claimed.slug)) },
-                    onEvents = context::exit,
+                    onEvents = chrome.onExit,
                     onApplications = { onOpen(RegistrationLink.Applications) },
                 )
                 return@LoadState
             }
+            if (state.awaitingEmail != null) {
+                CheckEmailCard(state, viewModel::resend, viewModel::editAgain, chrome.onExit)
+                return@LoadState
+            }
+            if (state.guest) GuestSignInCard(!state.busy, viewModel::signInInstead)
             val draft = state.draft
-            val errors = state.errors
-            FormScaffold(errors = errors, busy = state.busy, submitLabel = stringResource(R.string.claim_submit), onSubmit = viewModel::submit) {
+            val errors = shownErrors(state)
+            FormScaffold(errors = errors, busy = state.busy, submitLabel = submitLabel(state, R.string.claim_submit), onSubmit = viewModel::submit) {
                 FormSection(stringResource(R.string.claim_venue_section), stringResource(R.string.claim_venue_description)) {
                     Text(claimed.name, style = MaterialTheme.typography.headlineSmall)
                     claimed.summary.takeIf { it.isNotBlank() }?.let { Text(it, color = Muted) }
@@ -544,11 +694,13 @@ internal fun ClaimVenueScreen(
                     onName = { v -> viewModel.update { it.copy(contactName = v) } },
                     onRole = { v -> viewModel.update { it.copy(contactRole = v) } },
                     onPhone = { v -> viewModel.update { it.copy(contactPhone = v) } },
+                    guestEmail = state.email, onGuestEmail = viewModel::setEmail,
                 )
                 FormSection(stringResource(R.string.claim_verify_title), stringResource(R.string.claim_verify_description)) {
                     FormTextField(draft.message, { v -> viewModel.update { it.copy(message = v.take(5000)) } }, stringResource(R.string.claim_message) + " *", errors, "message", minLines = 5)
                 }
-                NextSteps(CLAIM_STEPS)
+                if (state.guest) AccountSection(state, errors, viewModel::setPassword, viewModel::setPasswordConfirmation, viewModel::signInInstead)
+                NextSteps(CLAIM_STEPS, guest = state.guest)
                 Text(stringResource(R.string.claim_privacy_note), color = Muted, style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -558,33 +710,40 @@ internal fun ClaimVenueScreen(
 @Composable
 internal fun RegisterOrganizerScreen(
     viewModel: RegisterOrganizerViewModel,
-    context: ManagementGraphContext,
+    chrome: RegistrationChrome,
     onBack: () -> Unit,
     onOpen: (RegistrationLink) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val email = state.options.valueOrNull?.accountEmail?.ifBlank { null } ?: context.session.user.email
+    val email = state.options.valueOrNull?.accountEmail?.ifBlank { null } ?: chrome.accountEmail
+    FormEvents(state, viewModel::signInOpened, viewModel::applicationsOpened, chrome, onOpen)
     ManagementScaffold(
         title = stringResource(R.string.register_organizer_title),
-        padding = context.padding,
+        padding = chrome.padding,
         onBack = onBack,
         subtitle = stringResource(R.string.register_organizer_lead),
         busy = state.busy,
     ) {
         PendingApplications(state, viewModel::confirm, viewModel::discard)
+        AutoSendingNotice(state)
         val sent = state.sent
         if (sent != null) {
             SentCard(
                 sent, ORGANIZER_STEPS, stringResource(R.string.application_sent_another),
                 onSecondary = { viewModel.another { it.copy(name = "", website = "", message = "") } },
-                onEvents = context::exit,
+                onEvents = chrome.onExit,
                 onApplications = { onOpen(RegistrationLink.Applications) },
             )
             return@ManagementScaffold
         }
+        if (state.awaitingEmail != null) {
+            CheckEmailCard(state, viewModel::resend, viewModel::editAgain, chrome.onExit)
+            return@ManagementScaffold
+        }
+        if (state.guest) GuestSignInCard(!state.busy, viewModel::signInInstead)
         val draft = state.draft
-        val errors = state.errors
-        FormScaffold(errors = errors, busy = state.busy, submitLabel = stringResource(R.string.application_submit), onSubmit = viewModel::submit) {
+        val errors = shownErrors(state)
+        FormScaffold(errors = errors, busy = state.busy, submitLabel = submitLabel(state, R.string.application_submit), onSubmit = viewModel::submit) {
             FormSection(stringResource(R.string.register_organizer_section), stringResource(R.string.register_organizer_section_description)) {
                 FormTextField(draft.name, { v -> viewModel.update { it.copy(name = v) } }, stringResource(R.string.register_organizer_name) + " *", errors, "venue_name", singleLine = true)
                 FormTextField(draft.website, { v -> viewModel.update { it.copy(website = v) } }, stringResource(R.string.register_organizer_website), errors, "website", singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
@@ -595,8 +754,10 @@ internal fun RegisterOrganizerScreen(
                 onName = { v -> viewModel.update { it.copy(contactName = v) } },
                 onRole = { v -> viewModel.update { it.copy(contactRole = v) } },
                 onPhone = { v -> viewModel.update { it.copy(contactPhone = v) } },
+                guestEmail = state.email, onGuestEmail = viewModel::setEmail,
             )
-            NextSteps(ORGANIZER_STEPS)
+            if (state.guest) AccountSection(state, errors, viewModel::setPassword, viewModel::setPasswordConfirmation, viewModel::signInInstead)
+            NextSteps(ORGANIZER_STEPS, guest = state.guest)
             Text(stringResource(R.string.application_privacy_note), color = Muted, style = MaterialTheme.typography.bodySmall)
         }
     }

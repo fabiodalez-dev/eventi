@@ -34,8 +34,11 @@ use Illuminate\Support\Facades\Gate;
  * `CreateVenueApplication`), gli stessi tetti (tre richieste aperte, una
  * rivendicazione aperta per locale) e gli stessi secchi dei limiti di
  * frequenza. A differenza del sito si scrive solo da collegati con l'email
- * confermata: niente account creato dal modulo, niente Turnstile (decisione 8
- * del piano). Per questo ogni richiesta dell'app entra subito in coda.
+ * confermata: niente account creato dal modulo, niente Turnstile. Per questo
+ * ogni richiesta dell'app entra subito in coda. Un ospite compila il modulo
+ * con le letture pubbliche (elenchi, catalogo, locale da rivendicare), crea
+ * l'account con `POST /auth/register` e l'app manda la richiesta da qui
+ * quando arriva la sessione con l'email confermata (Q2, W-AP-02).
  */
 final class ApplicationController extends Controller
 {
@@ -44,18 +47,19 @@ final class ApplicationController extends Controller
      *
      * `types[]` `{value, label}` (il tipo di locale, facoltativo),
      * `municipality` (il comune proposto, quello della città), `account_email`
-     * (a cui risponde la richiesta) e i tetti del modulo.
+     * (a cui risponde la richiesta; `null` per un ospite, che la scrive nel
+     * modulo) e i tetti del modulo. Pubblica, come la pagina del sito: un
+     * ospite compila il modulo prima di avere l'account.
      */
     public function options(Request $request): JsonResponse
     {
-        $user = $request->user();
-        abort_unless($user instanceof User, 401);
+        $user = $request->user('sanctum');
         $city = app(CurrentCity::class)->get();
 
         return $this->json([
             'types' => array_map(static fn (VenueType $type): array => ['value' => $type->value, 'label' => $type->label()], VenueType::cases()),
             'municipality' => $city instanceof City ? $city->name : null,
-            'account_email' => $user->email,
+            'account_email' => $user instanceof User ? $user->email : null,
             'limits' => [
                 'pending' => CreateVenueApplication::MAX_PENDING_PER_EMAIL,
                 'image_max_kb' => 5120,

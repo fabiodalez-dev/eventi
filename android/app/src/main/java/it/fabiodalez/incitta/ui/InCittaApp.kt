@@ -91,8 +91,15 @@ fun InCittaApp(viewModel: MainViewModel) {
         val appUri = androidx.compose.ui.platform.LocalUriHandler.current
         fun openDestination(url: String) {
             val target = it.fabiodalez.incitta.data.CommunityDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
-            val management = if (target == null && state.session != null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
-            if (management != null) {
+            val parsed = if (target == null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
+            val management = parsed?.takeIf { state.session != null }
+            /* Q2: da ospite si aprono nativi i tre moduli di registrazione; «Le mie richieste» chiede prima l'accesso. */
+            val guestForm = (parsed as? it.fabiodalez.incitta.data.management.ManagementDestination.Registration)?.takeIf { state.session == null }
+            if (guestForm != null) {
+                organizerSlug = null; carpoolRoute = null; communityRoute = null
+                if (guestForm.form == it.fabiodalez.incitta.data.management.RegistrationForm.Applications) viewModel.loginForApplication(guestForm)
+                else { managementDestination = guestForm; managementOpen = true }
+            } else if (management != null) {
                 organizerSlug = null; carpoolRoute = null; communityRoute = null
                 managementDestination = management
                 managementOpen = true
@@ -118,6 +125,16 @@ fun InCittaApp(viewModel: MainViewModel) {
         LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null; carpoolRoute = null }
         LaunchedEffect(state.communityDestination) {
             state.communityDestination?.let { tonightOpen = false; openDestination(it); viewModel.consumeCommunityDestination(it) }
+        }
+        /* Q2: dopo l'accesso il modulo di registrazione torna nella gestione, con la bozza del telefono. */
+        LaunchedEffect(state.applicationScope, state.session?.token) {
+            val scope = state.applicationScope ?: return@LaunchedEffect
+            if (state.session == null) return@LaunchedEffect
+            viewModel.applicationScopeOpened()
+            val destination = it.fabiodalez.incitta.data.management.DraftScopes.destination(scope) ?: return@LaunchedEffect
+            tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; collectionsOpen = false
+            managementDestination = destination
+            managementOpen = true
         }
         LaunchedEffect(state.session?.token) {
             if(state.session == null) { carpoolRoute = null; communityRoute = null; communityTotal = 0 }
@@ -308,6 +325,18 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
+                managementOpen && state.session == null -> {
+                    /* Q2: l'ospite apre i moduli di registrazione fuori dalla gestione. */
+                    val form = managementDestination as? it.fabiodalez.incitta.data.management.ManagementDestination.Registration
+                    if (form == null) LaunchedEffect(Unit) { managementOpen = false }
+                    else it.fabiodalez.incitta.ui.management.registration.GuestRegistrationScreen(
+                        destination = form,
+                        padding = padding,
+                        signUp = it.fabiodalez.incitta.ui.management.registration.GuestSignUp { name, email, password -> viewModel.signUpForApplication(name, email, password) },
+                        onSignIn = { destination -> managementOpen = false; managementDestination = null; viewModel.loginForApplication(destination) },
+                        onBack = { managementOpen = false; managementDestination = null },
+                    )
+                }
                 managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },

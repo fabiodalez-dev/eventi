@@ -587,8 +587,8 @@ fun VenueDetailScreen(
                     venue.description?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp)) }
                     // Solo per chi è dentro: nascondere è una preferenza del profilo.
                     if (session != null) HideVenueAction(venue, hidden, onHiddenChange)
-                    /* «Gestisci questo locale?» (P13): da collegati apre il modulo nativo, da ospite porta ad accedere. */
-                    if (venue.claimable) VenueClaimCard(venue.name, signedIn = session != null, modifier = Modifier.padding(top = 16.dp), onLogin = onLogin) {
+                    /* «Gestisci questo locale?» (P13): apre il modulo nativo, anche all'ospite (Q2). */
+                    if (venue.claimable) VenueClaimCard(venue.name, modifier = Modifier.padding(top = 16.dp)) {
                         venue.claimUrl?.let { url -> onOpenManagement?.invoke(url) }
                     }
                     if (venue.requiresMembership) {
