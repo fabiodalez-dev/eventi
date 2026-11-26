@@ -60,6 +60,33 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/desk'])->toHaveKey('get')
         ->and($document['paths']['/editorial/unlock'])->toHaveKey('post');
 
+    // R2 della redazione (26/11/2026): eventi, decisioni, cronologia, proposte dal pubblico.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/events',
+        '/editorial/events/filters',
+        '/editorial/events/export',
+        '/editorial/events/{event}',
+        '/editorial/events/{event}/preview',
+        '/editorial/events/{event}/publish',
+        '/editorial/events/{event}/unpublish',
+        '/editorial/events/{event}/reject',
+        '/editorial/events/{event}/cancel',
+        '/editorial/events/{event}/feature',
+        '/editorial/events/{event}/duplicate',
+        '/editorial/events/{event}/merge-candidates',
+        '/editorial/events/{event}/merge',
+        '/editorial/events/{event}/restore',
+        '/editorial/events/bulk-delete',
+        '/editorial/events/{event}/activity',
+        '/editorial/events/{event}/activity/{activity}/restore',
+        '/editorial/submissions',
+        '/editorial/submissions/{submission}',
+        '/editorial/submissions/{submission}/publish',
+        '/editorial/submissions/{submission}/reject',
+    ])
+        ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
+        ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
+
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/members',

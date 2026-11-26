@@ -54,6 +54,8 @@ internal fun <T> PagedListScreen(
     onFilters: (Map<String, String>) -> Unit = {},
     searchLabel: String = stringResource(R.string.editorial_list_search),
     emptyText: String = stringResource(R.string.editorial_list_empty),
+    /* Falso per gli elenchi senza ricerca (la cronologia di una scheda). */
+    showSearch: Boolean = true,
     header: @Composable ColumnScope.() -> Unit = {},
     row: @Composable (T) -> Unit,
 ) {
@@ -80,7 +82,7 @@ internal fun <T> PagedListScreen(
         }
         Text(title, style = MaterialTheme.typography.headlineLarge)
         header()
-        OutlinedTextField(
+        if (showSearch) OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             label = { Text(searchLabel) },

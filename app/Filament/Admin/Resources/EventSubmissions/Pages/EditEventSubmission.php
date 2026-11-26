@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\EventSubmissions\Pages;
 
 use App\Actions\PublishEventSubmission;
+use App\Actions\RejectEventSubmission;
 use App\Enums\Permission;
 use App\Enums\PriceType;
 use App\Enums\SubmissionStatus;
@@ -15,7 +16,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Gate;
 
 class EditEventSubmission extends EditRecord
 {
@@ -58,13 +58,11 @@ class EditEventSubmission extends EditRecord
                 ->visible(fn (EventSubmission $record): bool => $record->event_id !== null),
             Action::make('reject')->label('Rifiuta proposta')->color('gray')
                 ->visible(fn (EventSubmission $record): bool => $record->status === SubmissionStatus::Pending)
-                ->schema([Textarea::make('notes')->label('Motivo del rifiuto (interno)')->required()->maxLength(2000)])
+                ->schema([Textarea::make('notes')->label('Motivo del rifiuto (interno)')->required()->maxLength(RejectEventSubmission::NOTES_MAX)])
                 ->action(function (EventSubmission $record, array $data): void {
-                    Gate::authorize('update', $record);
-                    EventSubmission::query()->whereKey($record)->pending()->whereNull('event_id')->update([
-                        'status' => SubmissionStatus::Rejected, 'notes' => $data['notes'],
-                        'reviewed_by' => auth()->id(), 'reviewed_at' => now(),
-                    ]);
+                    /** @var User $reviewer */
+                    $reviewer = auth()->user();
+                    app(RejectEventSubmission::class)->handle($record, $reviewer, (string) $data['notes']);
                     $this->redirect(EventSubmissionResource::getUrl());
                 }),
         ];

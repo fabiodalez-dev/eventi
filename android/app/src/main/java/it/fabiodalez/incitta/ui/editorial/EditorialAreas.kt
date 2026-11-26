@@ -43,7 +43,7 @@ internal enum class EditorialArea(
     val badges: List<String> = emptyList(),
 ) {
     Dashboard(R.string.editorial_area_dashboard, R.string.editorial_area_dashboard_help, "admin", DashboardRoute),
-    Events(R.string.editorial_area_events, R.string.editorial_area_events_help, "admin/events", EventsRoute, badges = listOf("events_pending", "event_submissions_pending")),
+    Events(R.string.editorial_area_events, R.string.editorial_area_events_help, "admin/events", EventsRoute, native = true, badges = listOf("events_pending", "event_submissions_pending")),
     EventEditor(R.string.editorial_area_event_editor, R.string.editorial_area_event_editor_help, "admin/events/create", EventEditorRoute, inMenu = false),
     Venues(R.string.editorial_area_venues, R.string.editorial_area_venues_help, "admin/venues", VenuesRoute, badges = listOf("venues_pending", "venue_applications_pending")),
     Users(R.string.editorial_area_users, R.string.editorial_area_users_help, "admin/users", UsersRoute, badges = listOf("users_registrations")),

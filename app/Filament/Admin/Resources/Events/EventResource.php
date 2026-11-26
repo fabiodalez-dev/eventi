@@ -35,8 +35,7 @@ use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Venue;
-use App\Queries\EditorialDashboardQuery;
-use App\Queries\VenueDashboardQuery;
+use App\Services\Editorial\EditorialEvents;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\VideoEmbed;
@@ -597,11 +596,7 @@ class EventResource extends Resource
              * e l'ultima data arrivano dalla stessa query (`withMin`/`withMax`):
              * chi modera riconosce una riga da quando si fa, non dal titolo.
              */
-            ->modifyQueryUsing(function (Builder $query): void {
-                $query->with(['media', 'venue', 'category', 'city']);
-                VenueDashboardQuery::applyNextOccurrence($query, self::listCity());
-                VenueDashboardQuery::applyLastOccurrence($query);
-            })
+            ->modifyQueryUsing(fn (Builder $query) => EditorialEvents::prepare($query, self::listCity()))
             ->columns([
                 /*
                  * **Una riga che si legge anche sul telefono.**
@@ -701,23 +696,23 @@ class EventResource extends Resource
 
                 Filter::make('published_today')
                     ->label(__('admin.dashboard.published_today'))
-                    ->query(fn (Builder $query) => self::dashboard()->applyPublishedToday($query)),
+                    ->query(fn (Builder $query) => EditorialEvents::applyFlag($query, 'published_today', self::listCity())),
 
                 Filter::make('published_this_week')
                     ->label(__('admin.dashboard.published_this_week'))
-                    ->query(fn (Builder $query) => self::dashboard()->applyPublishedThisWeek($query)),
+                    ->query(fn (Builder $query) => EditorialEvents::applyFlag($query, 'published_this_week', self::listCity())),
 
                 Filter::make('missing_poster')
                     ->label(__('admin.dashboard.missing_poster'))
-                    ->query(fn (Builder $query) => EditorialDashboardQuery::missingPosterScope($query)),
+                    ->query(fn (Builder $query) => EditorialEvents::applyFlag($query, 'missing_poster', self::listCity())),
 
                 Filter::make('incomplete')
                     ->label(__('admin.dashboard.incomplete'))
-                    ->query(fn (Builder $query) => EditorialDashboardQuery::incompleteScope($query)),
+                    ->query(fn (Builder $query) => EditorialEvents::applyFlag($query, 'incomplete', self::listCity())),
 
                 Filter::make('possible_duplicates')
                     ->label(__('admin.dashboard.possible_duplicates'))
-                    ->query(fn (Builder $query) => self::dashboard()->applyPossibleDuplicates($query)),
+                    ->query(fn (Builder $query) => EditorialEvents::applyFlag($query, 'possible_duplicates', self::listCity())),
 
                 TrashedFilter::make(),
             ])
@@ -853,13 +848,6 @@ class EventResource extends Resource
         $city = app(CurrentCity::class)->get() ?? City::query()->orderBy('id')->first();
 
         return $city?->getKey();
-    }
-
-    private static function dashboard(): EditorialDashboardQuery
-    {
-        $city = app(CurrentCity::class)->get() ?? City::query()->orderBy('id')->firstOrFail();
-
-        return EditorialDashboardQuery::for($city);
     }
 
     /**
