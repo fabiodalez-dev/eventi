@@ -16,6 +16,8 @@ import kotlinx.coroutines.sync.withLock
 class AppRepository(context: Context) {
     private val store = LocalStore(context)
     private val api = ApiClient(store.installationId)
+    /* Le bozze dei moduli di registrazione (Q2): seguono la sessione, vedi `clearAuthenticatedState` e `acceptSession`. */
+    private val applicationDrafts = it.fabiodalez.incitta.data.management.ApplicationDrafts.of(context)
 
     suspend fun sponsoredBanner(excludeEvent: String?, venue: String? = null, tag: String? = null, filters: Map<String, String> = emptyMap()): SponsoredBanner? =
         api.get<ApiEnvelope<SponsoredBanner?>>("sponsorships/banner?platform=android" +
@@ -523,6 +525,8 @@ class AppRepository(context: Context) {
 
     private fun acceptSession(payload: AuthPayload) {
         val session = Session(payload.token, payload.user, payload.expiresAt)
+        /* Un altro account non trova le bozze di chi c'era prima; quelle dell'ospite restano per il primo accesso. */
+        applicationDrafts.forgetOthers(session.user.id)
         store.writeSession(session)
         _session.value = session
         // Keep guest ids in storage until the merge transaction has succeeded.
@@ -547,7 +551,15 @@ class AppRepository(context: Context) {
         savedOccurrences()
     }
 
+    /*
+     * Ogni chiusura della sessione passa da qui: l'uscita, l'eliminazione
+     * dell'account, un nuovo accesso e il 401 di una sessione revocata o
+     * scaduta. Le bozze dei moduli scritte da collegati vanno via con lei;
+     * quelle scritte da ospite restano, perché `login` e lo scambio del
+     * collegamento passano da qui proprio prima del primo accesso.
+     */
     private fun clearAuthenticatedState() {
+        applicationDrafts.forgetOthers(null)
         store.clearSession()
         _session.value = null
         _savedIds.value = store.guestSavedIds()

@@ -74,13 +74,13 @@ class RegistrationViewModelsTest {
         override suspend fun options(): ApplicationOptions { calls += "options"; return ApplicationOptions(municipality = "Padova", accountEmail = "marta@esempio.it") }
         override suspend fun lookup(query: String): List<CatalogueVenue> { calls += "lookup:$query"; return listOf(CatalogueVenue(5, "ponte", "Osteria del Ponte", claimable = true)) }
         override suspend fun claimTarget(slug: String): ClaimTarget { calls += "target:$slug"; return ClaimTarget(5, slug, "Osteria del Ponte") }
-        override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?): ApplicationSent {
+        override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?, idempotencyKey: String?): ApplicationSent {
             calls += "venue"; lastVenue = draft; lastImage = image
             submitFailure?.let { throw it }
             return ApplicationSent("queued", "Richiesta ricevuta", MyApplication(id = 9))
         }
-        override suspend fun claim(slug: String, draft: ClaimDraft): ApplicationSent { calls += "claim:$slug:${draft.message}"; return ApplicationSent("queued", "ok") }
-        override suspend fun submitOrganizer(draft: OrganizerApplicationDraft): ApplicationSent { calls += "organizer"; return ApplicationSent("organizer", "ok") }
+        override suspend fun claim(slug: String, draft: ClaimDraft, idempotencyKey: String?): ApplicationSent { calls += "claim:$slug:${draft.message}"; return ApplicationSent("queued", "ok") }
+        override suspend fun submitOrganizer(draft: OrganizerApplicationDraft, idempotencyKey: String?): ApplicationSent { calls += "organizer"; return ApplicationSent("organizer", "ok") }
         override suspend fun confirm(id: Long): String { calls += "confirm:$id"; items = items.map { if (it.id == id) it.copy(state = "pending", canConfirm = false) else it }; return "Richiesta confermata" }
         override suspend fun discard(id: Long): String { calls += "discard:$id"; items = items.filterNot { it.id == id }; return "Richiesta eliminata." }
     }
