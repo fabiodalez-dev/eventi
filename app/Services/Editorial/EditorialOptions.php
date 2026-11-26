@@ -12,7 +12,10 @@ use App\Enums\CatalogReviewStatus;
 use App\Enums\EventCommentStatus;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\ImportRunStatus;
+use App\Enums\ImportSourceType;
 use App\Enums\NotificationStatus;
+use App\Enums\NotificationType;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
 use App\Enums\SponsorshipOrderStatus;
@@ -60,6 +63,10 @@ final class EditorialOptions
             'review_statuses' => array_map(static fn (CatalogReviewStatus $status): array => ['value' => $status->value, 'label' => (string) __('reviews.'.$status->value)], CatalogReviewStatus::cases()),
             'carpool_case_statuses' => self::cases(CarpoolCaseStatus::cases()),
             'notification_statuses' => self::cases(NotificationStatus::cases()),
+            // R12: tipi degli invii previsti, tipi e esiti degli import.
+            'notification_types' => self::cases(NotificationType::cases()),
+            'import_source_types' => self::cases(ImportSourceType::cases()),
+            'import_run_statuses' => self::cases(ImportRunStatus::cases()),
             'sponsorship_placements' => self::cases(SponsorshipPlacement::cases()),
             'sponsorship_pacings' => self::cases(SponsorshipPacing::cases()),
             'sponsorship_statuses' => self::cases(SponsorshipStatus::cases()),

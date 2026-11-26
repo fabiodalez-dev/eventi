@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Editorial\ImportSourceController;
+use App\Http\Controllers\Api\V1\Editorial\ScheduledNotificationController;
+use App\Http\Controllers\Api\V1\Editorial\ScheduledOperationsController;
+use App\Http\Middleware\RequireRecentPassword;
+use Illuminate\Support\Facades\Route;
+
 /*
  * R12 — Sistema: import, invii, cron (R-SY-01…07).
  *
@@ -14,4 +20,30 @@ declare(strict_types=1);
  * azioni pericolose (decisione 4) aggiungono
  * `->middleware(RequireRecentPassword::class)`. Le regole sono nel contratto
  * delle fondamenta e le controlla `EditorialRoutesTest`.
+ *
+ * Pericolosa: l'eliminazione di una sorgente (definitiva: il modello non ha
+ * il cestino, e con la sorgente va il suo storico). Fermare un invio
+ * previsto non elimina niente (la riga resta «annullata»): nel pannello
+ * chiede solo una conferma, e così nell'app.
  */
+
+// Sorgenti di import (R-SY-01…04): admin e super admin
+Route::get('/import-sources', [ImportSourceController::class, 'index'])->middleware('throttle:60,1,editorial-import-sources')->name('import-sources.index');
+Route::get('/import-sources/form', [ImportSourceController::class, 'form'])->middleware('throttle:60,1,editorial-import-sources-form')->name('import-sources.form');
+Route::get('/import-sources/venues', [ImportSourceController::class, 'venues'])->middleware('throttle:60,1,editorial-import-sources-venues')->name('import-sources.venues');
+Route::post('/import-sources', [ImportSourceController::class, 'store'])->middleware('throttle:20,1,editorial-import-sources-store')->name('import-sources.store');
+Route::get('/import-sources/{source}', [ImportSourceController::class, 'show'])->whereNumber('source')->middleware('throttle:60,1,editorial-import-sources-show')->name('import-sources.show');
+Route::patch('/import-sources/{source}', [ImportSourceController::class, 'update'])->whereNumber('source')->middleware('throttle:30,1,editorial-import-sources-update')->name('import-sources.update');
+Route::delete('/import-sources/{source}', [ImportSourceController::class, 'destroy'])->whereNumber('source')
+    ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-import-sources-destroy'])->name('import-sources.destroy');
+// Anteprima ed esecuzione leggono un calendario esterno: un tetto più basso delle altre.
+Route::post('/import-sources/{source}/preview', [ImportSourceController::class, 'preview'])->whereNumber('source')->middleware('throttle:10,1,editorial-import-sources-preview')->name('import-sources.preview');
+Route::post('/import-sources/{source}/run', [ImportSourceController::class, 'run'])->whereNumber('source')->middleware('throttle:10,1,editorial-import-sources-run')->name('import-sources.run');
+Route::get('/import-sources/{source}/runs', [ImportSourceController::class, 'runs'])->whereNumber('source')->middleware('throttle:60,1,editorial-import-sources-runs')->name('import-sources.runs');
+
+// Invii previsti (R-SY-05, R-SY-06): li guarda tutta la redazione, li ferma admin e super admin
+Route::get('/scheduled-notifications', [ScheduledNotificationController::class, 'index'])->middleware('throttle:60,1,editorial-scheduled-notifications')->name('scheduled-notifications.index');
+Route::post('/scheduled-notifications/{notification}/cancel', [ScheduledNotificationController::class, 'cancel'])->whereNumber('notification')->middleware('throttle:30,1,editorial-scheduled-notifications-cancel')->name('scheduled-notifications.cancel');
+
+// Cron e programmazioni (R-SY-07): sola lettura, admin e super admin
+Route::get('/scheduled-operations', [ScheduledOperationsController::class, 'show'])->middleware('throttle:20,1,editorial-scheduled-operations')->name('scheduled-operations.show');
