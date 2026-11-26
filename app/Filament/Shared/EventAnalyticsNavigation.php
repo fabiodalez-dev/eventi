@@ -24,13 +24,18 @@ final class EventAnalyticsNavigation
             return [];
         }
 
-        $event = app(EventAnalyticsDashboard::class)->events()->findOrFail($eventId);
+        /* L'evento si cerca fra quelli del pannello, non fra quelli con le
+           statistiche: un evento solo co-organizzato si apre e si modifica,
+           ma i suoi numeri restano di chi lo organizza (`ManagementAnalytics`). */
+        $event = $resource::getEloquentQuery()->findOrFail($eventId);
         $items = [
             NavigationItem::make(__('analytics-dashboard.event_tab'))->url($resource::getUrl('view', ['record' => $event]))->isActiveWhen(fn () => ! $analytics && ! $editing),
-            NavigationItem::make(__('analytics-dashboard.statistics_tab'))->url($detail::getUrl(['subjectType' => 'event', 'subjectId' => $eventId]))->isActiveWhen(fn () => $analytics),
         ];
         if ($resource::canEdit($event)) {
-            array_splice($items, 1, 0, [NavigationItem::make(__('manage.actions.edit'))->url($resource::getUrl('edit', ['record' => $event]))->isActiveWhen(fn () => $editing)]);
+            $items[] = NavigationItem::make(__('manage.actions.edit'))->url($resource::getUrl('edit', ['record' => $event]))->isActiveWhen(fn () => $editing);
+        }
+        if (app(EventAnalyticsDashboard::class)->events()->whereKey($eventId)->exists()) {
+            $items[] = NavigationItem::make(__('analytics-dashboard.statistics_tab'))->url($detail::getUrl(['subjectType' => 'event', 'subjectId' => $eventId]))->isActiveWhen(fn () => $analytics);
         }
 
         return $items;

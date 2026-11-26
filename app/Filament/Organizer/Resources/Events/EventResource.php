@@ -20,6 +20,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
+use App\Services\Analytics\ManagementAnalytics;
 use App\Services\Events\EventFormRules;
 use App\Services\Events\OrganizerEventEditor;
 use App\Services\Management\ManagedContent;
@@ -173,7 +174,8 @@ class EventResource extends Resource
                         ->label(__('manage.event_links.statistics'))
                         ->icon(Heroicon::OutlinedChartBar)
                         ->url(fn (Event $record): string => EventAnalyticsDetail::getUrl(['subjectType' => 'event', 'subjectId' => $record->getKey()]))
-                        ->visible(fn (): bool => EventAnalyticsDetail::canAccess()),
+                        // Un evento solo co-organizzato non ha statistiche qui: sono di chi lo organizza.
+                        ->visible(fn (Event $record): bool => EventAnalyticsDetail::canAccess() && $tenant instanceof Organizer && ManagementAnalytics::covers($tenant, $record)),
                     Action::make('sponsor')
                         ->label(__('manage.event_links.sponsor'))
                         ->icon(Heroicon::OutlinedMegaphone)
