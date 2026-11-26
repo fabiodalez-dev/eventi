@@ -155,6 +155,27 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/seo/verification'])->toHaveKey('put')
         ->and($document['paths']['/editorial/search-misses/{miss}'])->toHaveKey('delete')
         ->and($document['paths']['/editorial/search-misses/bulk-delete'])->toHaveKey('post');
+    // R11 della redazione (26/11/2026): il catalogo, categorie, tag, caratteristiche, città, pagine.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/catalog',
+        '/editorial/catalog/choices',
+        '/editorial/categories',
+        '/editorial/categories/{id}',
+        '/editorial/tags',
+        '/editorial/tags/{id}',
+        '/editorial/tags/{id}/merge',
+        '/editorial/event-features',
+        '/editorial/event-features/{id}',
+        '/editorial/cities',
+        '/editorial/cities/{id}',
+        '/editorial/pages',
+        '/editorial/pages/{id}',
+        '/editorial/pages/preview',
+    ])
+        ->and($document['paths']['/editorial/categories'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/cities/{id}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/tags/{id}/merge'])->toHaveKey('post')
+        ->and($document['paths']['/editorial/pages/preview'])->toHaveKey('post');
     // R2 della redazione (26/11/2026): eventi, decisioni, cronologia, proposte dal pubblico.
     expect($document['paths'])->toHaveKeys([
         '/editorial/events',
