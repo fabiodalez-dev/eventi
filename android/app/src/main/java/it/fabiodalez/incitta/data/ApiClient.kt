@@ -173,8 +173,9 @@ internal class ApiClient(
         mime: String,
         fileName: String = uploadFileName(fieldName, mime),
         extra: List<Pair<String, String>> = emptyList(),
+        idempotencyKey: String? = null,
     ): kotlinx.serialization.json.JsonObject = withContext(Dispatchers.IO) {
-        val payload = call(uploadRequest(path, token, fieldName, bytes, mime, fileName, extra))
+        val payload = call(uploadRequest(path, token, fieldName, bytes, mime, fileName, extra, idempotencyKey))
         if (payload.isBlank()) return@withContext kotlinx.serialization.json.JsonObject(emptyMap())
         try {
             json.decodeFromString<kotlinx.serialization.json.JsonObject>(payload)
@@ -191,6 +192,7 @@ internal class ApiClient(
         mime: String,
         fileName: String,
         extra: List<Pair<String, String>>,
+        idempotencyKey: String? = null,
     ): Request {
         val multipart = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
         extra.forEach { (key, value) -> multipart.addFormDataPart(key, value) }
@@ -202,6 +204,7 @@ internal class ApiClient(
             .header("X-Installation-ID", installationId)
             .header("User-Agent", "inCitta-Android/${BuildConfig.VERSION_NAME}")
             .header("Authorization", "Bearer $token")
+            .apply { if (idempotencyKey != null) header("Idempotency-Key", idempotencyKey) }
             .post(multipart.build())
             .build()
     }

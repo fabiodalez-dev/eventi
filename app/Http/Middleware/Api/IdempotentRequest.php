@@ -9,6 +9,8 @@ use App\Exceptions\ApiException;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -41,7 +43,7 @@ final class IdempotentRequest
            anonima che si dichiara semplicemente "42". */
         $target = $request->path().'?'.http_build_query($request->query());
         $cacheKey = 'api-idempotency:'.hash('sha256', $actor.'|'.$request->method().'|'.$target.'|'.$key);
-        $requestHash = hash('sha256', $target.'|'.$request->getContent());
+        $requestHash = hash('sha256', $target.'|'.$this->payload($request));
         $stored = Cache::get($cacheKey);
 
         if (is_array($stored)) {
@@ -67,6 +69,41 @@ final class IdempotentRequest
 
             return $response;
         });
+    }
+
+    /**
+     * Ciò che la richiesta chiede di fare. Di solito è il corpo; con un
+     * modulo multipart (la richiesta di un locale con l'immagine) PHP
+     * consuma il corpo e `getContent()` è vuoto, quindi contano i campi e
+     * l'impronta dei file: la stessa chiave con un contenuto diverso resta
+     * un conflitto anche lì. Il confine casuale del multipart non conta, così
+     * un nuovo tentativo dello stesso modulo riceve la risposta del primo.
+     */
+    private function payload(Request $request): string
+    {
+        $content = $request->getContent();
+        if ($content !== '' || ($request->request->count() === 0 && $request->files->count() === 0)) {
+            return $content;
+        }
+
+        $files = [];
+        foreach (Arr::dot($request->files->all()) as $name => $file) {
+            $files[(string) $name] = $file instanceof UploadedFile && $file->isValid() ? (string) hash_file('sha256', $file->getRealPath()) : null;
+        }
+        ksort($files);
+
+        return (string) json_encode(['fields' => $this->sorted($request->request->all()), 'files' => $files]);
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     * @return array<mixed>
+     */
+    private function sorted(array $values): array
+    {
+        ksort($values);
+
+        return array_map(fn (mixed $value): mixed => is_array($value) ? $this->sorted($value) : $value, $values);
     }
 
     /** @param array{request_hash: string, status: int, body: string} $stored */

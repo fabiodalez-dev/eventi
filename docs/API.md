@@ -601,6 +601,8 @@ Nell'app si scrive solo da collegati con l'email confermata (`auth:sanctum` + `R
 
 `application` ha la forma delle card di `GET /v1/me/venue-applications`.
 
+**Limiti e invii ripetuti (26 novembre 2026).** I limiti delle tre letture hanno un nome e contano la persona dal token anche fuori da `auth:sanctum` (per l'ospite l'IP, con il /64 in IPv6): sono gli stessi secchi delle pagine del sito (`/registra-il-tuo-locale` per `venue-catalogue-search`, `/locali/{locale}/rivendica` per `venue-claim-target`). Le tre scritture dei moduli (`POST /v1/me/venue-applications`, `POST /v1/venues/{slug}/claim`, `POST /v1/me/organizer-applications`) accettano `Idempotency-Key`: l'app manda la chiave salvata nella bozza, che cambia solo quando cambia il contenuto, e lo stesso invio ripetuto riceve la risposta del primo con `Idempotency-Replayed: true`; la stessa chiave con un contenuto diverso (anche in multipart, dove contano campi e impronta dell'immagine) è un 409. Senza la chiave, come le versioni dell'app già pubblicate, ogni invio è una richiesta.
+
 ### Campi nuovi
 
 - `GET /v1/me/venue-applications`: `subject{type, id}` (il locale o l'organizzazione che «Apri il pannello» apre nella gestione nativa, solo se l'account lo gestisce) e `retry{form: venue|claim|organizer, venue_slug}` (dove porta «Nuova richiesta», solo per le respinte). `manage_url`, `panel_url` e gli indirizzi dei moduli restano per le versioni dell'app già installate.

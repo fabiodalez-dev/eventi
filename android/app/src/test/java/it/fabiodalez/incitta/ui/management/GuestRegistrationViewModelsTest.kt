@@ -55,13 +55,19 @@ class GuestRegistrationViewModelsTest {
         var claimTarget: CompletableDeferred<ClaimTarget>? = null
         var lastVenue: VenueApplicationDraft? = null
         var lastImage: PreparedImage? = null
+        val keys = mutableListOf<String?>()
+        var failNext: Exception? = null
         override suspend fun applications(page: Int): MyApplicationsPage { calls += "list:$page"; return MyApplicationsPage() }
         override suspend fun options(): ApplicationOptions { calls += "options"; return ApplicationOptions(municipality = "Padova", accountEmail = null) }
         override suspend fun lookup(query: String): List<CatalogueVenue> { calls += "lookup:$query"; return emptyList() }
         override suspend fun claimTarget(slug: String): ClaimTarget { calls += "target:$slug"; return claimTarget?.await() ?: ClaimTarget(5, slug, "Osteria del Ponte") }
-        override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?): ApplicationSent { calls += "venue"; lastVenue = draft; lastImage = image; return ApplicationSent("queued", "ok") }
-        override suspend fun claim(slug: String, draft: ClaimDraft): ApplicationSent { calls += "claim:$slug"; return ApplicationSent("queued", "ok") }
-        override suspend fun submitOrganizer(draft: OrganizerApplicationDraft): ApplicationSent { calls += "organizer:${draft.name}"; return ApplicationSent("organizer", "ok") }
+        override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?, idempotencyKey: String?): ApplicationSent {
+            calls += "venue"; lastVenue = draft; lastImage = image; keys += idempotencyKey
+            failNext?.let { failNext = null; throw it }
+            return ApplicationSent("queued", "ok")
+        }
+        override suspend fun claim(slug: String, draft: ClaimDraft, idempotencyKey: String?): ApplicationSent { calls += "claim:$slug"; keys += idempotencyKey; return ApplicationSent("queued", "ok") }
+        override suspend fun submitOrganizer(draft: OrganizerApplicationDraft, idempotencyKey: String?): ApplicationSent { calls += "organizer:${draft.name}"; keys += idempotencyKey; return ApplicationSent("organizer", "ok") }
         override suspend fun confirm(id: Long): String { calls += "confirm:$id"; return "" }
         override suspend fun discard(id: Long): String { calls += "discard:$id"; return "" }
     }
@@ -77,7 +83,9 @@ class GuestRegistrationViewModelsTest {
 
     private val vault = ApplicationDraftsTest.MemoryVault()
     private val files = ApplicationDraftsTest.MemoryFiles()
-    private val drafts = ApplicationDrafts(vault, files)
+    /* L'account collegato secondo le bozze: `null` da ospite. */
+    private var signedIn: Long? = null
+    private val drafts = ApplicationDrafts(vault, files, owner = { signedIn })
 
     @Test fun theGuestCreatesTheAccountAndNothingIsSentYet() = runTest(dispatcher) {
         val api = FakeApplications()
@@ -163,6 +171,7 @@ class GuestRegistrationViewModelsTest {
         assertFalse(viewModel.uiState.value.signIn)
 
         /* L'accesso con un account qualunque riapre questa rivendicazione, precompilata. */
+        signedIn = 7
         assertEquals("claim:osteria-ponte", drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = false))
         val api = FakeApplications()
         val signedIn = ClaimVenueViewModel(api, SavedStateHandle(), "osteria-ponte", "Marta Rossi", drafts)
@@ -180,6 +189,7 @@ class GuestRegistrationViewModelsTest {
         drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo del Ponte\",\"address\":\"Via Roma 1\",\"contactName\":\"Marta Rossi\"}", "marta@esempio.it")
         drafts.saveImage(DraftScopes.VENUE, PreparedImage(ByteArray(10), 800, 600))
         drafts.awaitAccount(DraftScopes.VENUE, "marta@esempio.it")
+        signedIn = 7
         assertEquals(DraftScopes.VENUE, drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = true))
 
         val api = FakeApplications()
@@ -201,6 +211,7 @@ class GuestRegistrationViewModelsTest {
     @Test fun theClaimWaitsForTheVenueBeforeSendingByItself() = runTest(dispatcher) {
         drafts.save(DraftScopes.claim("osteria"), "{\"contactName\":\"Marta\",\"message\":\"Sono la titolare dal 2019.\"}", "marta@esempio.it")
         drafts.awaitAccount(DraftScopes.claim("osteria"), "marta@esempio.it")
+        signedIn = 7
         drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = true)
 
         val api = FakeApplications().apply { claimTarget = CompletableDeferred() }
@@ -212,6 +223,50 @@ class GuestRegistrationViewModelsTest {
         assertTrue(api.calls.contains("claim:osteria"))
         assertTrue(viewModel.uiState.value.landOnApplications)
         assertFalse(viewModel.uiState.value.autoSending)
+    }
+
+    @Test fun aLostResponseIsRetriedWithTheSameKeyAndAnEditGetsANewOne() = runTest(dispatcher) {
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo del Ponte\",\"address\":\"Via Roma 1\",\"contactName\":\"Marta Rossi\"}", "marta@esempio.it")
+        drafts.awaitAccount(DraftScopes.VENUE, "marta@esempio.it")
+        signedIn = 7
+        drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = true)
+
+        /* L'invio automatico parte, ma la risposta si perde per strada. */
+        val api = FakeApplications().apply { failNext = java.io.IOException("Connessione non disponibile. Riprova tra poco.") }
+        val viewModel = RegisterVenueViewModel(api, SavedStateHandle(), "Marta Rossi", drafts)
+        assertEquals(1, api.keys.size)
+        val first = api.keys.single()
+        assertNotNull(first)
+        assertNull(viewModel.uiState.value.sent)
+        /* La chiave sta nella bozza: anche riaprendo l'app il nuovo tentativo è lo stesso invio. */
+        assertEquals(first, drafts.load(DraftScopes.VENUE)?.sendKey)
+
+        val reopened = RegisterVenueViewModel(api, SavedStateHandle(), "Marta Rossi", drafts)
+        reopened.submit()
+        assertEquals(listOf(first, first), api.keys)
+        assertNotNull(reopened.uiState.value.sent)
+
+        /* Una richiesta nuova, con un altro contenuto, ha un'altra chiave. */
+        reopened.update { it.copy(venueName = "Secondo circolo", address = "Via Po 2", contactName = "Marta Rossi") }
+        reopened.submit()
+        assertEquals(3, api.keys.size)
+        assertNotEquals(first, api.keys.last())
+    }
+
+    @Test fun theDraftOfAnotherAccountNeverFillsTheFormNorLeaves() = runTest(dispatcher) {
+        /* A scrive da collegata, con l'immagine; la sessione cade senza logout ed entra B. */
+        signedIn = 7
+        val writer = RegisterVenueViewModel(FakeApplications(), SavedStateHandle(), "Marta Rossi", drafts)
+        writer.update { it.copy(venueName = "Circolo di Marta", address = "Via Roma 1", contactPhone = "+39 333 0000000") }
+        writer.setImage(PreparedImage(ByteArray(10), 800, 600))
+        signedIn = 8
+
+        val api = FakeApplications()
+        val other = RegisterVenueViewModel(api, SavedStateHandle(), "Bruno Bianchi", drafts)
+        assertEquals("", other.uiState.value.draft.venueName)
+        assertEquals("Bruno Bianchi", other.uiState.value.draft.contactName)
+        assertNull(other.image.value.image)
+        assertFalse(api.calls.contains("venue"))
     }
 
     @Test fun theAccountChecksMatchTheSiteForm() {

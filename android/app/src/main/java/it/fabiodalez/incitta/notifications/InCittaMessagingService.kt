@@ -29,9 +29,8 @@ class InCittaMessagingService : FirebaseMessagingService() {
             action = Intent.ACTION_VIEW
             /* Un avviso a chi gestisce apre la schermata della gestione (P12); gli altri il loro `url`. */
             data = Uri.parse(noticeTarget(ManagementNoticeTarget.fromPush(message.data), message.data["url"] ?: ""))
-            putExtra("notification_user_id", session.user.id)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
+        }.let { NotificationLinkProof.stamp(this, it, session.user.id) }
         val id = (message.data["notification_id"] ?: message.messageId ?: message.data.toString()).hashCode()
         val pending = PendingIntent.getActivity(this, id, target, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, "eventi")

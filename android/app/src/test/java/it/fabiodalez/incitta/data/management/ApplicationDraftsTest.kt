@@ -22,9 +22,11 @@ class ApplicationDraftsTest {
     }
 
     private var clock = 1_000_000L
+    /* L'account collegato secondo le bozze: `null` da ospite. */
+    private var signedIn: Long? = null
     private val vault = MemoryVault()
     private val files = MemoryFiles()
-    private val drafts = ApplicationDrafts(vault, files) { clock }
+    private val drafts = ApplicationDrafts(vault, files, owner = { signedIn }) { clock }
 
     @Test fun eachFormHasItsOwnDraftAndItSurvivesANewInstance() {
         drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo\"}", "marta@esempio.it")
@@ -59,6 +61,7 @@ class ApplicationDraftsTest {
         drafts.awaitAccount(DraftScopes.VENUE, "Marta@Esempio.it")
         assertEquals(AwaitingAccount(DraftScopes.VENUE, "Marta@Esempio.it"), drafts.awaiting())
 
+        signedIn = 7
         assertEquals(DraftScopes.VENUE, drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = true))
         assertNull(drafts.awaiting())
         assertTrue(drafts.takeAutoSend(DraftScopes.VENUE))
@@ -70,6 +73,7 @@ class ApplicationDraftsTest {
     @Test fun anAccountThatAlreadyExistedReopensTheFormWithoutSending() {
         drafts.save(DraftScopes.ORGANIZER, "{}", "marta@esempio.it")
         drafts.awaitAccount(DraftScopes.ORGANIZER, "marta@esempio.it")
+        signedIn = 7
         assertEquals(DraftScopes.ORGANIZER, drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = false))
         assertFalse(drafts.takeAutoSend(DraftScopes.ORGANIZER))
 
@@ -103,6 +107,90 @@ class ApplicationDraftsTest {
         clock += ApplicationDrafts.MAX_AGE_MILLIS
         assertNull(drafts.load(DraftScopes.ORGANIZER))
         assertNull(drafts.awaiting())
+    }
+
+    @Test fun aDraftWrittenByAnAccountIsNotSeenByAnother() {
+        signedIn = 7
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo di Marta\"}", "")
+        drafts.saveImage(DraftScopes.VENUE, PreparedImage(ByteArray(4), 800, 600))
+        assertEquals(7L, drafts.load(DraftScopes.VENUE)?.ownerId)
+
+        /* La sessione cade senza logout ed entra un altro account: il modulo non ha bozze, né immagine. */
+        signedIn = 8
+        assertNull(drafts.load(DraftScopes.VENUE))
+        assertNull(drafts.image(DraftScopes.VENUE))
+        assertNull(drafts.sendKey(DraftScopes.VENUE))
+        /* Se scrive, la sua bozza prende il posto di quella di prima, senza ereditarne niente. */
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo di Bruno\"}", "")
+        assertEquals(8L, drafts.load(DraftScopes.VENUE)?.ownerId)
+        assertNull(drafts.image(DraftScopes.VENUE))
+        assertTrue(files.files.isEmpty())
+        signedIn = 7
+        assertNull(drafts.load(DraftScopes.VENUE))
+    }
+
+    @Test fun theAutoSendLeavesOnlyForTheAccountThatSignedIn() {
+        drafts.save(DraftScopes.VENUE, "{}", "marta@esempio.it")
+        drafts.awaitAccount(DraftScopes.VENUE, "marta@esempio.it")
+        signedIn = 7
+        drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = true)
+
+        /* L'app si chiude prima di aprire il modulo; poi entra un altro account. */
+        signedIn = 8
+        assertFalse(drafts.takeAutoSend(DraftScopes.VENUE))
+        signedIn = 7
+        assertFalse(drafts.takeAutoSend(DraftScopes.VENUE))
+    }
+
+    @Test fun closingTheSessionDropsTheAccountDraftsAndKeepsTheGuestOnes() {
+        /* L'ospite scrive un'organizzazione e sceglie «Ho già un account». */
+        drafts.save(DraftScopes.ORGANIZER, "{\"name\":\"Collettivo\"}", "")
+        drafts.returnAfterSignIn(DraftScopes.ORGANIZER)
+        /* Una bozza rimasta da un account di prima, con l'immagine. */
+        signedIn = 5
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo\"}", "")
+        drafts.saveImage(DraftScopes.VENUE, PreparedImage(ByteArray(4), 800, 600))
+        signedIn = null
+
+        /* `login` passa da `clearAuthenticatedState`, poi `acceptSession` con il nuovo account. */
+        drafts.forgetOthers(null)
+        assertTrue(files.files.isEmpty())
+        signedIn = 7
+        drafts.forgetOthers(7)
+        assertEquals(DraftScopes.ORGANIZER, drafts.afterSignIn("marta@esempio.it", emailVerified = true, registration = false))
+
+        /* Al primo accesso la bozza dell'ospite resta, e diventa dell'account. */
+        assertEquals("{\"name\":\"Collettivo\"}", drafts.load(DraftScopes.ORGANIZER)?.fields)
+        assertEquals(7L, drafts.load(DraftScopes.ORGANIZER)?.ownerId)
+        signedIn = 5
+        assertNull(drafts.load(DraftScopes.VENUE))
+
+        /* La sessione si chiude da sola (un 401): con lei va via la bozza dell'account. */
+        signedIn = null
+        drafts.forgetOthers(null)
+        assertNull(drafts.load(DraftScopes.ORGANIZER))
+        assertNull(vault.value)
+    }
+
+    @Test fun theSendKeyStaysUntilTheContentChanges() {
+        signedIn = 7
+        assertNull(drafts.sendKey(DraftScopes.VENUE))
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo\"}", "")
+        val key = drafts.sendKey(DraftScopes.VENUE)
+        assertNotNull(key)
+        assertTrue(Regex("^[A-Za-z0-9._:-]{16,128}$").matches(key!!))
+        assertEquals(key, drafts.sendKey(DraftScopes.VENUE))
+        assertEquals(key, ApplicationDrafts(vault, files, owner = { signedIn }) { clock }.sendKey(DraftScopes.VENUE))
+
+        /* Lo stesso contenuto salvato di nuovo: stessa chiave. */
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo\"}", "")
+        assertEquals(key, drafts.sendKey(DraftScopes.VENUE))
+
+        drafts.save(DraftScopes.VENUE, "{\"venueName\":\"Circolo del Ponte\"}", "")
+        val edited = drafts.sendKey(DraftScopes.VENUE)
+        assertNotEquals(key, edited)
+        drafts.saveImage(DraftScopes.VENUE, PreparedImage(ByteArray(4), 800, 600))
+        assertNotEquals(edited, drafts.sendKey(DraftScopes.VENUE))
     }
 
     @Test fun aDamagedBookStartsAgainEmpty() {

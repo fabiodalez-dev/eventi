@@ -200,9 +200,8 @@ fun NotificationSettingsPanel(session: Session, standalone: Boolean = false) {
                 val intent = android.content.Intent(context, it.fabiodalez.incitta.MainActivity::class.java).apply {
                     action = android.content.Intent.ACTION_VIEW
                     data = android.net.Uri.parse(item.data.target)
-                    putExtra("notification_user_id", session.user.id)
                     flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }
+                }.let { view -> it.fabiodalez.incitta.notifications.NotificationLinkProof.stamp(context, view, session.user.id) }
                 context.startActivity(intent)
             }, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth()) {

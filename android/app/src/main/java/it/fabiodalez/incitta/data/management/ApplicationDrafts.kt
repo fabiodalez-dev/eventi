@@ -2,6 +2,7 @@ package it.fabiodalez.incitta.data.management
 
 import it.fabiodalez.incitta.data.LocalStore
 import java.io.File
+import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -20,6 +21,20 @@ import kotlinx.serialization.json.Json
  * Mai la password: chi crea l'account la scrive e resta solo in memoria. La
  * bozza si cancella quando la richiesta parte e all'uscita dall'account; una
  * bozza dimenticata sparisce dopo trenta giorni.
+ *
+ * Ogni bozza ha un proprietario (`ownerId`): nullo per quella scritta da
+ * ospite, l'id dell'account per quella scritta da collegati. Un modulo vede
+ * solo le bozze dell'ospite o della persona collegata, e la richiesta parte da
+ * sola solo per la persona per cui è stata preparata. Al primo accesso le
+ * bozze dell'ospite diventano dell'account (`afterSignIn`); quando la
+ * sessione si chiude, anche da sola (un 401, «esci da tutti i dispositivi»),
+ * le bozze di quell'account spariscono (`forgetOthers`) e quelle dell'ospite
+ * restano, così il primo accesso non le perde.
+ *
+ * Ogni bozza porta anche la chiave del suo invio (`sendKey`, mandata come
+ * `Idempotency-Key`): resta la stessa finché il contenuto non cambia, così un
+ * invio ripetuto dopo una risposta persa riceve la risposta di prima invece
+ * di creare un doppione.
  */
 
 /** Quale bozza: una per modulo, e per la rivendicazione una per locale. */
@@ -60,6 +75,10 @@ internal data class StoredDraft(
     /* Vero quando la sessione è arrivata dalla registrazione chiesta da questo modulo: la richiesta parte appena il modulo si apre. */
     val autoSend: Boolean = false,
     val savedAt: Long = 0,
+    /* L'account a cui appartiene; `null` per l'ospite. */
+    val ownerId: Long? = null,
+    /* La chiave `Idempotency-Key` dell'invio di questo contenuto; `null` finché non si invia o dopo una modifica. */
+    val sendKey: String? = null,
 )
 
 @Serializable
@@ -94,36 +113,57 @@ internal interface DraftFiles {
 internal class ApplicationDrafts(
     private val vault: DraftVault,
     private val files: DraftFiles,
+    /* L'account collegato adesso, `null` da ospite: decide quali bozze si vedono. */
+    private val owner: () -> Long? = { null },
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
-    @Synchronized fun load(scope: String): StoredDraft? = book().drafts[scope]
+    /** La bozza di un modulo, se è dell'ospite o della persona collegata. */
+    @Synchronized fun load(scope: String): StoredDraft? = visible(book(), scope)
 
-    /** Salva quello che si sta scrivendo; immagine e invio automatico restano come sono. */
+    /** Salva quello che si sta scrivendo; immagine e invio automatico restano come sono. Un contenuto diverso vuole una chiave nuova. */
     @Synchronized fun save(scope: String, fields: String, email: String) {
         val book = book()
-        val current = book.drafts[scope] ?: StoredDraft()
-        write(book.copy(drafts = book.drafts + (scope to current.copy(fields = fields, email = email.trim(), savedAt = now()))))
+        val current = mine(book, scope)
+        val trimmed = email.trim()
+        val changed = current.fields != fields || current.email != trimmed
+        val next = current.copy(fields = fields, email = trimmed, savedAt = now(), ownerId = owner(), sendKey = current.sendKey.takeUnless { changed })
+        write(book.copy(drafts = book.drafts + (scope to next)))
     }
 
     /** L'immagine del locale nella cache, o via se `null`. */
     @Synchronized fun saveImage(scope: String, image: PreparedImage?) {
         val book = book()
-        val current = book.drafts[scope] ?: StoredDraft()
+        val current = mine(book, scope)
         current.image?.let { files.delete(it.file) }
         val stored = image?.let {
             val name = fileName(scope)
             files.write(name, it.bytes)
             StoredDraftImage(name, it.width, it.height)
         }
-        write(book.copy(drafts = book.drafts + (scope to current.copy(image = stored, savedAt = now()))))
+        write(book.copy(drafts = book.drafts + (scope to current.copy(image = stored, savedAt = now(), ownerId = owner(), sendKey = null))))
     }
 
     @Synchronized fun image(scope: String): PreparedImage? {
-        val stored = book().drafts[scope]?.image ?: return null
+        val stored = visible(book(), scope)?.image ?: return null
         val bytes = files.read(stored.file) ?: return null
         return PreparedImage(bytes, stored.width, stored.height)
+    }
+
+    /**
+     * La chiave `Idempotency-Key` per mandare questa bozza: quella di prima se
+     * il contenuto non è cambiato, altrimenti una nuova, scritta subito nella
+     * bozza così sopravvive alla chiusura dell'app. `null` senza una bozza
+     * della persona collegata.
+     */
+    @Synchronized fun sendKey(scope: String): String? {
+        val book = book()
+        val draft = visible(book, scope) ?: return null
+        draft.sendKey?.let { return it }
+        val key = UUID.randomUUID().toString()
+        write(book.copy(drafts = book.drafts + (scope to draft.copy(sendKey = key))))
+        return key
     }
 
     /** La richiesta è partita: via la bozza e la sua immagine. */
@@ -163,32 +203,62 @@ internal class ApplicationDrafts(
      * l'invio lo fa la persona, come la conferma della richiesta sul sito.
      */
     @Synchronized fun afterSignIn(email: String, emailVerified: Boolean, registration: Boolean): String? {
-        val book = book()
+        val user = owner()
+        val read = book()
+        /* Le bozze scritte da ospite su questo telefono diventano dell'account appena entrato; quelle di altri account non si toccano e non si vedono. */
+        val book = if (user == null) read else read.copy(drafts = read.drafts.mapValues { (_, draft) -> if (draft.ownerId == null) draft.copy(ownerId = user) else draft })
         val awaiting = book.awaiting
         if (awaiting != null) {
-            val draft = book.drafts[awaiting.scope]
-            val sends = registration && emailVerified && draft != null && awaiting.email.equals(email.trim(), ignoreCase = true)
+            val draft = visible(book, awaiting.scope)
+            val sends = user != null && registration && emailVerified && draft != null && awaiting.email.equals(email.trim(), ignoreCase = true)
             val drafts = if (sends) book.drafts + (awaiting.scope to draft.copy(autoSend = true)) else book.drafts
             write(book.copy(drafts = drafts, awaiting = null, returnAfterSignIn = null))
             return awaiting.scope.takeIf { draft != null }
         }
-        val back = book.returnAfterSignIn ?: return null
+        val back = book.returnAfterSignIn
         write(book.copy(returnAfterSignIn = null))
         return back
     }
 
-    /** Vero una volta sola, quando il modulo deve partire da solo. */
+    /** Vero una volta sola, quando il modulo deve partire da solo: solo per l'account per cui è stato preparato. */
     @Synchronized fun takeAutoSend(scope: String): Boolean {
         val book = book()
         val draft = book.drafts[scope]?.takeIf { it.autoSend } ?: return false
+        val user = owner()
+        val mine = user != null && draft.ownerId == user
         write(book.copy(drafts = book.drafts + (scope to draft.copy(autoSend = false))))
-        return true
+        return mine
+    }
+
+    /**
+     * La sessione si è chiusa (`userId` nullo) o è cambiata: via le bozze degli
+     * account diversi da `userId`, con le loro immagini. Quelle dell'ospite
+     * restano, e con loro «Ho già un account» e «controlla la posta».
+     */
+    @Synchronized fun forgetOthers(userId: Long?) {
+        val book = book()
+        val gone = book.drafts.filterValues { it.ownerId != null && it.ownerId != userId }
+        if (gone.isEmpty()) return
+        gone.values.forEach { draft -> draft.image?.let { files.delete(it.file) } }
+        val drafts = book.drafts - gone.keys
+        write(book.copy(drafts = drafts, awaiting = book.awaiting?.takeIf { it.scope in drafts }))
     }
 
     /** All'uscita dall'account: niente bozze, niente immagini. */
     @Synchronized fun clear() {
         vault.write(null)
         files.clear()
+    }
+
+    /* La bozza di un modulo se è dell'ospite o della persona collegata; quella di un altro account non esiste per questo modulo. */
+    private fun visible(book: DraftBook, scope: String): StoredDraft? =
+        book.drafts[scope]?.takeIf { it.ownerId == null || it.ownerId == owner() }
+
+    /* La bozza su cui scrivere: la propria, o una nuova al posto di quella di un altro account (la sua immagine va via). */
+    private fun mine(book: DraftBook, scope: String): StoredDraft {
+        visible(book, scope)?.let { return it }
+        book.drafts[scope]?.image?.let { files.delete(it.file) }
+        return StoredDraft()
     }
 
     private fun book(): DraftBook {
@@ -225,6 +295,7 @@ internal class ApplicationDrafts(
                         override fun write(value: String?) = store.writeApplicationDrafts(value)
                     },
                     CacheDraftFiles(File(app.cacheDir, DIRECTORY)),
+                    owner = { store.readSession()?.user?.id },
                 ).also { shared = it }
             }
         }

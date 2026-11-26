@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Notifications\AppPush;
+use App\Notifications\Channels\AppArchiveChannel;
 use App\Notifications\Channels\AppPushChannel;
 use App\Notifications\OrganizerAccessGranted;
 use App\Notifications\SponsorshipOrderDecided;
@@ -99,7 +100,7 @@ it('dichiara archivio e push solo per chi ha un account, e lascia l email sola a
     ];
 
     foreach ($notifications as $notification) {
-        expect($notification->via($this->s->ownerA))->toBe(['mail', 'database', AppPushChannel::class])
+        expect($notification->via($this->s->ownerA))->toBe(['mail', AppArchiveChannel::class, AppPushChannel::class])
             ->and($notification->via((new AnonymousNotifiable)->route('mail', 'qualcuno@prova.test')))->toBe(['mail']);
     }
 });
@@ -184,7 +185,9 @@ it('porta l invitato a «I tuoi inviti» finché non accetta, e alla pagina del 
 
     $pending = $invited->notifications()->sole();
     expect($pending->type)->toBe('venue_access_granted')
-        ->and($pending->data['url'])->toBe($accept)
+        /* Il collegamento firmato resta nell'email (revisione del completamento, punto 4). */
+        ->and($pending->data['url'])->toBe(route('login'))
+        ->and(json_encode($pending->data))->not->toContain('signature=abc')
         ->and($pending->data['management'])->toBe(['subject_type' => 'account', 'subject_id' => $invited->id, 'area' => 'invitations', 'id' => null])
         ->and($this->s->editorA->notifications()->sole()->data['management'])
         ->toBe(['subject_type' => 'venue', 'subject_id' => $this->s->venueA->id, 'area' => 'home', 'id' => null]);
