@@ -111,7 +111,7 @@ it('elenca le categorie a tutta la redazione con le colonne, i filtri e l\'ordin
     // La categoria dello scenario esce a caso dalla fabbrica: qui non è da sera, così il filtro conta una riga sola.
     $this->s->category->update(['sort_order' => 10, 'is_nightlife' => false]);
     Category::factory()->create(['name' => 'Discoteche', 'sort_order' => 0, 'is_nightlife' => true, 'is_active' => true, 'parent_id' => $this->s->category->id]);
-    Category::factory()->create(['name' => 'Spenta', 'sort_order' => 50, 'is_active' => false]);
+    Category::factory()->create(['name' => 'Spenta', 'sort_order' => 50, 'is_active' => false, 'is_nightlife' => false]);
 
     r11Gate($this, 'GET', '/api/v1/editorial/categories');
 
