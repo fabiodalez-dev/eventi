@@ -15,3 +15,8 @@ declare(strict_types=1);
  * `->middleware(RequireRecentPassword::class)`. Le regole sono nel contratto
  * delle fondamenta e le controlla `EditorialRoutesTest`.
  */
+
+use App\Http\Controllers\Api\V1\Editorial\DashboardController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/dashboard', [DashboardController::class, 'show'])->middleware('throttle:30,1,editorial-dashboard')->name('dashboard.show');

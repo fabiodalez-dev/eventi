@@ -92418,6 +92418,635 @@
                 }
             }
         },
+        "/editorial/dashboard": {
+            "get": {
+                "operationId": "v1.editorial.dashboard.show",
+                "description": "Le sezioni nell'ordine del pannello: `queue`,\n`publishing`, `quality`, `registrations`, `returns`, `promotion`,\n`sponsorships`, `sponsorship_trend`. Ogni riquadro porta etichetta,\nvalore gi\u00e0 scritto, frase, colore e, dove il pannello apre un elenco\nfiltrato, `target` (`area`, `tab`, `filters`, `web_path`). Una sezione\nmanca quando il pannello non la mostra a chi chiede.",
+                "summary": "Il riepilogo della citt\u00e0 di lavoro",
+                "tags": [
+                    "Dashboard"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "city": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "slug": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "timezone": {
+                                                            "type": "string"
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "slug",
+                                                        "name",
+                                                        "timezone",
+                                                        "is_active"
+                                                    ]
+                                                },
+                                                "sections": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "queue"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string",
+                                                                        "const": "Da lavorare adesso"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "const": "Tutto ci\u00f2 che aspetta una decisione della redazione."
+                                                                    },
+                                                                    "stats": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "stats"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "publishing"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string",
+                                                                        "const": "Pubblicazione"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "const": "Quanto \u00e8 uscito e quanto \u00e8 in programma."
+                                                                    },
+                                                                    "stats": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "stats"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "quality"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string",
+                                                                        "const": "Qualit\u00e0 dei contenuti"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "const": "Schede incomplete e situazioni da guardare prima che le veda il pubblico."
+                                                                    },
+                                                                    "stats": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "stats"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "registrations"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string",
+                                                                        "const": "Nuove iscrizioni"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "counts": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "recent": {
+                                                                                "type": "integer",
+                                                                                "minimum": 0
+                                                                            },
+                                                                            "pending": {
+                                                                                "type": "integer",
+                                                                                "minimum": 0
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "recent",
+                                                                            "pending"
+                                                                        ]
+                                                                    },
+                                                                    "links": {
+                                                                        "type": "array",
+                                                                        "prefixItems": [
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "key": {
+                                                                                        "type": "string",
+                                                                                        "const": "pending"
+                                                                                    },
+                                                                                    "label": {
+                                                                                        "type": "string",
+                                                                                        "const": "Solo in attesa"
+                                                                                    },
+                                                                                    "badge": {
+                                                                                        "type": [
+                                                                                            "integer",
+                                                                                            "null"
+                                                                                        ],
+                                                                                        "minimum": 0
+                                                                                    },
+                                                                                    "target": {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "area": {
+                                                                                                "type": "string"
+                                                                                            },
+                                                                                            "tab": {
+                                                                                                "type": [
+                                                                                                    "string",
+                                                                                                    "null"
+                                                                                                ]
+                                                                                            },
+                                                                                            "filters": {
+                                                                                                "type": [
+                                                                                                    "object",
+                                                                                                    "array"
+                                                                                                ]
+                                                                                            },
+                                                                                            "web_path": {
+                                                                                                "type": "string"
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "area",
+                                                                                            "tab",
+                                                                                            "filters",
+                                                                                            "web_path"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "key",
+                                                                                    "label",
+                                                                                    "badge",
+                                                                                    "target"
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                    "key": {
+                                                                                        "type": "string",
+                                                                                        "const": "all"
+                                                                                    },
+                                                                                    "label": {
+                                                                                        "type": "string",
+                                                                                        "const": "Tutti gli utenti"
+                                                                                    },
+                                                                                    "badge": {
+                                                                                        "type": "null"
+                                                                                    },
+                                                                                    "target": {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "area": {
+                                                                                                "type": "string",
+                                                                                                "const": "users"
+                                                                                            },
+                                                                                            "tab": {
+                                                                                                "type": "null"
+                                                                                            },
+                                                                                            "filters": {
+                                                                                                "type": [
+                                                                                                    "object",
+                                                                                                    "array"
+                                                                                                ]
+                                                                                            },
+                                                                                            "web_path": {
+                                                                                                "type": "string"
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "area",
+                                                                                            "tab",
+                                                                                            "filters",
+                                                                                            "web_path"
+                                                                                        ]
+                                                                                    }
+                                                                                },
+                                                                                "required": [
+                                                                                    "key",
+                                                                                    "label",
+                                                                                    "badge",
+                                                                                    "target"
+                                                                                ]
+                                                                            }
+                                                                        ],
+                                                                        "minItems": 2,
+                                                                        "maxItems": 2
+                                                                    },
+                                                                    "rows": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "id": {
+                                                                                    "type": "integer"
+                                                                                },
+                                                                                "name": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "detail": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "state": {
+                                                                                    "type": "object",
+                                                                                    "properties": {
+                                                                                        "value": {
+                                                                                            "type": "string",
+                                                                                            "enum": [
+                                                                                                "confirmed",
+                                                                                                "pending",
+                                                                                                "first_access"
+                                                                                            ]
+                                                                                        },
+                                                                                        "label": {
+                                                                                            "type": "string",
+                                                                                            "enum": [
+                                                                                                "users.registration.states.confirmed",
+                                                                                                "users.registration.states.pending",
+                                                                                                "users.registration.states.first_access"
+                                                                                            ]
+                                                                                        },
+                                                                                        "description": {
+                                                                                            "type": "string",
+                                                                                            "enum": [
+                                                                                                "users.registration.help.confirmed",
+                                                                                                "users.registration.help.pending",
+                                                                                                "users.registration.help.first_access"
+                                                                                            ]
+                                                                                        },
+                                                                                        "tone": {
+                                                                                            "type": "string",
+                                                                                            "enum": [
+                                                                                                "success",
+                                                                                                "warning",
+                                                                                                "info"
+                                                                                            ]
+                                                                                        }
+                                                                                    },
+                                                                                    "required": [
+                                                                                        "value",
+                                                                                        "label",
+                                                                                        "description",
+                                                                                        "tone"
+                                                                                    ]
+                                                                                },
+                                                                                "registered_at": {
+                                                                                    "type": [
+                                                                                        "string",
+                                                                                        "null"
+                                                                                    ]
+                                                                                },
+                                                                                "abilities": {
+                                                                                    "type": "object",
+                                                                                    "properties": {
+                                                                                        "update": {
+                                                                                            "type": "boolean"
+                                                                                        }
+                                                                                    },
+                                                                                    "required": [
+                                                                                        "update"
+                                                                                    ]
+                                                                                },
+                                                                                "web_path": {
+                                                                                    "type": [
+                                                                                        "string",
+                                                                                        "null"
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "id",
+                                                                                "name",
+                                                                                "detail",
+                                                                                "state",
+                                                                                "registered_at",
+                                                                                "abilities",
+                                                                                "web_path"
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "empty": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "title": {
+                                                                                "type": "string",
+                                                                                "const": "Ancora nessun iscritto"
+                                                                            },
+                                                                            "description": {
+                                                                                "type": "string",
+                                                                                "const": "Qui compaiono le persone appena si registrano dal sito o dall'app."
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "title",
+                                                                            "description"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "counts",
+                                                                    "links",
+                                                                    "rows",
+                                                                    "empty"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "returns"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string",
+                                                                        "const": "Ritorno delle persone"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "const": "Se le persone tornano, prenotano e si presentano. Sono account, non persone certificate."
+                                                                    },
+                                                                    "stats": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "stats"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "promotion"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "null"
+                                                                    },
+                                                                    "stats": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "stats"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "sponsorships"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "null"
+                                                                    },
+                                                                    "stats": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "stats"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "const": "sponsorship_trend"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "description": {
+                                                                        "type": "string",
+                                                                        "const": "La distanza fra le due linee dice se le campagne servono a qualcosa, non solo quanto sono state mostrate."
+                                                                    },
+                                                                    "chart": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "days": {
+                                                                                "type": "array",
+                                                                                "items": {}
+                                                                            },
+                                                                            "labels": {
+                                                                                "type": "array",
+                                                                                "description": "Giorno e mese senza anno, come le etichette del grafico del pannello.",
+                                                                                "items": {}
+                                                                            },
+                                                                            "series": {
+                                                                                "type": "array",
+                                                                                "prefixItems": [
+                                                                                    {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "key": {
+                                                                                                "type": "string",
+                                                                                                "const": "impressions"
+                                                                                            },
+                                                                                            "label": {
+                                                                                                "type": "string",
+                                                                                                "const": "Visualizzazioni"
+                                                                                            },
+                                                                                            "values": {
+                                                                                                "type": "array",
+                                                                                                "items": {}
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "key",
+                                                                                            "label",
+                                                                                            "values"
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                            "key": {
+                                                                                                "type": "string",
+                                                                                                "const": "clicks"
+                                                                                            },
+                                                                                            "label": {
+                                                                                                "type": "string",
+                                                                                                "const": "Aperture"
+                                                                                            },
+                                                                                            "values": {
+                                                                                                "type": "array",
+                                                                                                "items": {}
+                                                                                            }
+                                                                                        },
+                                                                                        "required": [
+                                                                                            "key",
+                                                                                            "label",
+                                                                                            "values"
+                                                                                        ]
+                                                                                    }
+                                                                                ],
+                                                                                "minItems": 2,
+                                                                                "maxItems": 2
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "days",
+                                                                            "labels",
+                                                                            "series"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "title",
+                                                                    "description",
+                                                                    "chart"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "city",
+                                                "sections"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
         "/editorial/desk": {
             "get": {
                 "operationId": "v1.editorial.desk",

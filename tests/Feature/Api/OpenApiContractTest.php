@@ -60,6 +60,11 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/desk'])->toHaveKey('get')
         ->and($document['paths']['/editorial/unlock'])->toHaveKey('post');
 
+    // R1 della redazione (26/11/2026): il riepilogo.
+    expect($document['paths'])->toHaveKey('/editorial/dashboard')
+        ->and($document['paths']['/editorial/dashboard'])->toHaveKey('get')
+        ->and($document['paths']['/editorial/dashboard']['get']['responses']['200']['content']['application/json']['schema']['properties']['data']['properties'])->toHaveKeys(['city', 'sections']);
+
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/members',

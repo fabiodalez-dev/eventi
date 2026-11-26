@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Widgets;
 
 use App\Models\City;
-use App\Models\Sponsorship;
-use App\Models\SponsorshipDailyStat;
+use App\Services\Editorial\DeskSummary;
 use App\Support\Sponsorship\DashboardCity;
-use Carbon\CarbonImmutable;
 use Filament\Widgets\ChartWidget;
-use Flowframe\Trend\Trend;
-use Flowframe\Trend\TrendValue;
 
 /**
  * L'andamento delle campagne negli ultimi trenta giorni.
@@ -64,26 +60,15 @@ class SponsorshipTrendWidget extends ChartWidget
     protected function getData(): array
     {
         /* I giorni della citta': i contatori si scrivono nel suo fuso, e un
-           giorno UTC spostava di una casella le visite dopo mezzanotte. */
-        $city = DashboardCity::resolve();
-        $oggi = CarbonImmutable::now(DashboardCity::timezone($city));
-        $da = CarbonImmutable::parse($oggi->subDays(29)->toDateString());
-        $a = CarbonImmutable::parse($oggi->toDateString())->endOfDay();
-        $campagne = Sponsorship::withTrashed()->where('city_id', $city?->getKey() ?? 0)->select('id');
-
-        $serie = static fn (): Trend => Trend::query(SponsorshipDailyStat::query()->whereIn('sponsorship_id', $campagne))
-            ->dateColumn('day')
-            ->between(start: $da, end: $a)
-            ->perDay();
-
-        $viste = $serie()->sum('impressions');
-        $aperture = $serie()->sum('clicks');
+           giorno UTC spostava di una casella le visite dopo mezzanotte. La
+           serie la calcola `DeskSummary`, la stessa che riceve l'app. */
+        $trend = app(DeskSummary::class)->sponsorshipTrend(DashboardCity::resolve());
 
         return [
             'datasets' => [
                 [
                     'label' => __('sponsorships.metrics.impressions'),
-                    'data' => $viste->map(static fn (TrendValue $v): int => (int) $v->aggregate)->all(),
+                    'data' => $trend['impressions'],
                     'borderColor' => '#94a3b8',
                     'backgroundColor' => 'rgba(148, 163, 184, 0.12)',
                     'fill' => true,
@@ -91,7 +76,7 @@ class SponsorshipTrendWidget extends ChartWidget
                 ],
                 [
                     'label' => __('sponsorships.metrics.clicks'),
-                    'data' => $aperture->map(static fn (TrendValue $v): int => (int) $v->aggregate)->all(),
+                    'data' => $trend['clicks'],
                     'borderColor' => '#16a34a',
                     'backgroundColor' => 'rgba(22, 163, 74, 0.15)',
                     'fill' => true,
@@ -100,9 +85,7 @@ class SponsorshipTrendWidget extends ChartWidget
             ],
             /* Giorno e mese senza anno: trenta giorni non ne attraversano due
                in modo confuso, e l'anno ruberebbe spazio a ogni etichetta. */
-            'labels' => $viste->map(
-                static fn (TrendValue $v): string => CarbonImmutable::parse($v->date)->translatedFormat('j M'),
-            )->all(),
+            'labels' => $trend['labels'],
         ];
     }
 
