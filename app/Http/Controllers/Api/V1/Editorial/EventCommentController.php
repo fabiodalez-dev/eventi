@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Editorial;
 
 use App\Actions\Comments\ModerateComment;
+use App\Actions\Moderation\DeleteModeratedContent;
 use App\Enums\EventCommentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Editorial\Moderation\CommentListRequest;
@@ -74,13 +75,13 @@ final class EventCommentController extends Controller
         return response()->json(['data' => $moderation->commentRow($moderation->comment($found->id), $user), 'meta' => ['message' => __('comments.moderation.restored')]]);
     }
 
-    /** Elimina il commento e le sue risposte, come «Elimina» del pannello. Pericolosa: password recente. */
-    public function destroy(int $comment, ModerationDesk $moderation): JsonResponse
+    /** Elimina il commento e le sue risposte, come «Elimina» del pannello, con la riga nel registro di sicurezza. Pericolosa: password recente. */
+    public function destroy(int $comment, ModerationDesk $moderation, DeleteModeratedContent $delete): JsonResponse
     {
         $user = EditorialDesk::require()->user;
         $found = $moderation->comment($comment);
         Gate::forUser($user)->authorize('delete', $found);
-        $found->delete();
+        $delete->comment($found, $user);
 
         return response()->json(['data' => ['id' => $comment, 'deleted' => true], 'meta' => ['message' => __('comments.deleted')]]);
     }

@@ -80,6 +80,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * §9.2 — l'evento: la scheda editoriale, non una data.
@@ -804,6 +805,10 @@ class EventResource extends Resource
             ])
             ->action(function (Event $record, array $data): void {
                 $absorbed = Event::query()->where('city_id', $record->city_id)->findOrFail($data['absorbed']);
+                /* L'assorbito finisce nel cestino e i suoi salvataggi e prenotazioni
+                   passano all'altro: serve il permesso di eliminarlo, non solo quello
+                   sull'evento che resta. */
+                Gate::authorize('delete', $absorbed);
                 $report = app(MergeEventsAction::class)->execute($record, $absorbed, auth()->user());
 
                 Notification::make()

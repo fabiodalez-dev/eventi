@@ -6,6 +6,8 @@ use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\ContactFields;
 use App\Filament\Support\DescriptionEditor;
 use App\Models\Organizer;
+use App\Support\OrganizerAccessLog;
+use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -62,7 +64,31 @@ class OrganizerResource extends Resource
         ])
             ->emptyStateHeading(__('pannelli-redazione.organizzatori.empty_heading'))
             ->emptyStateDescription(__('pannelli-redazione.organizzatori.empty_description'))
-            ->recordActions([EditAction::make()]);
+            ->recordActions([self::logAccess(EditAction::make())]);
+    }
+
+    /**
+     * Responsabile e collaboratori aprono `/organizza`: chi entra e chi esce
+     * va nel registro di sicurezza (`OrganizerAccessLog`), come per le
+     * persone di un locale. Le persone si leggono prima del salvataggio e si
+     * confrontano dopo, quando anche la tabella dei collaboratori è salvata.
+     *
+     * @template T of CreateAction|EditAction
+     *
+     * @param  T  $action
+     * @return T
+     */
+    public static function logAccess(CreateAction|EditAction $action): CreateAction|EditAction
+    {
+        $before = OrganizerAccessLog::snapshot(null);
+
+        return $action
+            ->before(function (?Organizer $record) use (&$before): void {
+                $before = OrganizerAccessLog::snapshot($record);
+            })
+            ->after(function (Organizer $record) use (&$before): void {
+                OrganizerAccessLog::record($record, $before);
+            });
     }
 
     public static function getPages(): array

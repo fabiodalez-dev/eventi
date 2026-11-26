@@ -51,17 +51,17 @@ class VenuePolicy
     {
         // La cancellazione di un locale non è mai un'azione del referente:
         // resta allo staff globale ("il referente non può cancellare il locale").
-        return $this->isGlobalStaff($user) && $user->can(Permission::DeleteVenues->value);
+        return $this->staffCan($user, Permission::DeleteVenues->value);
     }
 
     public function restore(User $user, Venue $venue): bool
     {
-        return $this->isGlobalStaff($user) && $user->can(Permission::DeleteVenues->value);
+        return $this->staffCan($user, Permission::DeleteVenues->value);
     }
 
     public function forceDelete(User $user, Venue $venue): bool
     {
-        return $this->isGlobalStaff($user) && $user->can(Permission::DeleteVenues->value);
+        return $this->staffCan($user, Permission::DeleteVenues->value);
     }
 
     /**

@@ -376,7 +376,8 @@ class VenueApplicationResource extends Resource
             ->label(__('admin.actions.approve'))
             ->icon(Heroicon::OutlinedCheckCircle)
             ->color('success')
-            ->authorize('update')
+            // Non sulla propria richiesta (`VenueApplicationPolicy::approve`).
+            ->authorize('approve')
             ->requiresConfirmation()
             ->modalHeading(fn (VenueApplication $record): string => __('venue_applications.admin.approve_heading', ['venue' => $record->venue_name]))
             ->modalDescription(fn (VenueApplication $record): string => match ($record->kind()) {

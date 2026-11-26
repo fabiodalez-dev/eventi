@@ -9,6 +9,7 @@ use App\Enums\ContactMode;
 use App\Models\City;
 use App\Models\Organizer;
 use App\Models\User;
+use App\Support\OrganizerAccessLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -191,6 +192,7 @@ final class EditorialOrganizers
     /** @param  array<string, mixed>  $state */
     private function save(Organizer $organizer, array $state): Organizer
     {
+        $access = OrganizerAccessLog::snapshot($organizer);
         foreach (['name', 'city_id', 'owner_id', 'is_active'] as $field) {
             if (array_key_exists($field, $state)) {
                 $organizer->setAttribute($field, $state[$field]);
@@ -204,6 +206,8 @@ final class EditorialOrganizers
         if (array_key_exists('users', $state)) {
             $organizer->users()->sync(array_map('intval', (array) $state['users']));
         }
+        // Responsabile e collaboratori aprono `/organizza`: chi entra e chi esce va nel registro di sicurezza.
+        OrganizerAccessLog::record($organizer, $access);
 
         return $organizer->refresh();
     }

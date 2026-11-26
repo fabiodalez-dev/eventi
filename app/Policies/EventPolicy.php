@@ -55,7 +55,7 @@ class EventPolicy
             return $venue->managedBy($user);
         }
         if ($venue === null) {
-            return $this->isGlobalStaff($user) && $user->can(Permission::CreateEvents->value);
+            return $this->staffCan($user, Permission::CreateEvents->value);
         }
 
         return $this->canActOnVenue($user, $venue->id, Permission::CreateEvents->value);
@@ -79,7 +79,7 @@ class EventPolicy
     public function forceDelete(User $user, Event $event): bool
     {
         // Cancellazione permanente: mai al gestore del locale, solo allo staff globale.
-        return $this->isGlobalStaff($user) && $user->can(Permission::DeleteEvents->value);
+        return $this->staffCan($user, Permission::DeleteEvents->value);
     }
 
     /**
@@ -130,8 +130,10 @@ class EventPolicy
     {
         /* Lo staff globale risponde dal proprio ruolo: non serve interrogare
            l'organizzatore riga per riga, come faceva l'elenco della redazione
-           (una query per evento). */
-        if ($this->isGlobalStaff($user) && $user->can($permission->value)) {
+           (una query per evento). Solo se il permesso arriva da un ruolo di
+           staff: quello che arriva da `venue_owner`/`venue_editor` vale per i
+           locali di cui la persona è membro, più sotto. */
+        if ($this->staffCan($user, $permission->value)) {
             return true;
         }
         if (in_array($permission, [Permission::ViewEvents, Permission::UpdateEvents, Permission::DeleteEvents], true)
@@ -139,7 +141,7 @@ class EventPolicy
             return true;
         }
         if ($event->venue_id === null) {
-            return $this->isGlobalStaff($user) && $user->can($permission->value);
+            return $this->staffCan($user, $permission->value);
         }
 
         return $this->canActOnVenue($user, $event->venue_id, $permission->value);

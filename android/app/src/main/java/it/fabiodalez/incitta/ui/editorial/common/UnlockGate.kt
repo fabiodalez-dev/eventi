@@ -94,6 +94,8 @@ internal fun UnlockGate(
     content: @Composable () -> Unit,
 ) {
     val lock = repository.localLock
+    /* Entrando: un'area rimasta aperta oltre il limite d'inattività si chiude subito, prima del primo disegno. */
+    remember(lock) { lock.enter() }
     val locked by lock.locked.collectAsState()
     val prompt by repository.guard.prompt.collectAsState()
     val context = LocalContext.current
@@ -112,11 +114,20 @@ internal fun UnlockGate(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    /* Senza tocchi: un controllo ogni 30 secondi basta per un limite di 15 minuti. */
+    /*
+     * Uscendo dall'area (Home, Profilo, un altro account) si chiude: il
+     * repository resta in memoria finché il token è lo stesso, e senza questo
+     * si rientrava senza il blocco del telefono anche ore dopo. Una rotazione
+     * ricrea l'attività ma non esce dall'area: lì resta com'è.
+     */
+    DisposableEffect(lock, context) {
+        onDispose { if (context.findActivity()?.isChangingConfigurations != true) lock.leave() }
+    }
+    /* Senza tocchi: un controllo subito e poi ogni 30 secondi, che basta per un limite di 15 minuti. */
     LaunchedEffect(lock) {
         while (true) {
-            delay(IDLE_CHECK_MILLIS)
             lock.checkIdle()
+            delay(IDLE_CHECK_MILLIS)
         }
     }
 

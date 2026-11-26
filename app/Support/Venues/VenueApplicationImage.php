@@ -17,10 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class VenueApplicationImage
 {
+    /** La cartella delle immagini delle richieste sul disco privato. */
+    public const DIRECTORY = 'venue-applications';
+
     public static function response(VenueApplication $application): Response
     {
-        $path = $application->image_path;
-        abort_unless(is_string($path) && $path !== '' && str_starts_with($path, 'venue-applications/') && Storage::disk('local')->exists($path), 404);
+        $path = self::safePath($application->image_path);
+        abort_unless($path !== null && Storage::disk('local')->exists($path), 404);
 
         $mime = (string) Storage::disk('local')->mimeType($path);
         abort_unless(in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true), 404);
@@ -35,5 +38,27 @@ final class VenueApplicationImage
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'",
         ], 'inline');
+    }
+
+    /**
+     * Il percorso, se è davvero un file della cartella delle richieste;
+     * `null` altrimenti. Il prefisso da solo non basta: `venue-applications/../`
+     * esce dalla cartella, e un percorso assoluto, con `\`, con un byte nullo
+     * o con segmenti vuoti non è mai uno che scrive il server. Oggi
+     * `image_path` lo scrive solo il server; questo controllo regge anche il
+     * giorno in cui non sarà più vero.
+     */
+    public static function safePath(mixed $path): ?string
+    {
+        if (! is_string($path) || $path === '' || str_contains($path, "\0") || str_contains($path, '\\') || ! str_starts_with($path, self::DIRECTORY.'/')) {
+            return null;
+        }
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '..') {
+                return null;
+            }
+        }
+
+        return $path;
     }
 }

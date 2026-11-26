@@ -542,6 +542,7 @@ return [
         'is_nightlife' => 'Se acceso, una data che comincia dopo la mezzanotte viene attribuita alla sera precedente, secondo l\'ora di chiusura impostata sulla città.',
         'auto_publish' => 'Gli eventi di questo locale escono online senza passare dalla redazione.',
         'is_verified' => 'Il locale ha confermato di persona i propri dati.',
+        'venue_status_actions' => 'Lo stato si cambia con «Approva», «Rifiuta» e «Sospendi», in cima alla pagina: così resta scritto chi l\'ha fatto e chi gestisce il locale viene avvisato.',
         'source_ref' => 'Identificativo dell\'evento nella sorgente di origine: è ciò che rende l\'import ripetibile senza doppioni.',
         'credentials' => 'Salvate cifrate. Restano nascoste anche a chi apre questa scheda.',
         'occurrences' => 'Ogni riga è una data in cartellone. La giornata evento e la fine effettiva vengono calcolate al salvataggio.',
