@@ -45,6 +45,7 @@
     <string name="editorial_venue_city_help">Cambiando città cambiano i comuni ammessi: controlla poi la sezione «Dove».</string>
     <string name="editorial_venue_type">Tipo</string>
     <string name="editorial_venue_status">Stato</string>
+    <string name="editorial_venue_status_actions">Lo stato si cambia con «Approva», «Rifiuta» e «Sospendi» nella scheda del locale: così resta scritto chi l\'ha fatto e chi gestisce il locale viene avvisato.</string>
     <string name="editorial_venue_province_code">Sigla della provincia</string>
     <string name="editorial_venue_address">Indirizzo</string>
     <string name="editorial_venue_municipality">Comune</string>

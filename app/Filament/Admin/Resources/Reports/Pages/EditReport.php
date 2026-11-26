@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Reports\Pages;
 
+use App\Actions\Moderation\DeleteModeratedContent;
 use App\Actions\Moderation\ResolveReport;
 use App\Enums\ReportStatus;
 use App\Filament\Admin\Resources\Reports\ReportResource;
@@ -41,7 +42,13 @@ class EditReport extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            // Eliminazione definitiva: resta la riga nel registro di sicurezza.
+            DeleteAction::make()->using(function (Report $record): bool {
+                $moderator = auth()->user();
+                app(DeleteModeratedContent::class)->report($record, $moderator instanceof User ? $moderator : null);
+
+                return true;
+            }),
         ];
     }
 }

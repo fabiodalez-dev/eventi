@@ -41,6 +41,8 @@ const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.events.cancel',
     'api.v1.editorial.catalog.cities.update',
     'api.v1.editorial.carpool.cases.hold',
+    // Revisione di sicurezza dell'ondata 1, punto 3: un account nuovo può nascere con un ruolo della redazione.
+    'api.v1.editorial.users.store',
 ];
 
 /** @return Collection<int, RouteDefinition> */

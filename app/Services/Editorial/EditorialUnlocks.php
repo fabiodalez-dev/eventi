@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Editorial;
 
+use App\Enums\ApiErrorCode;
+use App\Exceptions\ApiException;
 use App\Models\EditorialUnlock;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
@@ -35,6 +38,17 @@ final class EditorialUnlocks
 
     /** Minuti in secondo piano o di inattività dopo cui l'app blocca l'area (lo fa l'app). */
     public const LOCK_AFTER_MINUTES = 15;
+
+    /**
+     * Password sbagliate di fila allo sblocco dopo cui il token si revoca.
+     * Il limite di frequenza della rotta (6 ogni 15 minuti) lascia comunque
+     * quasi seicento prove al giorno a chi ha un token rubato: questo è il
+     * tetto vero.
+     */
+    public const LOCKOUT_FAILURES = 10;
+
+    /** La finestra in cui si contano gli errori. */
+    public const LOCKOUT_HOURS = 24;
 
     /**
      * Il token dell'app con cui arriva la richiesta. `null` per un accesso
@@ -70,6 +84,62 @@ final class EditorialUnlocks
     public function passwordConfirmed(?EditorialUnlock $unlock): bool
     {
         return $this->unlocked($unlock) && $unlock !== null && $unlock->confirmed_until->isFuture();
+    }
+
+    /**
+     * La regola di `RequireRecentPassword`, per le azioni che diventano
+     * pericolose solo con certi dati (dare a qualcuno il ruolo di referente
+     * di un locale): 423 `EDITORIAL_LOCKED` senza sblocco, 423
+     * `PASSWORD_REQUIRED` senza password negli ultimi 15 minuti.
+     *
+     * @throws ApiException
+     */
+    public function requirePassword(Request $request): void
+    {
+        $unlock = $this->find($request);
+        if (! $this->unlocked($unlock)) {
+            throw new ApiException(ApiErrorCode::EditorialLocked);
+        }
+        if (! $this->passwordConfirmed($unlock)) {
+            throw new ApiException(ApiErrorCode::PasswordRequired);
+        }
+    }
+
+    /**
+     * Conta una password sbagliata allo sblocco; vero quando gli errori di
+     * questa persona nelle ultime 24 ore arrivano a `LOCKOUT_FAILURES`. Il
+     * conto è per persona e non per token: un token revocato non si
+     * sostituisce con un altro per ricominciare da zero.
+     */
+    public function recordFailure(User $user): bool
+    {
+        $key = self::failuresKey($user);
+        RateLimiter::hit($key, self::LOCKOUT_HOURS * 3600);
+
+        return RateLimiter::attempts($key) >= self::LOCKOUT_FAILURES;
+    }
+
+    /** Quanti errori ha accumulato la persona nella finestra. */
+    public function failures(User $user): int
+    {
+        return (int) RateLimiter::attempts(self::failuresKey($user));
+    }
+
+    /** Uno sblocco riuscito, o un token appena revocato, azzerano il conto. */
+    public function clearFailures(User $user): void
+    {
+        RateLimiter::clear(self::failuresKey($user));
+    }
+
+    /** Revoca il token (lo sblocco cade con lui, `cascadeOnDelete`). */
+    public function revokeToken(int $tokenId): void
+    {
+        PersonalAccessToken::query()->whereKey($tokenId)->delete();
+    }
+
+    private static function failuresKey(User $user): string
+    {
+        return 'editorial-unlock-failures:'.$user->getKey();
     }
 
     /** Scrive lo sblocco sul token: 12 ore per l'area, 15 minuti per le azioni pericolose. */

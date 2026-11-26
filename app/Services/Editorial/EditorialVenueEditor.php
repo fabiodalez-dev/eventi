@@ -83,10 +83,17 @@ final class EditorialVenueEditor
     /**
      * Le chiavi ricevute, di solito una sezione alla volta.
      *
+     * Lo stato no: approvare, rifiutare e sospendere passano dalle rotte di
+     * moderazione (`ModerateVenueAction`), che chiedono la password recente
+     * dove serve e avvisano chi gestisce il locale. Un `status` nel `PATCH`
+     * si ignora, come il pannello che nella modifica lo mostra senza
+     * salvarlo.
+     *
      * @param  array<string, mixed>  $input
      */
     public function update(Venue $venue, array $input, User $actor): Venue
     {
+        unset($input['status']);
         $city = array_key_exists('city_id', $input) ? City::query()->find($input['city_id']) : $venue->city;
         $state = $this->validate($input, $venue, $city, creating: false);
 

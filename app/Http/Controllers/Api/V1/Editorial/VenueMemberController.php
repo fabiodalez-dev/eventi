@@ -10,6 +10,7 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Editorial\EditorialUnlocks;
 use App\Services\Editorial\EditorialVenueMembers;
 use App\Support\Api\ApiDate;
 use App\Support\Editorial\EditorialDesk;
@@ -26,10 +27,17 @@ use Illuminate\Validation\ValidationException;
  * con l'email confermata, cambia ruolo o accettazione, scollega. Le regole
  * sono quelle della sezione «Persone» del pannello (`EditorialVenueMembers`),
  * e chiedono `VenuePolicy::manageCollaborators` (admin e super admin).
+ *
+ * Dare a qualcuno il ruolo di referente (invito, aggiunta, cambio di ruolo)
+ * apre i dati del locale come un cambio di ruolo: chiede la password
+ * recente, come le rotte pericolose (`EditorialUnlocks::requirePassword`).
  */
 final class VenueMemberController extends Controller
 {
-    public function __construct(private readonly EditorialVenueMembers $members) {}
+    public function __construct(
+        private readonly EditorialVenueMembers $members,
+        private readonly EditorialUnlocks $unlocks,
+    ) {}
 
     /** Le persone del locale, con ruolo, data dell'invito e dell'accettazione. */
     public function index(Request $request, int $venue): JsonResponse
@@ -67,6 +75,7 @@ final class VenueMemberController extends Controller
             'role' => ['sometimes', 'required', Rule::enum(VenueRole::class)],
         ], [], ['name' => __('admin.fields.name'), 'email' => __('admin.fields.email'), 'role' => __('admin.fields.role')]);
         $role = VenueRole::from((string) ($data['role'] ?? VenueRole::Owner->value));
+        $this->ownerNeedsPassword($request, $role);
 
         $already = $this->members->alreadyThere($record, (string) $data['email'], $role);
         if ($already !== null) {
@@ -88,11 +97,13 @@ final class VenueMemberController extends Controller
             'user_id' => ['required', 'integer'],
             'role' => ['sometimes', 'required', Rule::enum(VenueRole::class)],
         ]);
+        $role = VenueRole::from((string) ($data['role'] ?? VenueRole::Editor->value));
+        $this->ownerNeedsPassword($request, $role);
         $user = User::query()->find((int) $data['user_id']);
         if (! $user instanceof User || ! $this->members->canAttach($record, $user)) {
             throw ValidationException::withMessages(['user_id' => __('validation.exists', ['attribute' => __('admin.fields.name')])]);
         }
-        $this->members->attach($record, $user, VenueRole::from((string) ($data['role'] ?? VenueRole::Editor->value)), $this->actor($request));
+        $this->members->attach($record, $user, $role, $this->actor($request));
 
         return $this->listResponse($record, null, 201);
     }
@@ -106,8 +117,10 @@ final class VenueMemberController extends Controller
             'role' => ['required', Rule::enum(VenueRole::class)],
             'accepted_at' => ['present', 'nullable', 'date'],
         ]);
+        $role = VenueRole::from((string) $data['role']);
+        $this->ownerNeedsPassword($request, $role);
         $accepted = filled($data['accepted_at']) ? CarbonImmutable::parse((string) $data['accepted_at'])->utc()->startOfMinute() : null;
-        $this->members->update($record, $member, VenueRole::from((string) $data['role']), $accepted, $this->actor($request));
+        $this->members->update($record, $member, $role, $accepted, $this->actor($request));
 
         return $this->listResponse($record, null);
     }
@@ -119,6 +132,14 @@ final class VenueMemberController extends Controller
         $this->members->detach($record, $this->member($record, $user), $this->actor($request));
 
         return $this->listResponse($record, null);
+    }
+
+    /** Referente: 423 `PASSWORD_REQUIRED` senza la password degli ultimi 15 minuti. */
+    private function ownerNeedsPassword(Request $request, VenueRole $role): void
+    {
+        if ($role === VenueRole::Owner) {
+            $this->unlocks->requirePassword($request);
+        }
     }
 
     private function listResponse(Venue $venue, ?string $message, int $status = 200): JsonResponse

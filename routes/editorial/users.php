@@ -28,7 +28,8 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/users', [UserController::class, 'index'])->middleware('throttle:60,1,editorial-users')->name('users.index');
 Route::get('/users/options', [UserController::class, 'options'])->middleware('throttle:60,1,editorial-users-options')->name('users.options');
-Route::post('/users', [UserController::class, 'store'])->middleware('throttle:10,1,editorial-users-store')->name('users.store');
+// Un account nuovo può nascere già con un ruolo della redazione: come il cambio dei ruoli, password recente.
+Route::post('/users', [UserController::class, 'store'])->middleware([RequireRecentPassword::class, 'throttle:10,1,editorial-users-store'])->name('users.store');
 Route::get('/users/{user}', [UserController::class, 'show'])->whereNumber('user')->withTrashed()->middleware('throttle:60,1,editorial-users-show')->name('users.show');
 Route::patch('/users/{user}', [UserController::class, 'update'])->whereNumber('user')->withTrashed()->middleware('throttle:30,1,editorial-users-update')->name('users.update');
 // Le proprie email e password: chiudono tutte le sessioni dell'app, quindi password recente.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Editorial;
 
+use App\Actions\Moderation\DeleteModeratedContent;
 use App\Actions\Moderation\ResolveReport;
 use App\Enums\ReportStatus;
 use App\Http\Controllers\Controller;
@@ -69,13 +70,13 @@ final class ReportController extends Controller
         ]);
     }
 
-    /** Elimina la segnalazione (`reports.resolve`), come «Elimina» nel modulo del pannello. Pericolosa: password recente. */
-    public function destroy(int $report, ModerationDesk $moderation): JsonResponse
+    /** Elimina la segnalazione (`reports.resolve`), come «Elimina» nel modulo del pannello, con la riga nel registro di sicurezza. Pericolosa: password recente. */
+    public function destroy(int $report, ModerationDesk $moderation, DeleteModeratedContent $delete): JsonResponse
     {
         $user = EditorialDesk::require()->user;
         $found = $moderation->report($report);
         Gate::forUser($user)->authorize('delete', $found);
-        $found->delete();
+        $delete->report($found, $user);
 
         return response()->json(['data' => ['id' => $report, 'deleted' => true], 'meta' => ['message' => __('pannelli-redazione.segnalazioni.deleted')]]);
     }

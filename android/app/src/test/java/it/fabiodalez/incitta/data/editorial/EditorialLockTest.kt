@@ -107,6 +107,47 @@ class EditorialLockTest {
         assertTrue(lock.locked.value)
     }
 
+    @Test fun aTouchAfterTheLimitClosesTheAreaInsteadOfResettingTheCount() {
+        var now = 0L
+        val lock = EditorialLocalLock(clock = { now })
+        lock.unlock()
+        /* Lasciata aperta e ripresa dopo 16 minuti: il primo tocco non deve azzerare il conto. */
+        now += 16 * 60_000L
+        lock.touch()
+        assertTrue(lock.locked.value)
+        /* E non la riapre nemmeno un tocco subito dopo. */
+        lock.touch()
+        assertTrue(lock.locked.value)
+    }
+
+    @Test fun enteringTheAreaAfterTheLimitClosesItAtOnce() {
+        var now = 0L
+        val lock = EditorialLocalLock(clock = { now })
+        lock.unlock()
+        /* Entro il limite si rientra aperti. */
+        now += 10 * 60_000L
+        assertFalse(lock.enter())
+        /* Oltre il limite (l'app era tornata alla Home, senza osservatore del ciclo di vita): chiusa subito. */
+        now += 15 * 60_000L
+        assertTrue(lock.enter())
+        assertTrue(lock.locked.value)
+    }
+
+    @Test fun leavingTheAreaClosesIt() {
+        var now = 0L
+        val lock = EditorialLocalLock(clock = { now })
+        lock.unlock()
+        lock.leave()
+        assertTrue(lock.locked.value)
+        /* Rientrando un istante dopo resta chiusa: si riapre solo con il blocco del telefono. */
+        now += 1_000L
+        assertTrue(lock.enter())
+        lock.touch()
+        assertTrue(lock.locked.value)
+        lock.unlock()
+        assertFalse(lock.locked.value)
+    }
+
     @Test fun theServerDecidesTheMinutesButNeverBelowOne() {
         var now = 0L
         val lock = EditorialLocalLock(clock = { now })
