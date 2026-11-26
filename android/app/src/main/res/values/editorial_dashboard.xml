@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- R1 — Riepilogo della redazione. Etichette, numeri e frasi dei riquadri arrivano dal server, uguali al pannello. -->
+    <string name="editorial_dashboard_title">Riepilogo</string>
+    <string name="editorial_dashboard_refresh">Aggiorna i numeri</string>
+    <string name="editorial_dashboard_empty">Nessun riquadro da mostrare.</string>
+    <string name="editorial_dashboard_no_city">Non c\'è ancora nessuna città: code, pubblicazione, qualità, ritorno e sponsorizzazioni compaiono quando ne esiste una.</string>
+    <string name="editorial_dashboard_link_badge">%1$s (%2$d)</string>
+    <string name="editorial_dashboard_registered">%1$s · iscrizione del %2$s</string>
+</resources>

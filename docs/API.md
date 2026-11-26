@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **363 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **364 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -761,3 +761,14 @@ Il token dell'app dura 90 giorni; la redazione chiede in più la password dell'a
 - `GET /v1/me`: `management.editorial` (booleano), vero per moderatore, admin e super admin.
 - `GET /v1/config`: `features.editorial`, acceso salvo `API_EDITORIAL_ENABLED=false`. L'app apre la redazione nativa solo con tutti e due veri; altrimenti la riga «Amministrazione» apre il pannello sul sito, come prima.
 - Codici d'errore nuovi: `EDITORIAL_LOCKED` e `PASSWORD_REQUIRED`, tutti e due con stato 423.
+
+## Redazione: riepilogo (R1, 26 novembre 2026)
+
+Il riepilogo di `/admin` nell'app: le stesse sezioni, gli stessi numeri e le stesse destinazioni dei riquadri del pannello (R-DB-01…09). Una operazione nuova, in `routes/editorial/dashboard.php`.
+
+- `GET /v1/editorial/dashboard?city=` (redazione sbloccata, limite 30 al minuto `editorial-dashboard`, non pericolosa): `data{city{id, slug, name, timezone, is_active}|null, sections[]}`. Le sezioni arrivano nell'ordine della pagina del pannello e solo quelle che il pannello mostra a chi chiede: `queue` (eventi, locali e richieste in attesa, segnalazioni aperte), `publishing` (pubblicati oggi e in settimana, in programma oggi, annullati), `quality` (senza locandina, incompleti, duplicati sospetti, locali inattivi, import falliti), `registrations` (a chi apre l'elenco degli utenti), `returns` (ritorno, prenotazioni, presenze), `promotion` (abilitazioni e pagamenti, solo admin e super admin), `sponsorships` (campagne in corso, in scadenza, viste e aperture della settimana), `sponsorship_trend` (andamento di 30 giorni). Senza nessuna città resta solo `registrations`, come nel pannello.
+- Una sezione di riquadri è `{key, title, description, stats[]}`; ogni riquadro `{key, label, value (già scritto come nel pannello: «12», «38%», «—», «1.250,00»), count (numero o null), description, tone (warning|danger|success|gray|null), target|null}`. `target` è `{area (events|venues|applications|reports|import_sources|users), tab, filters{chiave: valore} (sempre un oggetto; `1` per i sì/no), web_path}`: l'elenco con la convenzione `filter[chiave]`/`tab` e la stessa pagina del pannello già filtrata (`admin/events?filters[status][value]=pending`).
+- `registrations` è `{key, title, description (la frase del pannello con i conteggi), counts{recent, pending}, links[]{key (pending|all), label, badge, target}, rows[]{id, name, detail, state{value, label, description, tone}, registered_at, abilities{update}, web_path|null}, empty{title, description}}`: le ultime cinque iscrizioni; `web_path` (la modifica nel pannello) solo per chi può modificare la persona.
+- `sponsorship_trend` è `{key, title, description, chart{days[] (AAAA-MM-GG, fuso della città), labels[], series[]{key (impressions|clicks), label, values[]}}}`.
+
+Numeri, frasi, colori e destinazioni li calcola `App\Services\Editorial\DeskSummary` (le iscrizioni `App\Support\Editorial\DeskRegistrations`), che usano anche i widget del pannello: riquadro del sito e riquadro del telefono sono la stessa riga. Chi vede quale sezione lo dice `DeskSummaryPayload`, con le regole dei `canView()` dei widget. «Social di oggi» (R9) e il calendario (R14) non sono in questa risposta.

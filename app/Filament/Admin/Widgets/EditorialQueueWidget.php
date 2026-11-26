@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Enums\ApplicationStatus;
-use App\Enums\EventStatus;
-use App\Enums\VenueStatus;
-use App\Filament\Admin\Resources\Events\EventResource;
-use App\Filament\Admin\Resources\Reports\ReportResource;
-use App\Filament\Admin\Resources\VenueApplications\VenueApplicationResource;
-use App\Filament\Admin\Resources\Venues\VenueResource;
+use App\Filament\Admin\Support\DeskLinks;
+use App\Services\Editorial\DeskSummary;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -37,47 +32,15 @@ class EditorialQueueWidget extends EditorialWidget
      */
     protected function getStats(): array
     {
-        $dashboard = $this->dashboard();
-
-        $events = $dashboard->pendingEvents()->count();
-        $venues = $dashboard->pendingVenues()->count();
-        $applications = $dashboard->pendingApplications()->count();
-        $reports = $dashboard->openReports()->count();
-
         /* Ogni riquadro dice in una frase che cosa aspetta una decisione; quando
-           non aspetta niente resta grigio, così l'occhio va solo dove serve. */
-        return [
-            Stat::make(__('admin.dashboard.pending_events'), $events)
-                ->description(trans_choice('pannelli-redazione.riepilogo.pending_events', $events))
-                ->icon(Heroicon::OutlinedInboxArrowDown)
-                ->color($events > 0 ? 'warning' : 'gray')
-                ->url(EventResource::getUrl('index', [
-                    'filters' => ['status' => ['value' => EventStatus::Pending->value]],
-                ])),
-
-            Stat::make(__('admin.dashboard.pending_venues'), $venues)
-                ->description(trans_choice('pannelli-redazione.riepilogo.pending_venues', $venues))
-                ->icon(Heroicon::OutlinedBuildingStorefront)
-                ->color($venues > 0 ? 'warning' : 'gray')
-                ->url(VenueResource::getUrl('index', [
-                    'filters' => ['status' => ['value' => VenueStatus::Pending->value]],
-                ])),
-
-            Stat::make(__('admin.dashboard.pending_applications'), $applications)
-                ->description(trans_choice('pannelli-redazione.riepilogo.pending_applications', $applications))
-                ->icon(Heroicon::OutlinedEnvelopeOpen)
-                ->color($applications > 0 ? 'warning' : 'gray')
-                ->url(VenueApplicationResource::getUrl('index', [
-                    'filters' => ['status' => ['value' => ApplicationStatus::Pending->value]],
-                ])),
-
-            Stat::make(__('admin.dashboard.open_reports'), $reports)
-                ->description(trans_choice('pannelli-redazione.riepilogo.open_reports', $reports))
-                ->icon(Heroicon::OutlinedFlag)
-                ->color($reports > 0 ? 'danger' : 'gray')
-                ->url(ReportResource::getUrl('index', [
-                    'filters' => ['open' => ['isActive' => true]],
-                ])),
-        ];
+           non aspetta niente resta grigio, così l'occhio va solo dove serve.
+           Numeri, frasi, colori e destinazioni li dà `DeskSummary`, lo stesso
+           che risponde all'app. */
+        return DeskLinks::stats(app(DeskSummary::class)->queue($this->city()), [
+            'pending_events' => Heroicon::OutlinedInboxArrowDown,
+            'pending_venues' => Heroicon::OutlinedBuildingStorefront,
+            'pending_applications' => Heroicon::OutlinedEnvelopeOpen,
+            'open_reports' => Heroicon::OutlinedFlag,
+        ]);
     }
 }
