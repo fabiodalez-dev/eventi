@@ -56,7 +56,7 @@ class EventFeatureResource extends Resource
     {
         return [
             TextInput::make('name')->label('Nome visibile')->required()->maxLength(120),
-            Select::make('group')->label('Gruppo')->options(array_combine($groups = ['Accessibilità', 'Ingresso', 'Pubblico', 'Servizi', 'Mobilità', 'Regole', 'Informazioni'], $groups))->required()->default('Informazioni'),
+            Select::make('group')->label('Gruppo')->options(array_combine(EventFeature::GROUPS, EventFeature::GROUPS))->required()->default('Informazioni'),
             Select::make('icon')->label('Icona')->options(PracticalIcons::previews())->allowHtml()->searchable()->required()->default('check-circle')->rules([Rule::in(array_keys(PracticalIcons::options()))]),
             Textarea::make('description')->label('Spiegazione breve')->helperText('Appare sotto il nome in tutti gli eventi che selezionano questa voce.')->maxLength(500)->rows(2)->columnSpanFull(),
             TextInput::make('sort_order')->label('Ordine')->numeric()->integer()->minValue(0)->default(0),

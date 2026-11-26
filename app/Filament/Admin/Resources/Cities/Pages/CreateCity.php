@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Cities\Pages;
 
 use App\Filament\Admin\Resources\Cities\CityResource;
-use App\Filament\Admin\Support\StructuredFields;
 use App\Filament\Concerns\HasFeminineCreateTitle;
+use App\Support\CitySettings;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateCity extends CreateRecord
@@ -21,7 +21,7 @@ class CreateCity extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['settings'] = StructuredFields::flagsToMap($data['settings'] ?? null);
+        $data['settings'] = CitySettings::toMap($data['settings'] ?? null);
 
         return $data;
     }
