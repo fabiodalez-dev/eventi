@@ -44080,7 +44080,7 @@
             },
             "delete": {
                 "operationId": "v1.editorial.comments.destroy",
-                "summary": "Elimina il commento e le sue risposte, come \u00abElimina\u00bb del pannello. Pericolosa: password recente",
+                "summary": "Elimina il commento e le sue risposte, come \u00abElimina\u00bb del pannello, con la riga nel registro di sicurezza. Pericolosa: password recente",
                 "tags": [
                     "EventComment"
                 ],
@@ -55432,7 +55432,7 @@
         "/editorial/events/{event}/merge": {
             "post": {
                 "operationId": "v1.editorial.events.merge",
-                "summary": "\u00abUnisci con un doppione\u00bb: questo evento resta, `absorbed` (della\nstessa citt\u00e0) viene assorbito e cestinato, il suo indirizzo diventa un\nredirect. Pericolosa: chiede la password recente",
+                "summary": "\u00abUnisci con un doppione\u00bb: questo evento resta, `absorbed` (della\nstessa citt\u00e0) viene assorbito e cestinato, il suo indirizzo diventa un\nredirect. Chiede `delete` su tutti e due (403 se manca sull'assorbito).\nPericolosa: chiede la password recente",
                 "tags": [
                     "EventModeration"
                 ],
@@ -85302,7 +85302,7 @@
             },
             "delete": {
                 "operationId": "v1.editorial.reports.destroy",
-                "summary": "Elimina la segnalazione (`reports.resolve`), come \u00abElimina\u00bb nel modulo del pannello. Pericolosa: password recente",
+                "summary": "Elimina la segnalazione (`reports.resolve`), come \u00abElimina\u00bb nel modulo del pannello, con la riga nel registro di sicurezza. Pericolosa: password recente",
                 "tags": [
                     "Report"
                 ],
@@ -128134,8 +128134,8 @@
                             "integer",
                             "null"
                         ],
-                        "minimum": 1779803898,
-                        "maximum": 1795701498
+                        "minimum": 1779811637,
+                        "maximum": 1795709237
                     },
                     "lat": {
                         "type": "number",
