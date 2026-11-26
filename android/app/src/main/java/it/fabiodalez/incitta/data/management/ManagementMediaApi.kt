@@ -15,7 +15,12 @@ internal enum class VenueImageSlot(val segment: String) { Logo("logo"), Cover("c
  * P4) arrivano con i loro pacchetti; qui c'è solo il client. Le risposte
  * restano JSON grezzo finché quei pacchetti non ne fissano la forma.
  */
-internal class ManagementMediaApi(private val api: ApiClient, private val token: String) {
+internal class ManagementMediaApi(
+    private val api: ApiClient,
+    private val token: String,
+    /* Dove stanno le immagini di un locale: la gestione (`management/venues/{id}`) o la redazione (`editorial/venues/{id}`), con gli stessi percorsi sotto. */
+    private val venueBase: (Long) -> String = { id -> "management/${SubjectKind.Venue.segment}/$id" },
+) {
     suspend fun uploadPoster(subject: ManagementSubject, eventId: Long, image: PreparedImage): JsonObject =
         upload("${subject.apiPath}/events/$eventId/poster", image)
 
@@ -43,7 +48,7 @@ internal class ManagementMediaApi(private val api: ApiClient, private val token:
     private suspend fun upload(path: String, image: PreparedImage): JsonObject =
         api.upload(path, token, IMAGE_FIELD, image.bytes, image.mime, image.fileName)
 
-    private fun venuePath(id: Long) = "management/${SubjectKind.Venue.segment}/$id"
+    private fun venuePath(id: Long) = venueBase(id)
 
     companion object {
         const val IMAGE_FIELD = "image"

@@ -33,6 +33,7 @@ use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
 use App\Services\Geo\AddressGeocoder;
+use App\Support\Venues\VenueCover;
 use App\Support\WidgetEmbed;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -669,15 +670,7 @@ class VenueResource extends Resource
      */
     public static function coverUrl(Venue $venue): string
     {
-        foreach (['cover', 'logo'] as $collection) {
-            $media = $venue->getFirstMedia($collection);
-
-            if ($media !== null) {
-                return $media->hasGeneratedConversion('thumb') ? $media->getFullUrl('thumb') : $media->getFullUrl();
-            }
-        }
-
-        return asset(PosterColumn::PLACEHOLDER);
+        return VenueCover::url($venue) ?? asset(PosterColumn::PLACEHOLDER);
     }
 
     /**

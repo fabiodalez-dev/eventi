@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\VenueApplications;
 
-use App\Actions\ApproveVenueApplication;
+use App\Actions\ReviewVenueApplication;
 use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\VenueType;
@@ -15,12 +15,10 @@ use App\Filament\Admin\Resources\Venues\VenueResource;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\Organizer;
 use App\Models\User;
-use App\Models\Venue;
 use App\Models\VenueApplication;
-use App\Notifications\VenueApplicationRejected;
+use App\Services\Editorial\EditorialApplications;
 use App\Support\Description;
 use BackedEnum;
-use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -40,7 +38,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
@@ -100,97 +97,34 @@ class VenueApplicationResource extends Resource
     /**
      * Le richieste ancora da confermare restano fuori grazie allo scope
      * globale del modello. Qui si aggiunge, in una sola lettura, il segnale
-     * «possibile doppione» che l'elenco mostra accanto al nome.
+     * «possibile doppione» che l'elenco mostra accanto al nome: la regola sta
+     * in `EditorialApplications`, la stessa dell'app della redazione.
      *
      * @return Builder<Model>
      */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->with(['reviewer'])
+        return parent::getEloquentQuery()->with(['reviewer'])
             ->select('venue_applications.*')
-            ->selectRaw('('.self::duplicateSql().') as possible_duplicate');
+            ->selectRaw('('.EditorialApplications::duplicateSql().') as possible_duplicate');
     }
 
     /**
-     * Un doppione probabile, deciso dal database:
-     *
-     * - una rivendicazione è doppia se un'altra rivendicazione in coda chiede
-     *   lo stesso locale;
-     * - un locale nuovo, se esiste già un locale con lo stesso nome (che non
-     *   sia quello nato da questa richiesta) o se un'altra richiesta in coda
-     *   porta lo stesso nome;
-     * - un'organizzazione, se esiste già un organizzatore con lo stesso nome o
-     *   un'altra richiesta in coda lo porta.
-     *
-     * È un avviso, non un blocco: due «Bar Centrale» in due comuni esistono
-     * davvero. Chi decide apre la richiesta e trova i nomi con i collegamenti.
-     */
-    private static function duplicateSql(): string
-    {
-        $claim = ApplicationKind::Claim->value;
-        $organizer = ApplicationKind::Organizer->value;
-        $pending = ApplicationStatus::Pending->value;
-
-        $altre = "EXISTS (SELECT 1 FROM venue_applications AS altre WHERE altre.id <> venue_applications.id AND altre.status = '{$pending}' AND altre.email_confirmed_at IS NOT NULL";
-
-        return "CASE WHEN venue_applications.kind = '{$claim}' THEN {$altre} AND altre.kind = '{$claim}' AND altre.venue_id = venue_applications.venue_id)"
-            ." WHEN venue_applications.kind = '{$organizer}' THEN (EXISTS (SELECT 1 FROM organizers WHERE LOWER(organizers.name) = LOWER(venue_applications.venue_name) AND (venue_applications.organizer_id IS NULL OR organizers.id <> venue_applications.organizer_id))"
-            ." OR {$altre} AND altre.kind = '{$organizer}' AND LOWER(altre.venue_name) = LOWER(venue_applications.venue_name)))"
-            .' ELSE (EXISTS (SELECT 1 FROM venues WHERE venues.deleted_at IS NULL AND LOWER(venues.name) = LOWER(venue_applications.venue_name) AND (venue_applications.venue_id IS NULL OR venues.id <> venue_applications.venue_id))'
-            ." OR {$altre} AND (altre.kind IS NULL OR altre.kind <> '{$claim}') AND LOWER(altre.venue_name) = LOWER(venue_applications.venue_name)))"
-            .' END';
-    }
-
-    /**
-     * I doppioni probabili di una richiesta, per la pagina di lettura: gli
-     * stessi criteri di `duplicateSql()`, con i nomi e i collegamenti.
+     * I doppioni probabili di una richiesta, per la pagina di lettura, con i
+     * collegamenti del pannello. I criteri sono in `EditorialApplications`.
      *
      * @return list<array{label: string, url: string|null}>
      */
     public static function duplicates(VenueApplication $record): array
     {
-        $kind = $record->kind();
-        $name = mb_strtolower(trim($record->venue_name));
-        $found = [];
-
-        $others = VenueApplication::query()->whereKeyNot($record->getKey())->pending()
-            ->when(
-                $kind === ApplicationKind::Claim,
-                fn (Builder $query) => $query->where('kind', ApplicationKind::Claim)->where('venue_id', $record->venue_id),
-                fn (Builder $query) => $query->whereRaw('LOWER(venue_name) = ?', [$name])
-                    ->where(fn (Builder $kinds) => $kind === ApplicationKind::Organizer
-                        ? $kinds->where('kind', ApplicationKind::Organizer)
-                        : $kinds->whereNull('kind')->orWhere('kind', ApplicationKind::Venue)),
-            )
-            ->latest('id')->limit(5)->get();
-
-        foreach ($others as $other) {
-            $found[] = [
-                'label' => __('venue_applications.admin.duplicate_application', ['name' => $other->venue_name, 'contact' => $other->contact_name, 'date' => ($ricevuta = $other->getAttribute('created_at')) instanceof CarbonInterface ? $ricevuta->copy()->timezone(FilamentTimezone::get())->format('d/m/Y') : '—']),
-                'url' => self::getUrl('edit', ['record' => $other]),
-            ];
-        }
-
-        if ($kind === ApplicationKind::Venue) {
-            $venues = Venue::query()->whereRaw('LOWER(name) = ?', [$name])
-                ->when($record->venue_id !== null, fn (Builder $query) => $query->whereKeyNot($record->venue_id))
-                ->limit(5)->get();
-            foreach ($venues as $venue) {
-                $found[] = ['label' => __('venue_applications.admin.duplicate_venue', ['name' => $venue->name, 'address' => $venue->address ?: '—']), 'url' => VenueResource::getUrl('edit', ['record' => $venue])];
-            }
-        }
-
-        if ($kind === ApplicationKind::Organizer) {
-            $organizers = Organizer::query()->whereRaw('LOWER(name) = ?', [$name])
-                ->when($record->organizer_id !== null, fn (Builder $query) => $query->whereKeyNot($record->organizer_id))
-                ->limit(5)->get();
-            foreach ($organizers as $organizer) {
-                $found[] = ['label' => __('venue_applications.admin.duplicate_organizer', ['name' => $organizer->name]), 'url' => $organizer->is_active ? route('organizers.show', $organizer) : null];
-            }
-        }
-
-        return $found;
+        return array_map(static fn (array $item): array => [
+            'label' => $item['label'],
+            'url' => match ($item['kind']) {
+                'application' => self::getUrl('edit', ['record' => $item['id']]),
+                'venue' => VenueResource::getUrl('edit', ['record' => $item['id']]),
+                default => $item['active'] && ($organizer = Organizer::query()->find($item['id'])) instanceof Organizer ? route('organizers.show', $organizer) : null,
+            },
+        ], EditorialApplications::duplicates($record, FilamentTimezone::get()));
     }
 
     public static function form(Schema $schema): Schema
@@ -431,8 +365,8 @@ class VenueApplicationResource extends Resource
      * consegna le chiavi del locale rivendicato). La stessa azione sta nella
      * riga dell'elenco e nell'intestazione della pagina.
      *
-     * Passa sempre da `ApproveVenueApplication`, dentro una transazione che
-     * blocca la riga della richiesta: due clic, o due persone nello stesso
+     * Passa sempre da `ReviewVenueApplication` (la stessa regola dell'app della
+     * redazione), dentro una transazione che blocca la riga della richiesta: due clic, o due persone nello stesso
      * minuto, non creano due locali. Lo stato si rilegge sotto lock, perché
      * la pagina da cui si clicca l'ha letto prima.
      */
@@ -461,18 +395,7 @@ class VenueApplicationResource extends Resource
 
                 $kind = $record->kind();
                 try {
-                    $soggetto = DB::transaction(function () use ($record, $moderatore): Venue|Organizer {
-                        $richiesta = VenueApplication::query()->lockForUpdate()->find($record->getKey());
-
-                        if (! $richiesta instanceof VenueApplication) {
-                            throw ValidationException::withMessages(['status' => __('venue_applications.awaiting_email')]);
-                        }
-                        if ($richiesta->status === ApplicationStatus::Approved) {
-                            throw ValidationException::withMessages(['status' => __('venue_applications.admin.already_approved')]);
-                        }
-
-                        return app(ApproveVenueApplication::class)->handle($richiesta, $moderatore);
-                    });
+                    $soggetto = app(ReviewVenueApplication::class)->approve($record, $moderatore);
                 } catch (ValidationException $exception) {
                     Notification::make()->title($exception->validator->errors()->first())->danger()->send();
                     $record->refresh();
@@ -481,7 +404,6 @@ class VenueApplicationResource extends Resource
                 }
 
                 $record->refresh();
-                Cache::forget('nav-badge:venue-applications-pending');
 
                 [$titolo, $corpo] = match (true) {
                     $soggetto instanceof Organizer => [__('venue_applications.approved_organizer', ['organizer' => $soggetto->name]), __('venue_applications.approved_organizer_body')],
@@ -536,38 +458,23 @@ class VenueApplicationResource extends Resource
                     return;
                 }
 
-                $rifiutata = DB::transaction(function () use ($record, $moderatore, $data): ?VenueApplication {
-                    $richiesta = VenueApplication::query()->lockForUpdate()->find($record->getKey());
-
-                    if (! $richiesta instanceof VenueApplication || $richiesta->status !== ApplicationStatus::Pending) {
-                        return null;
-                    }
-
-                    $richiesta->forceFill([
-                        'status' => ApplicationStatus::Rejected,
-                        'reviewed_by' => $moderatore->getKey(),
-                        'reviewed_at' => now(),
-                        'notes' => (string) $data['notes'],
-                    ])->save();
-
-                    return $richiesta;
-                });
+                $esito = app(ReviewVenueApplication::class)->reject(
+                    $record,
+                    $moderatore,
+                    (string) $data['notes'],
+                    (bool) ($data['notify'] ?? false),
+                    isset($data['message']) ? (string) $data['message'] : null,
+                );
 
                 $record->refresh();
 
-                if ($rifiutata === null) {
+                if ($esito === null) {
                     Notification::make()->title(__('venue_applications.admin.already_decided'))->danger()->send();
 
                     return;
                 }
 
-                Cache::forget('nav-badge:venue-applications-pending');
-
-                $mittente = $rifiutata->user;
-                $avvisa = (bool) ($data['notify'] ?? false) && $mittente instanceof User;
-                if ($avvisa) {
-                    $mittente->notify(new VenueApplicationRejected($rifiutata, isset($data['message']) ? (string) $data['message'] : null));
-                }
+                $avvisa = $esito['notified'];
 
                 Notification::make()
                     ->title(__('venue_applications.rejected'))
@@ -606,9 +513,7 @@ class VenueApplicationResource extends Resource
 
     private static function website(VenueApplication $record): ?string
     {
-        $website = $record->venueDatum('website') ?? (is_array($record->socials) ? ($record->socials['website'] ?? null) : null);
-
-        return is_string($website) && $website !== '' ? $website : null;
+        return EditorialApplications::website($record);
     }
 
     /** Un dato pubblico del locale scritto nella richiesta (`venue_data`). */
