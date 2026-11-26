@@ -22,6 +22,11 @@ class LoginFeedbackTest {
         compose.onNode(hasContentDescription("Profilo") and hasClickAction()).performClick()
     }
 
+    /* Il messaggio sta sopra la tastiera, fuori dal modulo che scorre: si aspetta che la tastiera finisca di muoversi. */
+    private fun shown(text: String) {
+        compose.waitUntil(5_000) { runCatching { compose.onNodeWithText(text).assertIsDisplayed() }.isSuccess }
+    }
+
     private fun submit() = compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()
 
     @Test fun missingEmailIsVisibleAndClearsWhenEditing() {
@@ -32,14 +37,14 @@ class LoginFeedbackTest {
         compose.onNodeWithText("EMAIL").performTextInput("not-an-email")
         compose.onNodeWithText(message).assertDoesNotExist()
         submit()
-        compose.onNodeWithText(compose.activity.getString(R.string.auth_email_invalid)).assertIsDisplayed()
+        shown(compose.activity.getString(R.string.auth_email_invalid))
     }
 
     @Test fun emptyPasswordHasAnExplanationInsteadOfDisabledButton() {
         loginScreen()
         compose.onNodeWithText("EMAIL").performTextInput("login-feedback@example.test")
         submit()
-        compose.onNodeWithText(compose.activity.getString(R.string.auth_password_required)).assertIsDisplayed()
+        shown(compose.activity.getString(R.string.auth_password_required))
     }
 
     @Test fun registrationOffersSeparateNamesAndRejectsMismatchedConfirmation() {

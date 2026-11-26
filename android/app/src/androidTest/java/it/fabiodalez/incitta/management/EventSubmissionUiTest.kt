@@ -47,9 +47,9 @@ class EventSubmissionUiTest {
             }
             Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("OK").body(data.toResponseBody("application/json".toMediaType())).build()
         }.build())
-        compose.activity.setContent { InCittaTheme { androidx.compose.material3.Surface {
+        compose.runOnIdle { compose.activity.setContent { InCittaTheme { androidx.compose.material3.Surface {
             EventSubmissionRoute(session, PaddingValues(), onBack = {}, client = client)
-        } } }
+        } } } }
     }
 
     private fun waitFor(label: String, substring: Boolean = false) =
