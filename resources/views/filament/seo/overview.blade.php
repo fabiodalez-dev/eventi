@@ -1,11 +1,6 @@
 @php
-    $tools = [
-        'sitemap' => route('sitemap.index'),
-        'search_console' => 'https://search.google.com/search-console',
-        'rich_results' => 'https://search.google.com/test/rich-results',
-        'schema' => 'https://validator.schema.org/',
-        'pagespeed' => 'https://pagespeed.web.dev/',
-    ];
+    // Gli stessi strumenti dell'app della redazione.
+    $tools = \App\Services\Seo\SeoAudit::tools();
 @endphp
 <x-filament-panels::page>
     {{-- Il modulo ha già la sua card con il pulsante «Salva»; Invio lo salva. --}}
