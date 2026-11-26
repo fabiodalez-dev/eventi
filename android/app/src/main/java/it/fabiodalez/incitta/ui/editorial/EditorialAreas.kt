@@ -53,7 +53,7 @@ internal enum class EditorialArea(
     Social(R.string.editorial_area_social, R.string.editorial_area_social_help, "admin/social", SocialRoute),
     Analytics(R.string.editorial_area_analytics, R.string.editorial_area_analytics_help, "admin/statistiche-condivisioni", AnalyticsRoute),
     Catalog(R.string.editorial_area_catalog, R.string.editorial_area_catalog_help, "admin/categories", CatalogRoute),
-    System(R.string.editorial_area_system, R.string.editorial_area_system_help, "admin/scheduled-notifications", SystemRoute, badges = listOf("scheduled_notifications_due")),
+    System(R.string.editorial_area_system, R.string.editorial_area_system_help, "admin/scheduled-notifications", SystemRoute, native = true, badges = listOf("scheduled_notifications_due")),
     Settings(R.string.editorial_area_settings, R.string.editorial_area_settings_help, "admin/cache-performance", SettingsRoute),
     Calendar(R.string.editorial_area_calendar, R.string.editorial_area_calendar_help, "admin/calendario", CalendarRoute);
 

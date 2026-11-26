@@ -73,13 +73,16 @@ class EditorialFoundationsTest {
 
     @Test fun theNativeAreasOfTheFirstWaveOpenTheirOwnScreens() {
         val native = EditorialArea.entries.filter { it.native }
-        assertEquals(listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation), native)
+        /* R12 aggiunge l'area Sistema. */
+        assertEquals(listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation, EditorialArea.System), native)
         assertEquals(it.fabiodalez.incitta.ui.editorial.dashboard.DashboardRoute, EditorialArea.Dashboard.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.events.EventsRoute, EditorialArea.Events.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.venues.VenuesRoute, EditorialArea.Venues.entry)
         /* Dal menu l'elenco degli utenti parte senza scheda né filtri: «Tutti». */
         assertEquals(it.fabiodalez.incitta.ui.editorial.users.UsersRoute(), EditorialArea.Users.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationRoute, EditorialArea.Moderation.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.system.SystemRoute, EditorialArea.System.entry)
+        assertEquals(listOf("scheduled_notifications_due"), EditorialArea.System.badges)
         /* I contatori del menu: le stesse chiavi che le voci dentro l'area mostrano. */
         assertEquals(listOf("venues_pending", "venue_applications_pending"), EditorialArea.Venues.badges)
         assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationSection.entries.map { it.badge }.toSet(), EditorialArea.Moderation.badges.toSet())

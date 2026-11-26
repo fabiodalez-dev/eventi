@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R12: il gruppo «Sistema» della redazione (sorgenti di import, invii previsti, cron e programmazioni). -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="system_hub_intro">I calendari importati, gli avvisi in partenza e i lavori programmati del server.</string>
+    <string name="system_imports_title">Sorgenti di import</string>
+    <string name="system_imports_help">Calendari esterni: anteprima, esecuzione, storico</string>
+    <string name="system_notifications_title">Notifiche programmate</string>
+    <string name="system_notifications_help">Gli avvisi in partenza, con chi li riceve e perché</string>
+    <string name="system_operations_title">Cron e programmazioni</string>
+    <string name="system_operations_help">Le righe di cron del server e le attività registrate</string>
+    <string name="system_nothing_allowed">Il tuo ruolo non ha voci di sistema.</string>
+    <string name="system_sort">Ordine</string>
+    <string name="system_yes">Sì</string>
+    <string name="system_no">No</string>
+
+    <!-- Sorgenti: elenco -->
+    <string name="system_imports_empty">Nessuna sorgente con questi criteri.</string>
+    <string name="system_imports_new">Nuova sorgente</string>
+    <string name="system_filter_type">Tipo</string>
+    <string name="system_filter_active">Attiva</string>
+    <string name="system_filter_failed">Import falliti</string>
+    <string name="system_sort_last_run_recent">Ultima esecuzione, recenti</string>
+    <string name="system_sort_last_run_oldest">Ultima esecuzione, meno recenti</string>
+    <string name="system_import_open">Apri la sorgente %1$s</string>
+    <string name="system_import_no_venue">Nessun locale</string>
+    <string name="system_import_never_run">Mai eseguita</string>
+    <string name="system_import_last_run">Ultima esecuzione: %1$s</string>
+    <string name="system_import_inactive">Disattivata</string>
+    <string name="system_import_active">Attiva</string>
+
+    <!-- Sorgenti: scheda -->
+    <string name="system_import_title">Sorgente di import</string>
+    <string name="system_import_missing">Questa sorgente non c’è più.</string>
+    <string name="system_import_city">Città</string>
+    <string name="system_import_venue">Locale</string>
+    <string name="system_import_type">Tipo</string>
+    <string name="system_import_category">Categoria predefinita</string>
+    <string name="system_import_url">Indirizzo</string>
+    <string name="system_import_mapping">Mappatura</string>
+    <string name="system_import_no_mapping">Nessuna mappatura: valgono i valori predefiniti.</string>
+    <string name="system_import_last_status">Esito dell’ultima esecuzione</string>
+    <string name="system_import_last_error">Ultimo errore</string>
+    <string name="system_import_none">Nessuno</string>
+    <string name="system_import_credentials">Credenziali</string>
+    <string name="system_import_credentials_set">Impostate. Restano sul server, cifrate: si cambiano solo dal sito.</string>
+    <string name="system_import_credentials_unset">Non impostate. Si aggiungono solo dal sito.</string>
+    <string name="system_import_open_web">Apri la scheda sul sito</string>
+    <string name="system_import_not_runnable">Questo tipo di sorgente non ha un lettore: si censisce, ma non si esegue e non ha un’anteprima.</string>
+    <string name="system_import_preview">Anteprima</string>
+    <string name="system_import_run">Esegui adesso</string>
+    <string name="system_import_run_title">Eseguire l’import adesso?</string>
+    <string name="system_import_run_text">Le date entrano subito nel catalogo come eventi pubblicati e non verificati. L’esito comparirà nell’ultima esecuzione.</string>
+    <string name="system_import_run_inactive">La sorgente è disattivata: il lavoro accodato non leggerà niente finché non la riattivi.</string>
+    <string name="system_import_queued">Import accodato: l’esito comparirà nell’ultima esecuzione.</string>
+    <string name="system_import_edit">Modifica</string>
+    <string name="system_import_activate">Attiva la sorgente</string>
+    <string name="system_import_deactivate">Disattiva la sorgente</string>
+    <string name="system_import_activated">Sorgente attivata.</string>
+    <string name="system_import_deactivated">Sorgente disattivata.</string>
+    <string name="system_import_history">Storico delle esecuzioni</string>
+    <string name="system_import_delete">Elimina la sorgente</string>
+    <string name="system_import_delete_title">Eliminare la sorgente?</string>
+    <string name="system_import_delete_text">Si elimina per sempre, con il suo storico. Gli eventi già importati restano nel catalogo.</string>
+
+    <!-- Sorgenti: modulo -->
+    <string name="system_import_new_title">Nuova sorgente</string>
+    <string name="system_import_edit_title">Modifica la sorgente</string>
+    <string name="system_import_save">Salva la sorgente</string>
+    <string name="system_import_saved">Sorgente salvata.</string>
+    <string name="system_import_choose_city">Scegli la città</string>
+    <string name="system_import_choose_category">Scegli la categoria</string>
+    <string name="system_import_no_category">Nessuna categoria</string>
+    <string name="system_import_venue_search">Cerca un locale per nome</string>
+    <string name="system_import_venue_hint">Lascia vuoto per un calendario che non appartiene a un locale iscritto: il Comune, un teatro non ancora sul sito. In quel caso la categoria predefinita è obbligatoria.</string>
+    <string name="system_import_venue_remove">Togli il locale %1$s</string>
+    <string name="system_import_venue_choose">Scegli %1$s</string>
+    <string name="system_import_venue_searching">Cerco i locali…</string>
+    <string name="system_import_venue_nothing">Nessun locale con questo nome.</string>
+    <string name="system_import_url_help">Verificato prima di salvare: niente indirizzi della rete interna.</string>
+    <string name="system_import_mapping_help">Coppie chiave e valore, per esempio timezone = Europe/Rome. Gli elenchi (exclude_keywords) si scrivono separati da virgole.</string>
+    <string name="system_import_mapping_key">Chiave</string>
+    <string name="system_import_mapping_value">Valore</string>
+    <string name="system_import_mapping_list">Elenco</string>
+    <string name="system_import_mapping_add">Aggiungi una voce</string>
+    <string name="system_import_mapping_remove">Togli la voce %1$s</string>
+    <string name="system_import_mapping_preserved">Voci che si cambiano solo dal sito: %1$s</string>
+    <string name="system_import_active_label">Sorgente attiva</string>
+    <string name="system_import_credentials_web">Le credenziali non si scrivono dall’app: dopo il salvataggio aggiungile dalla scheda sul sito, se servono.</string>
+    <string name="system_import_error_city">Scegli la città.</string>
+    <string name="system_import_error_type">Scegli il tipo.</string>
+    <string name="system_import_error_category">Senza locale la categoria predefinita è obbligatoria.</string>
+    <string name="system_import_error_url_long">L’indirizzo è troppo lungo.</string>
+    <string name="system_import_error_mapping">Controlla la mappatura: chiavi non vuote e diverse fra loro, testi non troppo lunghi.</string>
+    <string name="system_import_unchanged">Nessuna modifica da salvare.</string>
+
+    <!-- Sorgenti: anteprima -->
+    <string name="system_preview_title">Che cosa entrerebbe</string>
+    <string name="system_preview_intro">Le prime date del calendario remoto, con il filtro di esclusione già applicato e nell’ora della città. Guardare non esegue nulla.</string>
+    <string name="system_preview_empty">Il calendario non ha date future da importare.</string>
+    <string name="system_preview_cancelled">annullato</string>
+    <string name="system_preview_timezone">Ora di %1$s</string>
+
+    <!-- Sorgenti: storico -->
+    <string name="system_runs_intro">Le ultime esecuzioni di questa sorgente: quando, com’è finita, e che cosa ha portato.</string>
+    <string name="system_runs_empty">Questa sorgente non è mai stata eseguita.</string>
+    <string name="system_runs_filter_status">Esito</string>
+    <string name="system_runs_sort_recent">Più recenti</string>
+    <string name="system_runs_sort_oldest">Meno recenti</string>
+    <string name="system_runs_counts">Nuovi %1$d · aggiornati %2$d · invariati %3$d · esclusi %4$d · annullati %5$d</string>
+    <string name="system_runs_errors">Errori: %1$d</string>
+
+    <!-- Invii previsti -->
+    <string name="system_notifications_lead">Ogni avviso previsto, visibile prima che parta. Da qui non si crea e non si modifica nulla: si ferma solo un invio che non deve partire.</string>
+    <string name="system_notifications_empty">Nessun invio con questi criteri.</string>
+    <string name="system_notifications_search">Cerca per email del destinatario</string>
+    <string name="system_filter_status">Stato</string>
+    <string name="system_filter_due">In scadenza</string>
+    <string name="system_sort_send_latest">Invio, dal più lontano</string>
+    <string name="system_sort_send_earliest">Invio, dal più vicino</string>
+    <string name="system_notification_send_at">Invio: %1$s</string>
+    <string name="system_notification_sent_at">Inviata: %1$s</string>
+    <string name="system_notification_recipient">Destinatario: %1$s</string>
+    <string name="system_notification_no_recipient">Nessun destinatario</string>
+    <string name="system_notification_channel">Canale: %1$s · tentativi: %2$d</string>
+    <string name="system_notification_reason">Motivo: %1$s</string>
+    <string name="system_notification_dedupe">Chiave: %1$s</string>
+    <string name="system_notification_cancel">Annulla questo invio</string>
+    <string name="system_notification_cancel_title">Annullare questo invio?</string>
+    <string name="system_notification_cancel_text">L’invio non partirà. La riga resta come traccia, con lo stato «annullata».</string>
+    <string name="system_notification_cancelled">Invio annullato.</string>
+
+    <!-- Cron e programmazioni -->
+    <string name="system_operations_intro">Tutte le attività programmate passano dallo scheduler del sito. Sul server bastano i due cron qui sotto: lo scheduler decide cosa eseguire, il worker completa i lavori in coda.</string>
+    <string name="system_operations_cron">Cron del server</string>
+    <string name="system_operations_scheduler">1. Scheduler</string>
+    <string name="system_operations_worker">2. Worker della coda</string>
+    <string name="system_operations_in_crontab">presente nel crontab</string>
+    <string name="system_operations_not_in_crontab">non trovato nel crontab</string>
+    <string name="system_operations_installed">Scheduler: %1$s. Worker: %2$s.</string>
+    <string name="system_operations_unreadable">Il processo web non può leggere il crontab: verifica queste righe in cPanel → Cron Jobs. Questo non indica da solo che il cron sia fermo.</string>
+    <string name="system_operations_queue">Coda in uso: «%1$s».</string>
+    <string name="system_operations_social">Instagram, Facebook e Telegram</string>
+    <string name="system_operations_social_intro">L’autopost usa il collegamento verificato di Social → Impostazioni, nel fuso della città.</string>
+    <string name="system_operations_open_social">Apri Social</string>
+    <string name="system_operations_no_social">Nessun collegamento social configurato: autopost non operativo.</string>
+    <string name="system_operations_social_city">Collegamento %1$s</string>
+    <string name="system_operations_verified_at">verificato il %1$s</string>
+    <string name="system_operations_to_verify">da configurare o verificare</string>
+    <string name="system_operations_telegram">Telegram: %1$s</string>
+    <string name="system_operations_verified">verificato</string>
+    <string name="system_operations_instagram_on">Instagram abilitato</string>
+    <string name="system_operations_instagram_off">Instagram disabilitato</string>
+    <string name="system_operations_autopost_on">Autopost attivo alle %1$s</string>
+    <string name="system_operations_autopost_off">Autopost disattivato</string>
+    <string name="system_operations_tasks">Attività registrate</string>
+    <string name="system_operations_tasks_intro">Elenco letto dallo scheduler reale. Espressioni, prossimi controlli e storico sono in UTC. Aprire questa pagina non esegue nessun comando.</string>
+    <string name="system_operations_expression">Espressione: %1$s</string>
+    <string name="system_operations_next">Prossimo controllo (UTC): %1$s</string>
+    <string name="system_operations_last">Ultimo completamento (UTC): %1$s</string>
+    <string name="system_operations_failed">Ultimo errore (UTC): %1$s</string>
+    <string name="system_operations_never_finished">nessuno registrato</string>
+    <string name="system_operations_never_failed">nessuno registrato</string>
+    <string name="system_operations_unmonitored">Fuori dal registro del monitor: battito o worker dedicato, oppure sincronizzazione da eseguire.</string>
+</resources>
