@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R4 — Locali, richieste, organizzatori della redazione. Le etichette sono quelle del pannello /admin. -->
+<resources>
+    <!-- Comuni del pacchetto -->
+    <string name="editorial_venues_save">Salva</string>
+    <string name="editorial_venues_saved">Salvato.</string>
+    <string name="editorial_venues_yes">Sì</string>
+    <string name="editorial_venues_no">No</string>
+    <string name="editorial_venues_none">Nessuno</string>
+    <string name="editorial_venues_done">Fatto</string>
+    <string name="editorial_venues_counter">%1$d su %2$d caratteri</string>
+    <string name="editorial_venues_open_record">Apri la scheda</string>
+    <string name="editorial_venues_people_search">Cerca per nome o email</string>
+    <string name="editorial_venues_people_none">Nessuna persona trovata.</string>
+    <string name="editorial_venues_tab_all">Tutti</string>
+    <string name="editorial_venues_tab_pending">In attesa</string>
+    <string name="editorial_venues_tab_approved">Approvati</string>
+    <string name="editorial_venues_tab_approved_f">Approvate</string>
+    <string name="editorial_venues_tab_rejected">Rifiutate</string>
+    <string name="editorial_venues_tab_suspended">Sospesi</string>
+
+    <!-- L'area -->
+    <string name="editorial_venues_hub_lead">Locali, richieste di iscrizione e organizzatori.</string>
+    <string name="editorial_venues_loading_desk">Sto leggendo i tuoi permessi…</string>
+    <string name="editorial_venues_pending_count">%1$s · %2$d in attesa</string>
+    <string name="editorial_venues_list_title">Locali</string>
+    <string name="editorial_venues_list_help">Cerca, modera e modifica i locali di tutte le città.</string>
+    <string name="editorial_venues_search">Cerca per nome o comune</string>
+    <string name="editorial_venues_empty">Nessun locale con questi criteri.</string>
+    <string name="editorial_venues_export">Esporta in Excel</string>
+    <string name="editorial_venues_exporting">Preparo il foglio…</string>
+    <string name="editorial_venues_export_share">Condividi l’elenco dei locali</string>
+    <string name="editorial_venues_sort_name">Nome A–Z</string>
+    <string name="editorial_venues_sort_name_desc">Nome Z–A</string>
+    <string name="editorial_venues_sort_municipality">Comune</string>
+    <string name="editorial_venues_sort_events">Più eventi</string>
+
+    <!-- Il locale -->
+    <string name="editorial_venue_title">Locale</string>
+    <string name="editorial_venue_name">Nome</string>
+    <string name="editorial_venue_name_person">Nome e cognome</string>
+    <string name="editorial_venue_slug">Indirizzo nel sito</string>
+    <string name="editorial_venue_slug_help">Lascia vuoto per ricavarlo dal nome.</string>
+    <string name="editorial_venue_city">Città</string>
+    <string name="editorial_venue_city_help">Cambiando città cambiano i comuni ammessi: controlla poi la sezione «Dove».</string>
+    <string name="editorial_venue_type">Tipo</string>
+    <string name="editorial_venue_status">Stato</string>
+    <string name="editorial_venue_province_code">Sigla della provincia</string>
+    <string name="editorial_venue_address">Indirizzo</string>
+    <string name="editorial_venue_municipality">Comune</string>
+    <string name="editorial_venue_district">Quartiere</string>
+    <string name="editorial_venue_postal_code">CAP</string>
+    <string name="editorial_venue_lat">Latitudine</string>
+    <string name="editorial_venue_lng">Longitudine</string>
+    <string name="editorial_venue_coordinates_help">Le coordinate mettono il locale sulla mappa e in «vicino a me». Le trovi tenendo premuto il punto su una mappa.</string>
+    <string name="editorial_venue_locate">Trova dall’indirizzo</string>
+    <string name="editorial_venue_center_city">Centra sulla città</string>
+    <string name="editorial_venue_located">Ho messo il punto sull’indirizzo: controlla che sia giusto.</string>
+    <string name="editorial_venue_phone">Telefono</string>
+    <string name="editorial_venue_email">Email</string>
+    <string name="editorial_venue_website">Sito web</string>
+    <string name="editorial_venue_capacity">Capienza</string>
+    <string name="editorial_venue_plan">Piano</string>
+    <string name="editorial_venue_verified">Verificato</string>
+    <string name="editorial_venue_not_verified">Non verificato</string>
+    <string name="editorial_venue_verified_help">La redazione ha controllato che il locale esiste ed è chi dice di essere.</string>
+    <string name="editorial_venue_auto_publish">Pubblicazione autonoma</string>
+    <string name="editorial_venue_auto_publish_help">Gli eventi del locale escono senza passare dalla coda della redazione.</string>
+    <string name="editorial_venue_nonprofit">Senza scopo di lucro</string>
+    <string name="editorial_venue_inactive">Locali inattivi</string>
+    <string name="editorial_venue_rejection_reason">Motivo del rifiuto o della sospensione</string>
+    <string name="editorial_venue_description">Descrizione</string>
+    <string name="editorial_venue_no_description">Nessuna descrizione.</string>
+    <string name="editorial_venue_no_cover">Nessuna copertina.</string>
+    <string name="editorial_venue_info">Informazioni</string>
+    <string name="editorial_venue_hint">Collaboratori ed eventi si leggono qui; si gestiscono dalle voci in fondo.</string>
+    <string name="editorial_venue_open_site">Vedi sul sito</string>
+    <string name="editorial_venue_upcoming">Prossimi eventi</string>
+    <string name="editorial_venue_no_upcoming">Nessun evento in arrivo.</string>
+    <string name="editorial_venue_members">Chi lo gestisce</string>
+    <string name="editorial_venue_no_members">Nessuno gestisce questo locale.</string>
+    <string name="editorial_venue_member_line">%1$s — %2$s</string>
+    <string name="editorial_venue_member_pending">invito in attesa</string>
+    <string name="editorial_venue_member_accepted">dentro dal %1$s</string>
+    <string name="editorial_venue_published_at">pubblicato il %1$s</string>
+    <plurals name="editorial_venue_events_count">
+        <item quantity="one">%d evento</item>
+        <item quantity="other">%d eventi</item>
+    </plurals>
+    <plurals name="editorial_venue_dates_count">
+        <item quantity="one">%d data</item>
+        <item quantity="other">%d date</item>
+    </plurals>
+
+    <!-- Moderazione -->
+    <string name="editorial_venue_approve">Approva</string>
+    <string name="editorial_venue_approve_title">Approvare %1$s?</string>
+    <string name="editorial_venue_approve_text">Il locale compare sul sito e chi lo gestisce riceve un avviso.</string>
+    <string name="editorial_venue_reject">Rifiuta</string>
+    <string name="editorial_venue_reject_title">Rifiutare %1$s?</string>
+    <string name="editorial_venue_reject_text">Il motivo resta nella scheda e arriva a chi gestisce il locale.</string>
+    <string name="editorial_venue_reject_reason">Motivo del rifiuto</string>
+    <string name="editorial_venue_suspend">Sospendi</string>
+    <string name="editorial_venue_suspend_title">Sospendere %1$s?</string>
+    <string name="editorial_venue_suspend_text">Il locale esce dal sito pubblico e chi lo gestisce non entra più nel suo pannello finché non lo riapprovi. Ti chiedo la password dell’account.</string>
+    <string name="editorial_venue_suspend_reason">Motivo della sospensione</string>
+    <string name="editorial_venue_verify">Verifica</string>
+    <string name="editorial_venue_verify_text">Segnare %1$s come verificato?</string>
+    <string name="editorial_venue_unverify">Togli la verifica</string>
+    <string name="editorial_venue_unverify_text">Togliere la verifica a %1$s?</string>
+    <string name="editorial_venue_delete">Elimina il locale</string>
+    <string name="editorial_venue_delete_title">Eliminare %1$s?</string>
+    <string name="editorial_venue_delete_text">Il locale finisce nel cestino e sparisce dal sito e dagli elenchi. Lo riporta indietro solo un amministratore dal sito. Ti chiedo la password dell’account.</string>
+
+    <!-- Ticketing -->
+    <string name="editorial_venue_ticketing">Abilita il ticketing inCittà</string>
+    <string name="editorial_venue_ticketing_help">Biglietti gratuiti o pagamento all’ingresso: posti, limiti e prenotazioni si configurano poi evento per evento.</string>
+    <string name="editorial_venue_ticketing_lead">Solo amministratori e super amministratori possono accendere o spegnere il ticketing di un locale.</string>
+    <string name="editorial_venue_ticketing_on">Acceso</string>
+    <string name="editorial_venue_ticketing_off">Spento</string>
+
+    <!-- Modulo -->
+    <string name="editorial_venue_edit">Modifica il locale</string>
+    <string name="editorial_venue_edit_lead">Le sezioni del modulo del pannello: ognuna salva solo i suoi campi.</string>
+    <string name="editorial_venue_section_identity">Identità</string>
+    <string name="editorial_venue_section_moderation">Moderazione</string>
+    <string name="editorial_venue_section_ticketing">Ticketing</string>
+    <string name="editorial_venue_section_visibility">Visibilità sul sito</string>
+    <string name="editorial_venue_indexing">Indicizzazione nei motori di ricerca</string>
+    <string name="editorial_venue_demo">Contenuto dimostrativo</string>
+    <string name="editorial_venue_demo_help">Visibile sul sito con il suo avviso, ma fuori da avvisi, riepiloghi e social.</string>
+    <string name="editorial_venue_widget">Codice del riquadro incorporabile</string>
+    <string name="editorial_venue_contact_resend_web">La conferma del recapito la rimanda chi gestisce il locale dal suo pannello.</string>
+    <string name="editorial_venue_images">Logo, copertina e galleria</string>
+    <string name="editorial_venue_images_help">Le immagini della scheda pubblica.</string>
+    <string name="editorial_venue_create">Crea il locale</string>
+    <string name="editorial_venue_create_title">Nuovo locale</string>
+    <string name="editorial_venue_create_help">Crea un locale con i campi obbligatori, poi completa la scheda.</string>
+    <string name="editorial_venue_create_lead">Il locale nasce in bozza. Dopo averlo creato completi le altre sezioni e lo approvi.</string>
+
+    <!-- Persone -->
+    <string name="editorial_venue_members_manage">Persone del locale</string>
+    <string name="editorial_venue_members_manage_help">Referenti, collaboratori e inviti in attesa.</string>
+    <string name="editorial_venue_members_lead">Il ruolo vale solo per questo locale. Ogni accesso dato o tolto resta nel registro di sicurezza.</string>
+    <string name="editorial_venue_members_empty">Nessuna persona in questo locale.</string>
+    <string name="editorial_venue_members_invite">Invita per email</string>
+    <string name="editorial_venue_members_invite_help">Se l’account non esiste lo creo; la persona riceve il collegamento per entrare.</string>
+    <string name="editorial_venue_members_send">Invia l’invito</string>
+    <string name="editorial_venue_members_attach">Aggiungi un account</string>
+    <string name="editorial_venue_members_attach_help">Solo account con l’email confermata. Entrano subito, senza invito da accettare.</string>
+    <string name="editorial_venue_members_add">Aggiungi</string>
+    <string name="editorial_venue_members_role">Ruolo</string>
+    <string name="editorial_venue_members_edit">Modifica</string>
+    <string name="editorial_venue_members_edit_title">Modifica %1$s</string>
+    <string name="editorial_venue_members_accepted">Accesso confermato</string>
+    <string name="editorial_venue_members_accepted_help">Spento, l’invito resta da accettare.</string>
+    <string name="editorial_venue_members_remove">Scollega</string>
+    <string name="editorial_venue_members_remove_title">Scollegare %1$s?</string>
+    <string name="editorial_venue_members_remove_text">La persona non gestisce più questo locale. Il suo account resta.</string>
+
+    <!-- Eventi e cronologia -->
+    <string name="editorial_venue_events">Eventi del locale</string>
+    <string name="editorial_venue_events_help">Tutti gli eventi collegati, con lo stato.</string>
+    <string name="editorial_venue_events_lead">La scheda di un evento si apre sul sito.</string>
+    <string name="editorial_venue_events_search">Cerca per titolo</string>
+    <string name="editorial_venue_events_empty">Nessun evento.</string>
+    <string name="editorial_venue_activity">Cronologia delle modifiche</string>
+    <string name="editorial_venue_activity_help">Chi ha cambiato cosa, e quando.</string>
+    <string name="editorial_venue_activity_empty">Nessuna modifica registrata.</string>
+    <string name="editorial_venue_activity_restore">Ripristina</string>
+    <string name="editorial_venue_activity_restore_title">Ripristinare i valori di prima?</string>
+    <string name="editorial_venue_activity_restore_text">Rimetto com’erano questi campi: %1$s. Il ripristino resta nella cronologia.</string>
+    <string name="editorial_venue_activity_restored">Valori ripristinati.</string>
+
+    <!-- Richieste -->
+    <string name="editorial_applications_title">Richieste di iscrizione</string>
+    <string name="editorial_applications_help">Locali nuovi, rivendicazioni e organizzazioni da approvare.</string>
+    <string name="editorial_applications_search">Cerca per nome o contatto</string>
+    <string name="editorial_applications_empty">Nessuna richiesta.</string>
+    <string name="editorial_application_title">Richiesta</string>
+    <string name="editorial_application_subtitle">%1$s · %2$s</string>
+    <string name="editorial_application_kind">Tipo di richiesta</string>
+    <string name="editorial_application_duplicate">Possibile doppione</string>
+    <string name="editorial_application_duplicate_help">È un avviso, non un blocco: due locali con lo stesso nome in due comuni esistono davvero.</string>
+    <string name="editorial_application_outcome">Esito</string>
+    <string name="editorial_application_received">Ricevuta</string>
+    <string name="editorial_application_queued">In coda dal</string>
+    <string name="editorial_application_reviewed">Esaminata</string>
+    <string name="editorial_application_reviewed_by">%1$s, %2$s</string>
+    <string name="editorial_application_not_reviewed">Non ancora esaminata</string>
+    <string name="editorial_application_linked_venue">Locale</string>
+    <string name="editorial_application_linked_organizer">Organizzatore</string>
+    <string name="editorial_application_section_venue">Il locale</string>
+    <string name="editorial_application_section_organizer">L’organizzazione</string>
+    <string name="editorial_application_name">Nome</string>
+    <string name="editorial_application_description">Presentazione</string>
+    <string name="editorial_application_public_contacts">Contatti pubblici</string>
+    <string name="editorial_application_public_contacts_help">Quello che finirà nella scheda pubblica se la richiesta viene accolta.</string>
+    <string name="editorial_application_public_email">Email pubblica</string>
+    <string name="editorial_application_public_phone">Telefono pubblico</string>
+    <string name="editorial_application_instagram">Instagram</string>
+    <string name="editorial_application_facebook">Facebook</string>
+    <string name="editorial_application_image">Immagine allegata</string>
+    <string name="editorial_application_image_help">Diventa la copertina del locale se approvi la richiesta.</string>
+    <string name="editorial_application_image_alt">Immagine allegata alla richiesta</string>
+    <string name="editorial_application_image_loading">Carico l’immagine…</string>
+    <string name="editorial_application_contact">Chi ha scritto</string>
+    <string name="editorial_application_contact_help">Dati privati: non compaiono sul sito.</string>
+    <string name="editorial_application_contact_name">Nome del contatto</string>
+    <string name="editorial_application_contact_role">Ruolo</string>
+    <string name="editorial_application_contact_email">Email del contatto</string>
+    <string name="editorial_application_contact_phone">Telefono del contatto</string>
+    <string name="editorial_application_account">Account</string>
+    <string name="editorial_application_no_account">Nessun account</string>
+    <string name="editorial_application_account_state">Stato dell’account</string>
+    <string name="editorial_application_account_verified">Email confermata</string>
+    <string name="editorial_application_account_unverified">Email da confermare</string>
+    <string name="editorial_application_notes">Note interne</string>
+    <string name="editorial_application_notes_help">Le legge solo la redazione. Salvarle non cambia lo stato della richiesta.</string>
+    <string name="editorial_application_save_notes">Salva le note</string>
+    <string name="editorial_application_approve_title">Approvare %1$s?</string>
+    <string name="editorial_application_approve_venue">Creo il locale in bozza e do l’accesso a chi ha scritto.</string>
+    <string name="editorial_application_approve_claim">Consegno il locale a chi lo ha rivendicato.</string>
+    <string name="editorial_application_approve_organizer">Creo l’organizzatore e do l’accesso a chi ha scritto.</string>
+    <string name="editorial_application_reject_title">Rifiutare %1$s?</string>
+    <string name="editorial_application_reject_reason">Motivo del rifiuto</string>
+    <string name="editorial_application_reject_reason_help">Resta nella scheda della richiesta, per chi la riaprirà.</string>
+    <string name="editorial_application_reject_notify">Avvisa chi l’ha mandata</string>
+    <string name="editorial_application_reject_notify_help">Il messaggio va a %1$s.</string>
+    <string name="editorial_application_reject_notify_unavailable">La richiesta non ha un account a cui scrivere.</string>
+    <string name="editorial_application_reject_message">Messaggio</string>
+    <string name="editorial_application_reject_message_help">Facoltativo, fino a 2000 caratteri.</string>
+    <string name="editorial_application_delete">Elimina la richiesta</string>
+    <string name="editorial_application_delete_title">Eliminare la richiesta di %1$s?</string>
+    <string name="editorial_application_delete_text">La richiesta sparisce dalla coda e non si recupera. Ti chiedo la password dell’account.</string>
+
+    <!-- Organizzatori -->
+    <string name="editorial_organizers_title">Organizzatori</string>
+    <string name="editorial_organizers_help">Associazioni e organizzazioni senza un locale.</string>
+    <string name="editorial_organizers_search">Cerca per nome</string>
+    <string name="editorial_organizers_empty">Nessun organizzatore.</string>
+    <string name="editorial_organizer_new">Nuovo organizzatore</string>
+    <string name="editorial_organizer_edit">Modifica organizzatore</string>
+    <string name="editorial_organizer_name">Nome</string>
+    <string name="editorial_organizer_city">Città di riferimento</string>
+    <string name="editorial_organizer_owner">Responsabile</string>
+    <string name="editorial_organizer_owner_none">Nessun responsabile scelto.</string>
+    <string name="editorial_organizer_owner_choose">Scegli il responsabile</string>
+    <string name="editorial_organizer_users">Collaboratori: possono gestire tutti gli eventi di questo organizzatore</string>
+    <string name="editorial_organizer_users_none">Nessun collaboratore.</string>
+    <string name="editorial_organizer_users_add">Aggiungi un collaboratore</string>
+    <string name="editorial_organizer_description">Descrizione</string>
+    <string name="editorial_organizer_website">Sito web</string>
+    <string name="editorial_organizer_contact_mode">Chi può scrivere dal modulo di contatto</string>
+    <string name="editorial_organizer_contact_email">Chi riceve i messaggi</string>
+    <string name="editorial_organizer_contact_email_help">Non compare sul sito.</string>
+    <string name="editorial_organizer_email">Email pubblica</string>
+    <string name="editorial_organizer_active">Attivo: profilo pubblico e accesso alla gestione</string>
+    <string name="editorial_organizer_active_help">Spento, l’organizzatore non ha pagina pubblica e i suoi non entrano nella gestione.</string>
+    <string name="editorial_organizer_open_public">Vedi il profilo pubblico</string>
+</resources>

@@ -120,6 +120,7 @@ internal class EditorialPermissions(private val values: Map<String, Boolean> = e
     val systemView get() = allows("system_view")
     val systemManage get() = allows("system_manage")
     val mailManage get() = allows("mail_manage")
+    val organizersManage get() = allows("organizers_manage")
     /** Vero se almeno una delle chiavi è permessa. */
     fun any(vararg keys: String): Boolean = keys.any(::allows)
     override fun equals(other: Any?) = other is EditorialPermissions && other.values == values

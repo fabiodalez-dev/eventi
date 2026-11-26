@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.management.ContactSettings
+import it.fabiodalez.incitta.data.management.ManagementMediaApi
 import it.fabiodalez.incitta.data.management.ManagementOptions
 import it.fabiodalez.incitta.data.management.ManagementProfileSource
 import it.fabiodalez.incitta.data.management.ManagementRepository
@@ -204,20 +205,33 @@ internal data class VenueImagesUiState(
     val errors: Map<String, String> = emptyMap(),
 )
 
-/** Logo, copertina e galleria: gli endpoint `V/media` delle fondamenta. */
-internal class VenueImagesViewModel(private val repository: ManagementRepository, saved: SavedStateHandle) : ViewModel() {
+/**
+ * Logo, copertina e galleria: gli endpoint `V/media` delle fondamenta. La
+ * stessa schermata serve alla redazione (`E/venues/{id}/media`): cambiano il
+ * client (`mediaSource`), il tetto della galleria e il passaggio di ogni
+ * chiamata (`guard`, che per la redazione chiede la password sui 423).
+ */
+internal class VenueImagesViewModel(
+    private val mediaSource: () -> ManagementMediaApi?,
+    private val galleryLimit: suspend () -> Long?,
+    saved: SavedStateHandle,
+    private val guard: suspend (suspend () -> JsonObject) -> JsonObject = { block -> block() },
+) : ViewModel() {
+    constructor(repository: ManagementRepository, saved: SavedStateHandle) :
+        this({ repository.media }, { repository.options()?.limit("gallery_images") }, saved)
+
     val venueId: Long = saved.get<Long>(VenueProfileViewModel.KEY_VENUE) ?: 0L
     private val state = MutableStateFlow(VenueImagesUiState())
     val uiState: StateFlow<VenueImagesUiState> = state.asStateFlow()
-    private val media get() = repository.media ?: throw IllegalStateException("Immagini non disponibili")
+    private val media get() = mediaSource() ?: throw IllegalStateException("Immagini non disponibili")
 
     init { load() }
 
     fun load() {
         state.update { it.copy(images = Loadable.Loading, errors = emptyMap()) }
         viewModelScope.launch {
-            repository.options()?.limit("gallery_images")?.let { max -> state.update { it.copy(galleryMax = max.toInt()) } }
-            try { state.update { it.copy(images = Loadable.Ready(venueImagesFrom(media.venueMedia(venueId)))) } }
+            galleryLimit()?.let { max -> state.update { it.copy(galleryMax = max.toInt()) } }
+            try { state.update { it.copy(images = Loadable.Ready(venueImagesFrom(guard { media.venueMedia(venueId) }))) } }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { state.update { it.copy(images = Loadable.Failed(requestFailureMessage(e))) } }
         }
@@ -243,7 +257,7 @@ internal class VenueImagesViewModel(private val repository: ManagementRepository
         state.update { it.copy(busy = true, errors = it.errors - key) }
         viewModelScope.launch {
             try {
-                val data = call()
+                val data = guard(call)
                 state.update { current ->
                     val previous = (current.images as? Loadable.Ready)?.value ?: VenueImages()
                     current.copy(images = Loadable.Ready(venueImagesFrom(data, previous)))
