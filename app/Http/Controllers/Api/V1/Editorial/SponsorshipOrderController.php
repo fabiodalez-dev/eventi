@@ -9,6 +9,7 @@ use App\Enums\SponsorshipOrderStatus;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Editorial\Concerns\ListsPlaces;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\RequireRecentPassword;
 use App\Models\SponsorshipOrder;
 use App\Models\User;
 use App\Services\Editorial\Promotion\EditorialSponsorshipOrders;
@@ -28,7 +29,10 @@ final class SponsorshipOrderController extends Controller
 {
     use ListsPlaces;
 
-    public function __construct(private readonly EditorialSponsorshipOrders $orders) {}
+    public function __construct(
+        private readonly EditorialSponsorshipOrders $orders,
+        private readonly RequireRecentPassword $recentPassword,
+    ) {}
 
     /** `filter[status]` (uno degli stati dell'ordine). */
     public function index(Request $request): JsonResponse
@@ -60,13 +64,22 @@ final class SponsorshipOrderController extends Controller
         return response()->json(['data' => $this->orders->row($record->refresh(), $user), 'message' => __('promotions.orders.approved')]);
     }
 
-    /** Rifiuta con `reason` (al massimo 2000 caratteri); un ordine pagato online viene rimborsato. */
+    /**
+     * Rifiuta con `reason` (al massimo 2000 caratteri); un ordine pagato
+     * online viene rimborsato su Stripe, e un rimborso non si annulla: in quel
+     * caso serve la password scritta negli ultimi 15 minuti (423
+     * `PASSWORD_REQUIRED`), come per le altre azioni pericolose. La rotta non
+     * può dirlo da sola, perché dipende dall'ordine.
+     */
     public function reject(Request $request, int $order): JsonResponse
     {
         $user = $this->user($request);
         $record = $this->order($user, $order);
         if (! $record->status->awaitsDecision()) {
             throw new ApiException(ApiErrorCode::Conflict, __('promotions.orders.status.'.$record->status->value));
+        }
+        if ($record->refundsOnReject()) {
+            $this->recentPassword->ensure($request);
         }
         $this->orders->reject($record, $user, $request->all());
 

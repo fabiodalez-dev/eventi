@@ -10,6 +10,7 @@ use App\Models\Page;
 use App\Models\Redirect;
 use App\Models\Tag;
 use App\Services\Editorial\Catalog\CatalogPages;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\EditorialSession;
@@ -263,6 +264,23 @@ it('unisce due tag con la stessa azione del pannello e chiede la password recent
         ->assertJsonPath('data.synonyms', ['Live music', 'concerto']);
     expect(Tag::query()->whereKey($absorbed->id)->exists())->toBeFalse()
         ->and($this->s->publishedEventA->tags()->pluck('tags.id')->all())->toBe([$keep->id]);
+});
+
+it('non unisce se chi chiede non può eliminare il tag assorbito', function (): void {
+    $keep = Tag::factory()->create(['name' => 'Musica dal vivo']);
+    $absorbed = Tag::factory()->create(['name' => 'Live music']);
+    $this->s->publishedEventA->tags()->attach($absorbed);
+    /* `TagPolicy::delete` oggi guarda solo il permesso: qui il tag assorbito è protetto e quello che resta no. */
+    Gate::before(fn ($user, string $ability, array $arguments): ?bool => $ability === 'delete' && ($arguments[0] ?? null) instanceof Tag && $arguments[0]->is($absorbed) ? false : null);
+
+    foreach ($this->writers as $writer) {
+        EditorialSession::as($this, EditorialSession::token($writer))->postJson('/api/v1/editorial/tags/'.$keep->id.'/merge', ['absorbed_id' => $absorbed->id])
+            ->assertForbidden()->assertJsonPath('error.code', 'FORBIDDEN');
+    }
+
+    expect(Tag::query()->whereKey($absorbed->id)->exists())->toBeTrue()
+        ->and($this->s->publishedEventA->tags()->pluck('tags.id')->all())->toBe([$absorbed->id])
+        ->and($keep->refresh()->synonyms)->toBeEmpty();
 });
 
 // ------------------------------------------------------------ caratteristiche

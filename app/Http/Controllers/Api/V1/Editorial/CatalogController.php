@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Editorial;
 
+use App\Actions\MergeTagsAction;
 use App\Http\Controllers\Api\V1\Editorial\Concerns\ListsPlaces;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
@@ -146,6 +147,8 @@ final class CatalogController extends Controller
             'absorbed_id' => ['required', 'integer', Rule::exists('tags', 'id'), Rule::notIn([$keep->getKey()])],
         ], [], ['absorbed_id' => __('editorial-catalog.merge_absorbed')]);
         $absorbed = $tags->tag((int) $data['absorbed_id']);
+        /* Il tag assorbito viene eliminato: chi unisce deve poter eliminare anche lui. */
+        MergeTagsAction::authorize($user, $keep, $absorbed);
         $moved = $tags->merge($keep, $absorbed);
 
         return response()->json([

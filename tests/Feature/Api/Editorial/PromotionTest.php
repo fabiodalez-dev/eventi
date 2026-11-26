@@ -348,6 +348,35 @@ it('rifiuta con il motivo e rimborsa un ordine pagato online', function (): void
         ->and($paid->refresh()->decision_note)->toStartWith('Fuori tema');
 });
 
+it('chiede la password recente per rifiutare un ordine pagato online, perché il rimborso non si annulla', function (): void {
+    $paid = r8Order(SponsorshipOrderStatus::Paid, ['payment_intent_id' => 'pi_refund', 'paid_at' => now()->subHour()]);
+    $request = r8Order(SponsorshipOrderStatus::Requested);
+    $url = fn (SponsorshipOrder $order): string => '/api/v1/editorial/sponsorship-orders/'.$order->id.'/reject';
+
+    /* Il token non sbloccato non entra nemmeno nell’area; la password di più di 15 minuti fa ferma il rifiuto con rimborso. */
+    r8($this->s->admin, unlocked: false)->postJson($url($paid), ['reason' => 'Fuori tema'])
+        ->assertStatus(423)->assertJsonPath('error.code', 'EDITORIAL_LOCKED');
+    foreach ([$this->s->admin, $this->superAdmin] as $staff) {
+        r8($staff, passwordMinutesAgo: 16)->postJson($url($paid), ['reason' => 'Fuori tema'])
+            ->assertStatus(423)->assertJsonPath('error.code', 'PASSWORD_REQUIRED');
+    }
+    expect($this->gateway->refunds)->toBe([])
+        ->and($paid->refresh()->status)->toBe(SponsorshipOrderStatus::Paid);
+
+    /* Una richiesta senza pagamento online non rimborsa niente: basta lo sblocco. */
+    r8($this->s->admin, passwordMinutesAgo: 16)->postJson($url($request), ['reason' => 'Fuori tema'])->assertOk()
+        ->assertJsonPath('data.status.value', 'rejected');
+
+    /* Chi non decide gli ordini resta fuori prima della password, e chi non è della redazione non vede l'area. */
+    r8($this->s->moderator, passwordMinutesAgo: 16)->postJson($url($paid), ['reason' => 'Fuori tema'])->assertForbidden();
+    foreach ([$this->s->ownerA, $this->s->plainUser] as $outsider) {
+        r8($outsider)->postJson($url($paid), ['reason' => 'Fuori tema'])->assertNotFound();
+    }
+
+    r8($this->s->admin)->postJson($url($paid), ['reason' => 'Fuori tema'])->assertOk()->assertJsonPath('data.status.value', 'rejected');
+    expect($this->gateway->refunds)->toBe(['pi_refund']);
+});
+
 it('crea e modifica un’abilitazione con le regole del modulo, senza eliminarla', function (): void {
     r8($this->s->admin)->postJson('/api/v1/editorial/sponsorship-grants', ['mode' => 'selected', 'placement' => 'list_top', 'starts_at' => '2026-11-21T09:00:00+01:00', 'ends_at' => '2026-12-21T09:00:00+01:00', 'amount' => '100'])
         ->assertUnprocessable()->assertJsonPath('error.fields.venue_id.0', __('promotions.sponsor_required'));

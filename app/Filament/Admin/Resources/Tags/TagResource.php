@@ -12,6 +12,7 @@ use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\Tag;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -157,6 +158,14 @@ class TagResource extends Resource
             ->action(function (Tag $record, array $data): void {
                 /** @var Tag $absorbed */
                 $absorbed = Tag::query()->findOrFail($data['absorbed']);
+                $user = auth()->user();
+
+                /* Il doppione viene eliminato: serve `delete` anche su di lui, come nell'app. */
+                if (! $user instanceof User || ! MergeTagsAction::allows($user, $record, $absorbed)) {
+                    Notification::make()->title(__('admin.notifications.merge_forbidden'))->danger()->send();
+
+                    return;
+                }
 
                 $moved = app(MergeTagsAction::class)->execute($record, $absorbed);
 
