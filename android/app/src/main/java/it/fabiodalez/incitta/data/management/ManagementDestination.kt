@@ -42,9 +42,10 @@ internal sealed interface ManagementDestination {
     /**
      * P13: `/le-mie-richieste`, `/registra-il-tuo-locale`,
      * `/registra-la-tua-organizzazione` e `/locali/{locale}/rivendica`, più le
-     * voci del profilo, della home e della scheda del locale. Nell'app si
-     * scrive solo da collegati (la `parse` si chiama solo con una sessione):
-     * un ospite resta sul sito, o accede prima.
+     * voci del profilo, della home e della scheda del locale. Da collegati
+     * si aprono nella gestione; da ospite (Q2) i tre moduli si aprono fuori
+     * dalla gestione (`GuestRegistrationScreen`) e «Le mie richieste» chiede
+     * prima l'accesso.
      */
     data class Registration(val form: RegistrationForm, val slug: String? = null) : ManagementDestination
     /**
@@ -127,16 +128,31 @@ internal sealed interface ManagementDestination {
             return Panel(SubjectRef(kind, slug = slug), page, webUrl = url)
         }
 
-        /* `incitta://gestione/{venue|organizer}/{id}/{event|comments|home}[/{id}]`, da `ManagementNoticeTarget.uri`. */
+        /*
+         * `incitta://gestione/{venue|organizer}/{id}/{area}[/{id}]` e
+         * `incitta://gestione/me/{applications|invitations}`, da
+         * `ManagementNoticeTarget.uri`. Le aree di Q3: `sponsorships` (la
+         * pagina delle sponsorizzazioni; l'id dell'ordine non si passa alla
+         * rotta, dove `order` vuol dire «ritorno da Stripe» e chiederebbe di
+         * nuovo il pagamento), `sponsorship_stats` (le statistiche con la
+         * campagna scelta), `statistics` (le statistiche del soggetto).
+         */
         private fun parseNotice(uri: URI): ManagementDestination? {
             if (uri.host != NOTICE_HOST || uri.userInfo != null || uri.port != -1) return null
-            val match = Regex("^/(venue|organizer)/([1-9][0-9]{0,17})/(event|comments|home)(?:/([1-9][0-9]{0,17}))?$").matchEntire(uri.path.orEmpty()) ?: return null
+            when (uri.path.orEmpty()) {
+                "/$NOTICE_ME/$NOTICE_APPLICATIONS" -> return Registration(RegistrationForm.Applications)
+                "/$NOTICE_ME/$NOTICE_INVITATIONS" -> return Invitations
+            }
+            val match = Regex("^/(venue|organizer)/([1-9][0-9]{0,17})/(event|comments|home|sponsorships|sponsorship_stats|statistics)(?:/([1-9][0-9]{0,17}))?$").matchEntire(uri.path.orEmpty()) ?: return null
             val kind = if (match.groupValues[1] == "venue") SubjectKind.Venue else SubjectKind.Organizer
             val subject = SubjectRef(kind, id = match.groupValues[2].toLongOrNull() ?: return null)
             val id = match.groupValues[4].takeIf(String::isNotEmpty)?.toLongOrNull()
             val page = when (match.groupValues[3]) {
                 NOTICE_EVENT -> PanelPage.Event(id = id ?: return null)
                 NOTICE_COMMENTS -> PanelPage.Comments(id ?: return null)
+                NOTICE_SPONSORSHIPS -> if (id != null) PanelPage.Sponsorships else return null
+                NOTICE_SPONSORSHIP_STATS -> PanelPage.CampaignAnalytics(id ?: return null)
+                NOTICE_STATISTICS -> if (id == null) PanelPage.Statistics else return null
                 else -> if (id == null) PanelPage.Home else return null
             }
             return Panel(subject, page)
@@ -173,6 +189,8 @@ internal sealed interface PanelPage {
     data object ShareAnalytics : PanelPage
     data class SubjectAnalytics(val type: String, val id: Long) : PanelPage
     data object SponsorshipAnalytics : PanelPage
+    /** Le statistiche delle sponsorizzazioni con una campagna già scelta (il riepilogo settimanale, Q3). */
+    data class CampaignAnalytics(val campaign: Long) : PanelPage
     data object Sponsorships : PanelPage
     /** Lo studio social del locale (P10), ristretto a un evento con `?event=`. */
     data class Social(val eventId: Long? = null) : PanelPage

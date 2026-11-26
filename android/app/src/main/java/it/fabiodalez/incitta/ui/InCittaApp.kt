@@ -74,7 +74,7 @@ import it.fabiodalez.incitta.data.offersPresence
 fun InCittaApp(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     InCittaTheme(light = state.appearance == "light") {
-    androidx.compose.runtime.CompositionLocalProvider(LocalCardLayout provides state.cardLayout, LocalCardLayoutChange provides viewModel::setCardLayout) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalCardLayout provides state.cardLayout, LocalCardLayoutChange provides viewModel::setCardLayout, it.fabiodalez.incitta.ui.submission.LocalProposeEvent provides viewModel::openSubmission) {
         /* Salvato: una rotazione o la chiusura dell'app da parte del sistema riportano nella gestione, non nel profilo. */
         var managementOpen by androidx.compose.runtime.saveable.rememberSaveable(state.session?.token) { mutableStateOf(false) }
         var managementDestination by remember(state.session?.token) { mutableStateOf<it.fabiodalez.incitta.data.management.ManagementDestination?>(null) }
@@ -90,9 +90,18 @@ fun InCittaApp(viewModel: MainViewModel) {
         val appContext = androidx.compose.ui.platform.LocalContext.current
         val appUri = androidx.compose.ui.platform.LocalUriHandler.current
         fun openDestination(url: String) {
+            /* Q1: `/proponi-evento` è la schermata nativa, da ospiti e da collegati. */
+            if (it.fabiodalez.incitta.data.isEventSubmissionLink(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)) { viewModel.openSubmission(); return }
             val target = it.fabiodalez.incitta.data.CommunityDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
-            val management = if (target == null && state.session != null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
-            if (management != null) {
+            val parsed = if (target == null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
+            val management = parsed?.takeIf { state.session != null }
+            /* Q2: da ospite si aprono nativi i tre moduli di registrazione; «Le mie richieste» chiede prima l'accesso. */
+            val guestForm = (parsed as? it.fabiodalez.incitta.data.management.ManagementDestination.Registration)?.takeIf { state.session == null }
+            if (guestForm != null) {
+                organizerSlug = null; carpoolRoute = null; communityRoute = null
+                if (guestForm.form == it.fabiodalez.incitta.data.management.RegistrationForm.Applications) viewModel.loginForApplication(guestForm)
+                else { managementDestination = guestForm; managementOpen = true }
+            } else if (management != null) {
                 organizerSlug = null; carpoolRoute = null; communityRoute = null
                 managementDestination = management
                 managementOpen = true
@@ -113,11 +122,37 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         var tonightOpen by remember { mutableStateOf(false) }
+        /*
+         * «Proponi un evento» si apre sopra quello che c'è (la scheda di un
+         * evento, la community…) e tornando indietro lo si ritrova. Se invece
+         * mentre è aperta si va altrove (le icone in alto, un avviso, un'altra
+         * scheda), la proposta si chiude: la bozza resta nel suo ViewModel.
+         */
+        val submissionOverlays = listOf(managementOpen, collectionsOpen, tonightOpen, organizerSlug, communityRoute, carpoolRoute,
+            state.selected?.slug, state.selectedVenue?.slug, state.bookingDate?.occurrenceId, state.sharedCollectionToken, state.tab).joinToString("|")
+        var submissionBase by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(state.submissionOpen, submissionOverlays) {
+            when {
+                !state.submissionOpen -> submissionBase = null
+                submissionBase == null -> submissionBase = submissionOverlays
+                submissionBase != submissionOverlays -> viewModel.closeSubmission()
+            }
+        }
         val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsStateWithLifecycle()
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
         LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null; carpoolRoute = null }
         LaunchedEffect(state.communityDestination) {
             state.communityDestination?.let { tonightOpen = false; openDestination(it); viewModel.consumeCommunityDestination(it) }
+        }
+        /* Q2: dopo l'accesso il modulo di registrazione torna nella gestione, con la bozza del telefono. */
+        LaunchedEffect(state.applicationScope, state.session?.token) {
+            val scope = state.applicationScope ?: return@LaunchedEffect
+            if (state.session == null) return@LaunchedEffect
+            viewModel.applicationScopeOpened()
+            val destination = it.fabiodalez.incitta.data.management.DraftScopes.destination(scope) ?: return@LaunchedEffect
+            tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; collectionsOpen = false
+            managementDestination = destination
+            managementOpen = true
         }
         LaunchedEffect(state.session?.token) {
             if(state.session == null) { carpoolRoute = null; communityRoute = null; communityTotal = 0 }
@@ -176,7 +211,7 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
-        val eventList = carpoolRoute == null && communityRoute == null && !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null
+        val eventList = carpoolRoute == null && communityRoute == null && !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null && !state.submissionOpen
         var navigationRevealed by remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen) { mutableStateOf(false) }
         val threshold = with(LocalDensity.current) { 96.dp.toPx() }
         val navigationRequired = !tonightOpen && !eventList && state.selected == null && state.selectedVenue == null
@@ -308,6 +343,19 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
+                state.submissionOpen -> it.fabiodalez.incitta.ui.submission.EventSubmissionRoute(state.session, padding, onBack = viewModel::closeSubmission)
+                managementOpen && state.session == null -> {
+                    /* Q2: l'ospite apre i moduli di registrazione fuori dalla gestione. */
+                    val form = managementDestination as? it.fabiodalez.incitta.data.management.ManagementDestination.Registration
+                    if (form == null) LaunchedEffect(Unit) { managementOpen = false }
+                    else it.fabiodalez.incitta.ui.management.registration.GuestRegistrationScreen(
+                        destination = form,
+                        padding = padding,
+                        signUp = it.fabiodalez.incitta.ui.management.registration.GuestSignUp { name, email, password -> viewModel.signUpForApplication(name, email, password) },
+                        onSignIn = { destination -> managementOpen = false; managementDestination = null; viewModel.loginForApplication(destination) },
+                        onBack = { managementOpen = false; managementDestination = null },
+                    )
+                }
                 managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
@@ -448,6 +496,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onEvents = { viewModel.selectTab(AppTab.EVENTS) },
                         onMap = { viewModel.selectTab(AppTab.MAP) },
                         onCalendarDay = viewModel::openCalendarDay,
+                        onCalendarSetup = viewModel::openCalendarSetup,
                         onPreset = viewModel::openEventsPreset,
                         onRegister = { path -> openDestination(it.fabiodalez.incitta.BuildConfig.API_BASE_URL.substringBefore("/api/") + "/" + path) },
                         onLogin = { viewModel.selectTab(AppTab.ACCOUNT) },
@@ -516,7 +565,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
                         onAttended = { viewModel.selectTab(AppTab.ATTENDED) },
                     )
-                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved, { viewModel.selectTab(AppTab.HOME) }, viewModel::selectCalendarDay)
+                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved, { viewModel.selectTab(AppTab.HOME) }, viewModel::selectCalendarDay, viewModel::calendarSetupShown)
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue, viewModel::setVenuesOpenNow, viewModel::loadOpenNowVenues) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ATTENDED -> AttendedScreen(

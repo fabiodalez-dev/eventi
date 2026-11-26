@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\DTOs\NotificationMessage;
+use App\Enums\NotificationType;
 use App\Models\Sponsorship;
+use App\Models\SponsorshipGrant;
+use App\Models\User;
+use App\Notifications\Concerns\AlsoInTheApp;
+use App\Services\Management\ManagementNoticeTarget;
 use App\Services\Sponsorship\UnitProgress;
 use Carbon\CarbonImmutable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,9 +39,16 @@ use Illuminate\Notifications\Notification;
  * un'abilitazione i numeri sono quelli di tutta l'abilitazione, non del
  * singolo evento. Il tasso di aperture compare solo da
  * `sponsorship.min_impressions_for_ctr` visualizzazioni in su.
+ *
+ * **Nell'app (Q3)** lo ricevono anche, in casella e in push, i gestori del
+ * locale o dell'organizzazione a cui arriva come utenti; il tocco apre le
+ * statistiche delle sponsorizzazioni con questa campagna. Il committente
+ * scritto sulla riga, che un account non ce l'ha, riceve solo l'email.
  */
 class SponsorshipWeeklyReport extends Notification
 {
+    use AlsoInTheApp;
+
     public function __construct(
         private readonly Sponsorship $campagna,
         private readonly CarbonImmutable $da,
@@ -50,7 +63,7 @@ class SponsorshipWeeklyReport extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->channelsWithApp($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -117,6 +130,38 @@ class SponsorshipWeeklyReport extends Notification
                 route('events.show', $this->campagna->event),
             )
             ->line(__('sponsorships.report.how_measured'));
+    }
+
+    protected function appMessage(User $user): NotificationMessage
+    {
+        $unita = $this->campagna->sponsorship_grant_id !== null && $this->avanzamento !== null;
+        $titolo = $unita
+            ? __('sponsorship-panel.report.subject_unit', ['sponsor' => $this->campagna->advertiser_name])
+            : __('sponsorships.report.subject', ['evento' => $this->campagna->event->title]);
+
+        return new NotificationMessage(
+            type: NotificationType::SponsorshipWeeklyReport,
+            subject: $titolo,
+            heading: $titolo,
+            lines: [__('notifications.in_app.sponsorship_weekly', [
+                'da' => $this->da->translatedFormat('j F'),
+                'a' => $this->a->translatedFormat('j F Y'),
+                'viste' => number_format($this->viste, 0, ',', '.'),
+                'aperture' => number_format($this->aperture, 0, ',', '.'),
+            ])],
+            actionLabel: __('sponsorships.report.see_event'),
+            url: route('events.show', $this->campagna->event),
+            eventId: (int) $this->campagna->event_id,
+        );
+    }
+
+    /** Il committente di un'abilitazione è il locale o l'organizzazione: le sue statistiche, con questa campagna. */
+    protected function appTarget(User $user): ?array
+    {
+        $grant = $this->campagna->grant;
+        $sponsor = $grant instanceof SponsorshipGrant ? ($grant->venue ?? $grant->organizer) : null;
+
+        return app(ManagementNoticeTarget::class)->subject($user, $sponsor, ManagementNoticeTarget::AREA_SPONSORSHIP_STATS, (int) $this->campagna->getKey());
     }
 
     /** Obiettivo, consegnate e stato; per il prodotto a periodo, che un obiettivo non c'e'. */

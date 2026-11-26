@@ -21,17 +21,17 @@ import it.fabiodalez.incitta.R
 /**
  * «Gestisci questo locale?», come la card del sito (`x-claim-card`): l'invito
  * a rivendicare un locale pubblico che nessuno gestisce ancora. Un pulsante
- * vero, non un collegamento in piccolo. Da collegati apre il modulo nativo
- * (P13); un ospite prima accede (decisione 8 del piano).
+ * vero, non un collegamento in piccolo. Apre il modulo nativo (P13), anche
+ * all'ospite, che crea l'account in fondo al modulo o accede (Q2).
  */
 @Composable
-internal fun VenueClaimCard(venueName: String, signedIn: Boolean, modifier: Modifier = Modifier, onLogin: () -> Unit, onClaim: () -> Unit) {
+internal fun VenueClaimCard(venueName: String, modifier: Modifier = Modifier, onClaim: () -> Unit) {
     OutlinedCard(modifier.fillMaxWidth(), border = BorderStroke(1.dp, Acid)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.claim_card_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             Text(stringResource(R.string.claim_card_description, venueName), color = Muted)
-            Button(onClick = if (signedIn) onClaim else onLogin, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Text(stringResource(if (signedIn) R.string.claim_card_action else R.string.claim_card_login))
+            Button(onClick = onClaim, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.claim_card_action))
             }
         }
     }

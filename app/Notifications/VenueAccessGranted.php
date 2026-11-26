@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Actions\InviteVenueMemberAction;
+use App\DTOs\NotificationMessage;
+use App\Enums\NotificationType;
 use App\Enums\VenueRole;
+use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\Concerns\AlsoInTheApp;
+use App\Services\Management\ManagementNoticeTarget;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Contracts\Auth\CanResetPassword;
@@ -32,9 +37,20 @@ use Illuminate\Support\Facades\Password;
  * scadenza), all'account nato dall'invito il collegamento per scegliere la
  * password, che vale come accettare (`$pending`). In nessuno dei due casi il
  * messaggio dice «da adesso puoi pubblicare»: non è ancora vero.
+ *
+ * **Nell'app (Q3)** arriva anche in casella e in push. Chi entra già nel
+ * locale va alla sua pagina nella gestione; chi deve ancora accettare va a
+ * «I tuoi inviti», dove risponde con l'account collegato. I due
+ * collegamenti dell'email restano solo nell'email: quello per scegliere la
+ * password e quello firmato per accettare, che vale come prova di possesso
+ * della casella per sette giorni. Nell'archivio, nella coda della push e su
+ * FCM finisce la pagina di accesso; dal sito si risponde dal collegamento
+ * dell'email, dall'app da «I tuoi inviti».
  */
 class VenueAccessGranted extends Notification
 {
+    use AlsoInTheApp;
+
     public function __construct(
         private readonly Venue $venue,
         private readonly VenueRole $role,
@@ -48,7 +64,7 @@ class VenueAccessGranted extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->channelsWithApp($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -110,5 +126,41 @@ class VenueAccessGranted extends Notification
             __('manage.invitation.open_action'),
             $panel->getUrl($this->venue) ?? url('/'),
         );
+    }
+
+    protected function appMessage(User $user): NotificationMessage
+    {
+        $product = (string) config('app.name');
+        $invitation = $this->acceptUrl !== null || $this->pending;
+        $subject = __('manage.invitation.subject', ['venue' => $this->venue->name, 'product' => $product]);
+        $url = $invitation || $this->needsPassword
+            ? route('login')
+            : Filament::getPanel('venue')->getUrl($this->venue) ?? url('/');
+        $lines = [__($invitation ? 'manage.invitation.invite_intro' : 'manage.invitation.intro', [
+            'venue' => $this->venue->name,
+            'role' => mb_strtolower($this->role->label()),
+            'product' => $product,
+        ])];
+        if ($this->acceptUrl !== null) {
+            $lines[] = __('manage.invitation.app_answer_hint');
+        }
+
+        return new NotificationMessage(
+            type: NotificationType::VenueAccessGranted,
+            subject: $subject,
+            heading: $subject,
+            lines: $lines,
+            actionLabel: __($this->acceptUrl !== null ? 'manage.invitation.app_answer_action' : 'manage.invitation.open_action'),
+            url: $url,
+            venueId: (int) $this->venue->getKey(),
+        );
+    }
+
+    protected function appTarget(User $user): ?array
+    {
+        $targets = app(ManagementNoticeTarget::class);
+
+        return $targets->subject($user, $this->venue, ManagementNoticeTarget::AREA_HOME)
+            ?? $targets->account($user, ManagementNoticeTarget::AREA_INVITATIONS);
     }
 }

@@ -84,6 +84,15 @@ final readonly class MessageFactory
             /* Il rapporto mensile al locale non passa da qui: lo compone il comando che lo spedisce, che ha già i numeri del mese. In coda non ci finisce mai, e se ci finisse non ci sarebbe niente da ricostruire. */
             NotificationType::VenueMonthlyReport => NotificationSkipReason::OutOfBand,
 
+            /* Lo stesso per gli avvisi che erano solo email (Q3): li manda la classe dell'email, nell'archivio e in push, mai dalla coda. */
+            NotificationType::SponsorshipOrderDecided,
+            NotificationType::SponsorshipWeeklyReport,
+            NotificationType::VenueApplicationApproved,
+            NotificationType::VenueApplicationRejected,
+            NotificationType::VenueAccessGranted,
+            NotificationType::OrganizerAccessGranted,
+            NotificationType::VenueModerated => NotificationSkipReason::OutOfBand,
+
             NotificationType::CommentReply,
             NotificationType::CommentReaction,
             NotificationType::CommentModerated,

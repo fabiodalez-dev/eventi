@@ -270,7 +270,11 @@ it('conta come guasto un rapporto consegnato e non registrato', function (): voi
     Notification::swap(new ChannelManager(app()));
     Mail::fake();
     $consegnate = 0;
-    Event::listen(NotificationSent::class, function () use (&$consegnate): void {
+    Event::listen(NotificationSent::class, function (NotificationSent $inviata) use (&$consegnate): void {
+        /* Si conta l'email: archivio e push dell'app (Q3) sono altri canali della stessa notifica. */
+        if ($inviata->channel !== 'mail') {
+            return;
+        }
         $consegnate++;
         // La registrazione non trova più la riga: è il guasto che si vuole provare.
         DB::table('venue_monthly_reports')->delete();

@@ -43,12 +43,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.hasExtra("notification_user_id") == true &&
-            intent.getLongExtra("notification_user_id", -1) != it.fabiodalez.incitta.data.LocalStore(this).readSession()?.user?.id) return
-        val uri = intent?.data ?: return
-        /* L'indirizzo interno degli avvisi a chi gestisce (P12) arriva solo dalle notifiche dell'app, mai da fuori. */
-        if (uri.scheme == it.fabiodalez.incitta.data.management.NOTICE_SCHEME && uri.host == it.fabiodalez.incitta.data.management.NOTICE_HOST &&
-            !intent.hasExtra("notification_user_id")) return
+        if (intent == null) return
+        /*
+         * Un intent di una notifica per un'altra persona non si apre. E
+         * l'indirizzo interno degli avvisi a chi gestisce (P12) e delle
+         * schermate dell'account (Q3, `incitta://gestione/…`) si apre solo con
+         * il segreto che mettono le notifiche dell'app: un'altra app può
+         * mandare qui un intent esplicito, ma non lo conosce.
+         */
+        if (!it.fabiodalez.incitta.notifications.NotificationLinkProof.accepts(this, intent)) return
+        val uri = intent.data ?: return
         /* Un avviso o un collegamento della gestione apre la schermata nativa invece del browser. */
         if(it.fabiodalez.incitta.data.CommunityDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null ||
             it.fabiodalez.incitta.data.management.ManagementDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null) {
@@ -67,6 +71,8 @@ class MainActivity : ComponentActivity() {
                 val parts = if (rawParts.size > 1 && rawParts[1] in setOf("eventi", "locali", "mappa", "calendario")) rawParts.drop(1) else rawParts
                 when {
                     it.fabiodalez.incitta.data.isWebOnlyLink(parts) -> openInBrowser(uri)
+                    /* Q1: «Proponi un evento» ha la sua schermata nell'app, anche da ospite. */
+                    parts == listOf("proponi-evento") -> viewModel.openSubmission()
                     uri.scheme == "https" && parts == listOf("app", "auth", "magic") ->
                         uri.getQueryParameter("token")?.takeIf(String::isNotBlank)?.let(viewModel::exchangeMagicToken)
                     parts.firstOrNull() == "il-mio-feed" || parts.firstOrNull() == "notifiche" -> viewModel.selectTab(AppTab.ACCOUNT)

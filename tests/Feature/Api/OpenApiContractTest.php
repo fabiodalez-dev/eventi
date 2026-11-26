@@ -116,10 +116,18 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/me/venue-applications']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
         ->and($document['paths']['/me/venue-applications']['post']['responses'])->toHaveKey('201')
         ->and($document['paths']['/venues/{slug}/claim'])->toHaveKeys(['get', 'post'])
-        ->and($document['paths']['/venues/{slug}/claim']['get']['security'])->toBe([['http' => []]])
+        ->and($document['paths']['/venues/{slug}/claim']['post']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/venues/{slug}/claim']['get']['responses'])->not->toHaveKey('304')
-        ->and($document['paths']['/venue-applications/lookup']['get']['security'])->toBe([['http' => []]])
         ->and($document['paths']['/venue-applications/lookup']['get']['responses'])->not->toHaveKey('304');
+
+    // Q2 (26/11/2026): le tre letture del modulo sono pubbliche (l'ospite compila prima di avere
+    // l'account), con il token facoltativo; lo scambio del collegamento dice se chiude una registrazione.
+    foreach (['/venue-applications/lookup', '/me/venue-applications/options', '/venues/{slug}/claim'] as $path) {
+        expect($document['paths'][$path]['get']['security'])->toBe([[], ['http' => []]])
+            ->and($document['paths'][$path]['get']['responses'])->not->toHaveKey('401');
+    }
+    expect($document['paths']['/auth/magic-link/exchange']['post']['responses']['200']['content']['application/json']['schema']['properties']['data']['properties'])
+        ->toHaveKey('registration');
 
     // Le sponsorizzazioni (P6): pagina, scelta, ordini, campagne e statistiche, per i due soggetti.
     foreach (['/management/venues/{venue}', '/management/organizers/{organizer}'] as $subject) {

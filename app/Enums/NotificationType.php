@@ -75,6 +75,23 @@ enum NotificationType: string
     case BookingsOpen = 'bookings_open';
     case NextEdition = 'next_edition';
 
+    /*
+     * Gli avvisi a chi gestisce, o chiede di gestire, che prima erano solo
+     * email (Q3): l'email resta quella di sempre, e accanto arrivano la riga
+     * nella casella dell'account e la push. Non passano mai dalla coda di
+     * `scheduled_notifications`: le manda la classe che manda l'email, nel
+     * momento in cui la manda (`MessageFactory` li dichiara fuori banda).
+     * `VenueMonthlyReport`, più sopra, è dello stesso gruppo ma ha già il suo
+     * interruttore.
+     */
+    case SponsorshipOrderDecided = 'sponsorship_order_decided';
+    case SponsorshipWeeklyReport = 'sponsorship_weekly_report';
+    case VenueApplicationApproved = 'venue_application_approved';
+    case VenueApplicationRejected = 'venue_application_rejected';
+    case VenueAccessGranted = 'venue_access_granted';
+    case OrganizerAccessGranted = 'organizer_access_granted';
+    case VenueModerated = 'venue_moderated';
+
     public function label(): string
     {
         return __('enums.notification_type.'.$this->value);
@@ -131,14 +148,29 @@ enum NotificationType: string
     /**
      * Le notifiche che arrivano a chi gestisce un locale (§15.4, ultima riga)
      * non passano dalle preferenze di chi consulta il sito: chi ha proposto un
-     * evento deve sapere se è stato pubblicato o rifiutato.
+     * evento deve sapere se è stato pubblicato o rifiutato. Lo stesso per
+     * chi aspetta l'esito di una richiesta, di un ordine o di un invito (Q3):
+     * sul sito non hanno un interruttore, e nell'app nemmeno.
      */
     public function isForVenueStaff(): bool
     {
         return match ($this) {
-            self::EventPublished, self::EventRejected, self::VenueInactive, self::EventNewComment => true,
+            self::EventPublished, self::EventRejected, self::VenueInactive, self::EventNewComment,
+            self::SponsorshipOrderDecided, self::SponsorshipWeeklyReport, self::VenueApplicationApproved,
+            self::VenueApplicationRejected, self::VenueAccessGranted, self::OrganizerAccessGranted, self::VenueModerated => true,
             default => false,
         };
+    }
+
+    /**
+     * Le righe che possono portare dentro la gestione dell'app
+     * (`ManagementNoticeTarget`) e che l'area «Notifiche» di un locale o di
+     * un'organizzazione elenca: gli avvisi a chi gestisce più il rapporto
+     * mensile, che ha un interruttore e per questo non è fra quelli sopra.
+     */
+    public function opensManagement(): bool
+    {
+        return $this->isForVenueStaff() || $this === self::VenueMonthlyReport;
     }
 
     /**

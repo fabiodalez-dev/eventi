@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Q1: «Proponi un evento» nativo. Gli stessi testi del modulo del sito (lang/it/forms.php, `submission`, e account.service_forms). -->
+<resources>
+    <string name="event_submission_title">Proponi un evento</string>
+    <string name="event_submission_lead">Segnalami cosa succede a %1$s: la redazione controlla e pubblica. Bastano il titolo e un modo per ricontattarti.</string>
+    <string name="event_submission_section_event">L’evento</string>
+    <string name="event_submission_section_place">Dove</string>
+    <string name="event_submission_section_contact">Come ricontattarti</string>
+    <string name="event_submission_privacy">Uso questi dati solo per valutare e pubblicare la segnalazione. Non finiscono in nessuna lista.</string>
+
+    <string name="event_submission_field_title">Titolo dell’evento</string>
+    <string name="event_submission_field_starts_at">Quando (anche approssimativo)</string>
+    <string name="event_submission_hint_starts_at">Se non sai l’ora esatta indica il giorno: la sistemo io.</string>
+    <string name="event_submission_field_raw_text">Descrizione, programma, link</string>
+    <string name="event_submission_hint_raw_text">Incolla pure il testo del volantino o del post: lo riscrivo io.</string>
+    <string name="event_submission_field_venue">Locale</string>
+    <string name="event_submission_venue_choose">Scegli dall’elenco dei locali</string>
+    <string name="event_submission_venue_unknown">Il locale non è in elenco</string>
+    <string name="event_submission_venue_chosen">Locale scelto: %1$s. Tocca per cambiarlo.</string>
+    <string name="event_submission_venue_clear">Togli il locale scelto</string>
+    <string name="event_submission_field_venue_hint">Oppure scrivi dove si tiene</string>
+    <string name="event_submission_hint_venue_hint">Serve solo se il locale non è ancora in elenco.</string>
+    <string name="event_submission_field_contact_name">Il tuo nome</string>
+    <string name="event_submission_field_contact_email">La tua email</string>
+    <string name="event_submission_submit">Invia la proposta</string>
+
+    <string name="event_submission_title_required">Scrivi il titolo dell’evento.</string>
+    <string name="event_submission_email_required">Scrivi la tua email: serve alla redazione per ricontattarti.</string>
+    <string name="event_submission_email_invalid">Controlla l’indirizzo email: sembra incompleto.</string>
+
+    <string name="event_submission_picker_title">Scegli il locale</string>
+    <string name="event_submission_picker_search">Cerca per nome, comune o quartiere</string>
+    <string name="event_submission_picker_empty">Nessun locale trovato. Chiudi l’elenco e scrivi dove si tiene.</string>
+    <string name="event_submission_picker_close">Chiudi l’elenco</string>
+    <string name="event_submission_picker_pick">Scegli %1$s</string>
+
+    <string name="event_submission_sent_title">Proposta ricevuta</string>
+    <string name="event_submission_sent_body">La proposta non è pubblicata: la valuta la redazione e, se è pubblicabile, la mette online. Se serve qualcosa ti scrivo all’indirizzo che hai lasciato.</string>
+    <string name="event_submission_sent_another">Proponi un altro evento</string>
+    <string name="event_submission_sent_close">Torna all’app</string>
+</resources>

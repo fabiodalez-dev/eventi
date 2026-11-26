@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -11,7 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class EventWeatherUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @Test fun unavailableWeatherIsCompletelyHidden() {
         compose.runOnIdle { compose.activity.setContent { InCittaTheme { EventWeatherSection(1) { EventWeather(available = false) } } } }
         compose.waitForIdle()

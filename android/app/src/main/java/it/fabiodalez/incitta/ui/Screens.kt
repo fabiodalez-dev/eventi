@@ -130,6 +130,7 @@ fun EventsScreen(
     /* «Registra il tuo locale / la tua organizzazione» (P13): il percorso del sito (`registra-il-tuo-locale`), aperto nativo da collegati. */
     onRegister: ((String) -> Unit)? = null,
     onLogin: () -> Unit = {},
+    onCalendarSetup: () -> Unit = onCalendar,
 ) {
     val overview = rememberHomeOverview(state.session?.token, state.occurrences.size)
     LazyColumn(
@@ -179,7 +180,7 @@ fun EventsScreen(
         }
         item(key = "organize") { OrganizeCta(signedIn = state.session != null, onRegister = onRegister, onLogin = onLogin) }
         overview?.stats?.let { stats -> item(key = "home-stats") { HomeStatsStrip(stats) } }
-        item { CalendarBanner(onCalendar) }
+        item { CalendarBanner(onCalendarSetup) }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }

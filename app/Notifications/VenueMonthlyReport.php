@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\DTOs\NotificationMessage;
+use App\Enums\NotificationType;
+use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\Concerns\AlsoInTheApp;
+use App\Services\Management\ManagementNoticeTarget;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -26,9 +31,16 @@ use Illuminate\Notifications\Notification;
  * **Non promette ricavi.** Una visualizzazione non è una persona e una
  * prenotazione non è un incasso: il rapporto riporta ciò che è stato contato e
  * si ferma lì.
+ *
+ * **Nell'app (Q3)** arriva anche in casella e in push, e porta alle
+ * statistiche del locale. L'interruttore è lo stesso (`venue_report`): chi
+ * l'ha spento non riceve il rapporto in nessun canale, e il comando non lo
+ * manda nemmeno.
  */
 class VenueMonthlyReport extends Notification
 {
+    use AlsoInTheApp;
+
     /**
      * @param  array<string, int>  $totals
      * @param  array<string, int>  $previous
@@ -45,7 +57,7 @@ class VenueMonthlyReport extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->channelsWithApp($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -63,6 +75,30 @@ class VenueMonthlyReport extends Notification
             ->line(__('venues.report.method'))
             ->action(__('venues.report.action'), url('/gestione'))
             ->line(__('venues.report.unsubscribe'));
+    }
+
+    protected function appMessage(User $user): NotificationMessage
+    {
+        $subject = __('venues.report.subject', ['locale' => $this->venue->name, 'mese' => $this->label]);
+
+        return new NotificationMessage(
+            type: NotificationType::VenueMonthlyReport,
+            subject: $subject,
+            heading: $subject,
+            lines: [__('notifications.in_app.venue_monthly', [
+                'mese' => $this->label,
+                'views' => number_format($this->totals['views'] ?? 0, 0, ',', '.'),
+                'profile' => number_format($this->totals['profile_views'] ?? 0, 0, ',', '.'),
+            ])],
+            actionLabel: __('venues.report.action'),
+            url: url('/gestione'),
+            venueId: (int) $this->venue->getKey(),
+        );
+    }
+
+    protected function appTarget(User $user): ?array
+    {
+        return app(ManagementNoticeTarget::class)->subject($user, $this->venue, ManagementNoticeTarget::AREA_STATISTICS);
     }
 
     /**

@@ -217,6 +217,13 @@ return [
         'tickets_available' => 'Posti di nuovo disponibili',
         'bookings_open' => 'Prenotazioni aperte',
         'next_edition' => 'Prossima edizione di un evento',
+        'sponsorship_order_decided' => 'Esito di un ordine di sponsorizzazione',
+        'sponsorship_weekly_report' => 'Riepilogo settimanale di una sponsorizzazione',
+        'venue_application_approved' => 'Richiesta accolta',
+        'venue_application_rejected' => 'Richiesta non accolta',
+        'venue_access_granted' => 'Invito a gestire un locale',
+        'organizer_access_granted' => 'Accesso a un\'organizzazione',
+        'venue_moderated' => 'Decisione della redazione su un locale',
     ],
 
     'application_kind' => [

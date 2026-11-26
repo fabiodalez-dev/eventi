@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -18,7 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class EventCommentsUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun guestCanReadLiteralMarkupButMustLoginToWrite() {
         var logins = 0

@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.*
@@ -26,7 +27,7 @@ import org.junit.Test
  * accesa. I testi si leggono dalle risorse, mai scritti a mano.
  */
 class ManagementFeedbackUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val requests = CopyOnWriteArrayList<String>()
     private fun text(id: Int, vararg args: Any): String = compose.activity.getString(id, *args)
 

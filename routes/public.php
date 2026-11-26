@@ -158,14 +158,14 @@ Route::post('/proponi-evento', [EventSubmissionController::class, 'store'])
     ->middleware('throttle:public-forms')
     ->name('submissions.store');
 
-Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'create'])->middleware('throttle:60,1,venue-catalogue-search')->name('venue-applications.create');
+Route::get('/registra-il-tuo-locale', [VenueApplicationController::class, 'create'])->middleware('throttle:venue-catalogue-search')->name('venue-applications.create');
 Route::get('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'create'])->name('organizer-applications.create');
 /* Richieste e contatti legati all'account: durante l'impersonificazione non
    partono a nome della persona (vale anche per `public.contact` sotto). */
 Route::post('/registra-la-tua-organizzazione', [OrganizerApplicationController::class, 'store'])
     ->middleware([BlockWhileImpersonating::class, 'throttle:10,60,organizer-application'])
     ->name('organizer-applications.store');
-Route::get('/locali/{venue}/rivendica', [VenueClaimController::class, 'create'])->name('venues.claim.create');
+Route::get('/locali/{venue}/rivendica', [VenueClaimController::class, 'create'])->middleware('throttle:venue-claim-target')->name('venues.claim.create');
 Route::post('/locali/{venue}/rivendica', [VenueClaimController::class, 'store'])
     ->middleware([BlockWhileImpersonating::class, 'throttle:10,60,venue-claim'])
     ->name('venues.claim.store');

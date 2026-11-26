@@ -20,18 +20,18 @@ class NavigationSmokeTest {
 
     private fun revealNavigation() {
         // Do not swipe the short loading skeleton before the event feed arrives.
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("IN PROGRAMMA").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Esplora", substring = true).fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
         compose.waitForIdle()
         compose.waitUntil(5_000) {
-            compose.onAllNodes(hasText("SALVATI") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasContentDescription("Salvati") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     @Test fun guestSavedOpensProfileLogin() {
         dismissConsent()
         revealNavigation()
-        compose.onNode(hasText("SALVATI") and hasClickAction()).performClick()
+        compose.onNode(hasContentDescription("Salvati") and hasClickAction()).performClick()
         compose.onNodeWithText("EMAIL").assertExists()
         compose.onNodeWithText("REGISTRATI").assertExists()
         compose.onNodeWithText(compose.activity.getString(R.string.calendar_export_saved)).assertDoesNotExist()
@@ -52,17 +52,17 @@ class NavigationSmokeTest {
             compose.onNodeWithText("RIFIUTA").performClick()
         }
         revealNavigation()
-        compose.onNode(hasText("CERCA") and hasClickAction()).performClick()
+        compose.onNode(hasContentDescription("Cerca") and hasClickAction()).performClick()
         compose.onNodeWithText("EVENTO, LUOGO, CATEGORIA").performTextInput("teatro")
         compose.onNodeWithText(compose.activity.getString(R.string.search_live_help)).assertExists()
         // The app intentionally hides bottom navigation while the IME is open.
         androidx.test.espresso.Espresso.closeSoftKeyboard()
         compose.waitUntil(5_000) {
-            compose.onAllNodes(hasText("MAPPA") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasContentDescription("Mappa") and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNode(hasText("MAPPA") and hasClickAction()).performClick()
+        compose.onNode(hasContentDescription("Mappa") and hasClickAction()).performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.map_filters_open)).performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.map_filters_close)).assertExists()
-        compose.onNode(hasText("CERCA") and hasClickAction()).assertExists()
+        compose.onNode(hasContentDescription("Cerca") and hasClickAction()).assertExists()
     }
 }

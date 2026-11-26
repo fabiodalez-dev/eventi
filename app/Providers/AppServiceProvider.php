@@ -430,6 +430,26 @@ class AppServiceProvider extends ServiceProvider
         });
 
         /*
+         * Le letture dei moduli «Registra il tuo locale», della rivendicazione
+         * e di «Registra la tua organizzazione»: sessanta al minuto, per
+         * persona o per indirizzo (il /64 con IPv6). Hanno un nome perché le
+         * usano sia il sito sia l'API, che l'ospite chiama senza sessione: il
+         * `throttle:60,1,…` di prima contava la persona con la guardia
+         * predefinita, che sull'API è vuota, e il collegato dell'app finiva sul
+         * secchio del suo IP invece che sul suo. La persona si legge dalla
+         * guardia del sito o dal token, così sito e app consumano lo stesso
+         * secchio; per l'ospite vale la regola IP di sempre.
+         */
+        foreach (['venue-catalogue-search', 'venue-application-options', 'venue-claim-target'] as $lettura) {
+            RateLimiter::for($lettura, static function (Request $request) use ($lettura): Limit {
+                $utente = $request->user() ?? $request->user('sanctum');
+
+                return Limit::perMinute(60)
+                    ->by($lettura.':'.($utente !== null ? 'utente:'.$utente->getAuthIdentifier() : 'ip:'.IpBucket::key($request->ip())));
+            });
+        }
+
+        /*
          * Limiti dell'API (§13.4): 60 richieste al minuto per chi non è
          * autenticato, contate per indirizzo IP, 120 per chi lo è, contate per
          * utente. Il conteggio per utente e non per IP è ciò che evita che una

@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta.ui
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
@@ -9,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import it.fabiodalez.incitta.AppUiState
-import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.data.EventDetail
 import it.fabiodalez.incitta.data.Session
 import it.fabiodalez.incitta.data.User
@@ -19,7 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class SafeScreensTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun signedInProfileKeepsTitleBelowAndroidAndThemeControlsImmediatelyAvailable() {
         var selected = ""
@@ -34,7 +34,7 @@ class SafeScreensTest {
                 )
             } }
         } }
-        val title = compose.onNodeWithText("Il mio profilo").assertIsDisplayed().fetchSemanticsNode()
+        val title = compose.onNodeWithText(compose.activity.getString(it.fabiodalez.incitta.R.string.account_area)).assertIsDisplayed().fetchSemanticsNode()
         val top = ViewCompat.getRootWindowInsets(compose.activity.window.decorView)!!.getInsets(WindowInsetsCompat.Type.statusBars()).top
         assertTrue("Title overlaps the status bar", title.boundsInRoot.top >= top)
         compose.onNodeWithText("Chiaro").assertIsDisplayed().performClick()
