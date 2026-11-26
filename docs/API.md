@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **363 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **404 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -759,3 +759,46 @@ Il token dell'app dura 90 giorni; la redazione chiede in più la password dell'a
 - `GET /v1/me`: `management.editorial` (booleano), vero per moderatore, admin e super admin.
 - `GET /v1/config`: `features.editorial`, acceso salvo `API_EDITORIAL_ENABLED=false`. L'app apre la redazione nativa solo con tutti e due veri; altrimenti la riga «Amministrazione» apre il pannello sul sito, come prima.
 - Codici d'errore nuovi: `EDITORIAL_LOCKED` e `PASSWORD_REQUIRED`, tutti e due con stato 423.
+
+## Redazione: locali, richieste, organizzatori (R4, 26 novembre 2026)
+
+Il gruppo «Luoghi» del pannello `/admin` nell'app: **41 operazioni** sotto `E` = `/v1/editorial` (rotte in `routes/editorial/venues.php`, controller `VenueController`, `VenueMediaController`, `VenueMemberController`, `ApplicationController`, `OrganizerController`). Tutte chiedono lo sblocco delle 12 ore; quelle segnate «password» anche la password scritta negli ultimi 15 minuti (423 `PASSWORD_REQUIRED`). `{venue}`, `{application}`, `{organizer}` sono sempre id numerici, mai lo slug. La città di lavoro non filtra: come il pannello, si vedono i locali, le richieste e gli organizzatori di tutte le città. Ogni elenco segue la convenzione della redazione (`page`, `per_page` fino a 50, `q`, `tab`, `filter[…]`, `sort`, `meta.tabs`) e ogni riga porta `abilities`.
+
+La logica che stava nel pannello ora è condivisa: `ModerateVenueAction::canApprove|canReject|canSuspend` (quando una decisione ha senso), `ReviewVenueApplication` (approva e rifiuta sotto lock, avviso facoltativo, contatore del menu), `EditorialApplications` (coda, doppioni probabili), `EditorialVenueMembers` (persone del locale con il registro di sicurezza), `App\Support\ActivityHistory` (cronologia e «Ripristina», anche per gli eventi), `VenueProfileRequest::fieldRules|checkTogether|normalize` (le regole della scheda pubblica, le stesse del referente), `VenueApplicationImage`, `VenueCover`. Il pannello chiama le stesse classi.
+
+### Locali
+
+- `GET E/venues` (`venues.view`, tutta la redazione): `tab` `all|pending|approved|suspended` con i conteggi; `filter[city]` (id), `filter[type]`, `filter[status]`, `filter[is_verified]` e `filter[auto_publish]` (`1`/`0`), `filter[inactive]=1` (approvati senza date negli ultimi giorni, la stessa regola del riepilogo); `q` su nome e comune; `sort` `name` (predefinito), `municipality`, `events_count`, con `-` per il verso opposto. Riga: `id, name, slug, municipality, subtitle, type{value,label}, status{value,label}, is_verified, auto_publish, city{id,name}, events_count, cover_url, abilities{view, update, approve, reject, suspend, verify, ticketing, members, destroy}`. «Approva» non c'è su un locale approvato, «Rifiuta» non su uno rifiutato, «Sospendi» solo su uno approvato.
+- `GET E/venues/export`: lo stesso elenco con gli stessi criteri in un foglio Excel (nome, comune e tipo, stato, eventi, verificato), `Cache-Control: private, no-store`. 10 al minuto. Come il pannello, non chiede un permesso in più di `venues.view`.
+- `GET E/venues/choices` (`VenuePolicy::create`): città, comuni per città, centro di ogni città (`centers`, per «Centra sulla città»), quartieri, tipi, stati, piani, indicizzazione.
+- `POST E/venues/locate` `{address, municipality}` (chi crea o modifica i locali): «Trova» della scheda Dove, lo stesso geocodificatore del pannello; `{lat, lng, message}` o 422 su `address` se l'indirizzo non si trova. 20 al minuto.
+- `POST E/venues` (`VenuePolicy::create`, admin e super admin): nome, `city_id`, `type`, `address`, `municipality` (fra quelli della provincia della città), `zone` (obbligatorio per il comune di Padova), `province_code` (fino a 4), `lat`, `lng` obbligatori; il resto facoltativo. Nasce in bozza, piano gratuito. 201 con il modulo.
+- `GET E/venues/{venue}` (`VenuePolicy::view`): la scheda in sola lettura con testata, informazioni, descrizione, `ticketing_enabled`, `site_url` (solo se approvato), i prossimi 8 eventi e chi lo gestisce.
+- `GET E/venues/{venue}/form` (`VenuePolicy::update`): la scheda pubblica nella forma di `GET /management/venues/{venue}/profile`, più `editorial{name, slug, city_id, type, province_code, status, is_verified, auto_publish, is_nonprofit, plan, rejection_reason, ticketing_enabled, seo_indexing, is_demo, can_ticketing}`, `editorial_choices` e `profile_options` (gli elenchi di `GET /management/options`).
+- `PATCH E/venues/{venue}` (`VenuePolicy::update`): per sezione, si convalidano e si salvano solo le chiavi mandate. Campi della scheda pubblica con le regole e il salvataggio del profilo del referente (`UpdateVenueProfile`); in più quelli della redazione: `name`, `slug` (unico; vuoto lo ricava dal nome), `city_id`, `type`, `province_code`, `status`, `is_verified`, `auto_publish`, `is_nonprofit`, `plan`, `rejection_reason`, `ticketing_enabled` (solo admin e super admin, come il campo del pannello), `seo_indexing` (`automatic|excluded`), `is_demo`. Indirizzo e coordinate, se mandati, sono obbligatori come nel modulo del pannello. Risponde con il modulo.
+- `POST E/venues/{venue}/approve`, `/reject` (`reason` obbligatorio), `/suspend` (`reason`, password), `/verify` (`verified` sì/no; senza, inverte): `VenuePolicy::moderate` (moderatore compreso). Avvisano chi gestisce il locale (`VenueModerated`). Un'azione fuori posto risponde 409. Risposta `{message, venue}`.
+- `PUT E/venues/{venue}/ticketing` `{enabled}`: `VenuePolicy::update` e ruolo admin o super admin.
+- `DELETE E/venues/{venue}` (password): `VenuePolicy::delete`, nel cestino. Eliminazione definitiva e ripristino restano sul sito (decisione 4; il pannello non ha un filtro dei cestinati per i locali).
+- `GET E/venues/{venue}/events`: gli eventi del locale, `filter[status]`, `q` sul titolo, i più recenti prima; riga con `occurrences_count`, `published_at`, `poster`, `abilities{view, update}`.
+- `GET E/venues/{venue}/activity`: la cronologia (`created_at`, `event{value,label}`, `causer`, `changes`, `restorable_fields`, `abilities.restore`). `POST E/venues/{venue}/activity/{activity}/restore` (`VenuePolicy::update`): rimette i contenuti di prima (non stato, verifica, piano); 409 se non c'è niente da rimettere.
+- Immagini (`VenuePolicy::update`), stessi corpi e risposte di `management/venues/{venue}/media`: `GET …/media`, `POST|DELETE …/media/{logo|cover}`, `POST …/media/gallery` (201), `DELETE …/media/gallery/{media}`, `PUT …/media/gallery/order`. 20 scritture al minuto.
+- Persone (`VenuePolicy::manageCollaborators`, admin e super admin): `GET …/members` (`members[]{id, name, email, role, invited_at, accepted_at, pending}`, `roles[]`), `GET …/members/candidates?q=` (email confermata, non ancora del locale, al massimo 50), `POST …/members/invite` `{name, email, role}` (predefinito referente; 409 a chi è già referente o ha già quel ruolo; 10 al minuto), `POST …/members` `{user_id, role}` (entra subito), `PATCH …/members/{user}` `{role, accepted_at}` (`null` = invito ancora da accettare; confermarlo assegna il ruolo globale), `DELETE …/members/{user}` (scollega: non è un'eliminazione e non chiede la password). Ogni accesso dato, cambiato o tolto va nel registro di sicurezza (`accesso_locale_concesso|modificato|revocato`).
+
+### Richieste di iscrizione
+
+- `GET E/applications` (tutta la redazione): `tab` `pending` (predefinita) `|approved|rejected|all` con i conteggi; `filter[kind]` (`venue|claim|organizer`), `filter[type]`; `q` su nome, contatto ed email; `sort` `created_at` (predefinito, la più recente prima) o `venue_name`. Riga con `possible_duplicate` (solo in attesa) e `abilities{approve, reject, notes, destroy}`. Le richieste che aspettano la conferma dell'email non ci sono mai (404 anche per id).
+- `GET E/applications/{application}`: esito, tipo, date, chi ha deciso, soggetto collegato, doppioni probabili (`kind` `application|venue|organizer`, `id`, `label`), dati del locale o dell'organizzazione, contatti pubblici (non per le rivendicazioni), `has_image`, contatto, account, note.
+- `GET E/applications/{application}/image`: l'immagine dal disco privato, come la pagina del sito.
+- `POST …/approve` (`VenueApplicationPolicy::update`): crea il locale (o l'organizzatore, o consegna il locale rivendicato); 422 su `status` se già approvata o non in coda. Risposta `{message, detail, created{kind, id, name}, application}`.
+- `POST …/reject` `{notes (obbligatorio, 5000), notify, message (2000)}`: solo in attesa, 409 se qualcuno ha già deciso; l'avviso va solo all'account che ha mandato la richiesta.
+- `PATCH …/notes` `{notes}`: le note interne; non cambia lo stato e non firma la richiesta.
+- `DELETE E/applications/{application}` (password): `VenueApplicationPolicy::delete`.
+
+### Organizzatori
+
+- `GET E/organizers` (`OrganizerPolicy`: admin e super admin; il moderatore riceve 403): per nome, con `choices{cities, contact_modes}`. `GET E/organizers/people?q=`: le persone per responsabile e collaboratori (al massimo 50).
+- `GET E/organizers/{organizer}`, `POST E/organizers` (`name`, `city_id`, `owner_id` obbligatori; nasce non attivo), `PATCH E/organizers/{organizer}`: `name`, `city_id`, `owner_id`, `users[]` (collaboratori), `description` (20000), `website`, `email`, `contact_mode`, `contact_email` (obbligatorio con i messaggi accesi), `is_active`. Nessuna eliminazione.
+
+### Permessi
+
+`GET E/desk` ha una chiave in più, `organizers_manage` (`OrganizerPolicy::viewAny`), in fondo all'elenco: ora le chiavi sono 35.

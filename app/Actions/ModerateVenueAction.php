@@ -29,6 +29,28 @@ use Throwable;
  */
 final class ModerateVenueAction
 {
+    /**
+     * Quando ogni decisione ha senso, la stessa domanda per il pannello
+     * (che mostra o nasconde il pulsante) e per l'app della redazione (che
+     * risponde 409 a un'azione fuori posto): «approva» non su un locale già
+     * approvato, «rifiuta» non su uno già rifiutato, «sospendi» solo su uno
+     * approvato. La verifica si mette e si toglie sempre.
+     */
+    public static function canApprove(Venue $venue): bool
+    {
+        return $venue->status !== VenueStatus::Approved;
+    }
+
+    public static function canReject(Venue $venue): bool
+    {
+        return $venue->status !== VenueStatus::Rejected;
+    }
+
+    public static function canSuspend(Venue $venue): bool
+    {
+        return $venue->status === VenueStatus::Approved;
+    }
+
     public function approve(Venue $venue, User $moderator): Venue
     {
         return DB::transaction(function () use ($venue, $moderator): Venue {

@@ -14,6 +14,7 @@ use App\Models\Event;
 use App\Models\EventComment;
 use App\Models\EventSubmission;
 use App\Models\ImportSource;
+use App\Models\Organizer;
 use App\Models\Page;
 use App\Models\Report;
 use App\Models\ScheduledNotification;
@@ -52,6 +53,7 @@ final class EditorialPermissions
         'sponsorships_manage', 'social_use', 'analytics_view', 'search_misses_manage',
         'catalog_manage', 'pages_manage', 'imports_manage', 'notifications_view', 'notifications_cancel',
         'system_view', 'system_manage', 'mail_manage',
+        'organizers_manage',
     ];
 
     public function __construct(private readonly CommunitySafety $safety) {}
@@ -134,6 +136,8 @@ final class EditorialPermissions
             'system_manage' => $admin,
             // `MailConfiguration::canAccess` e `Newsletter::canAccess`: solo il super admin.
             'mail_manage' => $user->hasRole(UserRole::SuperAdmin->value),
+            // `OrganizerPolicy::viewAny`: gli organizzatori sono di admin e super admin (R4).
+            'organizers_manage' => $gate->allows('viewAny', Organizer::class),
         ];
 
         return array_replace(array_fill_keys(self::KEYS, false), $permissions);

@@ -60,6 +60,46 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/desk'])->toHaveKey('get')
         ->and($document['paths']['/editorial/unlock'])->toHaveKey('post');
 
+    // R4 della redazione (26/11/2026): locali, richieste di iscrizione, organizzatori.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/venues',
+        '/editorial/venues/export',
+        '/editorial/venues/choices',
+        '/editorial/venues/locate',
+        '/editorial/venues/{venue}',
+        '/editorial/venues/{venue}/form',
+        '/editorial/venues/{venue}/approve',
+        '/editorial/venues/{venue}/reject',
+        '/editorial/venues/{venue}/suspend',
+        '/editorial/venues/{venue}/verify',
+        '/editorial/venues/{venue}/ticketing',
+        '/editorial/venues/{venue}/events',
+        '/editorial/venues/{venue}/activity',
+        '/editorial/venues/{venue}/activity/{activity}/restore',
+        '/editorial/venues/{venue}/media',
+        '/editorial/venues/{venue}/media/{collection}',
+        '/editorial/venues/{venue}/media/gallery',
+        '/editorial/venues/{venue}/media/gallery/{media}',
+        '/editorial/venues/{venue}/media/gallery/order',
+        '/editorial/venues/{venue}/members',
+        '/editorial/venues/{venue}/members/candidates',
+        '/editorial/venues/{venue}/members/invite',
+        '/editorial/venues/{venue}/members/{user}',
+        '/editorial/applications',
+        '/editorial/applications/{application}',
+        '/editorial/applications/{application}/image',
+        '/editorial/applications/{application}/approve',
+        '/editorial/applications/{application}/reject',
+        '/editorial/applications/{application}/notes',
+        '/editorial/organizers',
+        '/editorial/organizers/people',
+        '/editorial/organizers/{organizer}',
+    ])
+        ->and($document['paths']['/editorial/venues/{venue}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/venues'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/organizers/{organizer}'])->toHaveKeys(['get', 'patch'])
+        ->and($document['paths']['/editorial/organizers/{organizer}'])->not->toHaveKey('delete');
+
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/members',
