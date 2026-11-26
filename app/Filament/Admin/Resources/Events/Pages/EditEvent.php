@@ -15,6 +15,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Validation\ValidationException;
 
 class EditEvent extends EditRecord
 {
@@ -55,7 +56,14 @@ class EditEvent extends EditRecord
             ->authorize(fn (Event $record): bool => auth()->user()?->can('update', $record) ?? false)
             ->visible(fn (Event $record): bool => $record->recurrences()->exists())
             ->action(function (Event $record): void {
-                $created = app(EditorialEventDates::class)->generate($record);
+                try {
+                    $created = app(EditorialEventDates::class)->generate($record);
+                } catch (ValidationException $exception) {
+                    Notification::make()->title(__('admin.actions.generate_occurrences'))
+                        ->body(collect($exception->errors())->flatten()->first())->danger()->send();
+
+                    return;
+                }
 
                 Notification::make()
                     ->title($created === 0

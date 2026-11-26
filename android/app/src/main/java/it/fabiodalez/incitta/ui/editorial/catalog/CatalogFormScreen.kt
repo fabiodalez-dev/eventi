@@ -20,7 +20,6 @@ import it.fabiodalez.incitta.data.editorial.CatalogKind
 import it.fabiodalez.incitta.data.editorial.CatalogRecord
 import it.fabiodalez.incitta.data.management.OptionChoice
 import it.fabiodalez.incitta.ui.Muted
-import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.FormScaffold
 import it.fabiodalez.incitta.ui.management.common.FormTextField
@@ -41,9 +40,10 @@ import it.fabiodalez.incitta.ui.management.profile.without
  * R11 — il modulo di una voce del catalogo, nuova o salvata, con le sezioni
  * del modulo del pannello per ognuna delle cinque voci. Salvare manda tutti
  * i campi della voce (come il modulo di Filament); il server convalida con
- * le stesse regole e risponde con il modulo salvato. Eliminare, e per le
- * città anche salvare, chiede la password recente: la richiesta compare da
- * sola sul 423 (`repository.call`).
+ * le stesse regole e risponde con il modulo salvato. Per le città salvare
+ * chiede la password recente: la richiesta compare da sola sul 423
+ * (`repository.call`). Eliminare è definitivo e resta sul sito (decisione
+ * 4): «Elimina sul sito» apre la voce nel pannello.
  */
 @Composable
 internal fun CatalogFormScreen(
@@ -101,13 +101,12 @@ internal fun CatalogFormScreen(
                             Text(stringResource(R.string.editorial_catalog_open_page), Modifier.padding(start = 8.dp))
                         }
                     }
-                    if (record?.allows("destroy") == true) {
-                        OutlinedButton(
-                            onClick = viewModel::requestDelete,
-                            enabled = !state.busy,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                        ) { Text(stringResource(R.string.editorial_catalog_action_delete)) }
+                    if (record?.allows("delete_on_web") == true && record.webPath.isNotBlank()) {
+                        OutlinedButton(onClick = { onOpenWeb(record.webPath) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                            Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+                            Text(stringResource(R.string.editorial_catalog_action_delete_web), Modifier.padding(start = 8.dp))
+                        }
+                        Text(stringResource(R.string.editorial_catalog_delete_web_help), color = Muted)
                     } else if (record?.isSystem == true) {
                         Text(stringResource(R.string.editorial_catalog_system_no_delete), color = Muted)
                     }
@@ -117,15 +116,6 @@ internal fun CatalogFormScreen(
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(padding))
     }
 
-    if (state.confirmDelete) ConfirmDialog(
-        title = stringResource(R.string.editorial_catalog_delete_title, title),
-        text = stringResource(if (kind == CatalogKind.Pages) R.string.editorial_catalog_delete_page_text else R.string.editorial_catalog_delete_text),
-        confirmLabel = stringResource(R.string.editorial_catalog_action_delete),
-        onConfirm = viewModel::confirmDelete,
-        onDismiss = viewModel::dismissDelete,
-        destructive = true,
-        enabled = !state.busy,
-    )
     state.preview?.let { MarkdownPreviewDialog(it, onRetry = viewModel::preview, onDismiss = viewModel::closePreview) }
 }
 

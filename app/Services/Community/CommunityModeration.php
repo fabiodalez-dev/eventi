@@ -49,10 +49,13 @@ final class CommunityModeration
             $userId = $model instanceof User ? $model->id : $model->user_id;
             $author = User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
             $model->refresh();
-            // Sospendere si fa verso il basso: il moderatore non sospende chi
-            // nello staff gli sta pari o sopra, né gli nasconde un post (che
-            // lo esclude anche dalla data) o un commento. Togliere la
-            // sospensione resta possibile a chiunque abbia il permesso.
+            // Si agisce verso il basso: il moderatore non nasconde un post (che
+            // lo esclude anche dalla data) o un commento a chi nello staff gli
+            // sta pari o sopra. La sospensione da tutta la community, data e
+            // tolta, segue la regola unica di `requireGlobalSuspension`.
+            if ($model instanceof User) {
+                self::requireGlobalSuspension($moderator, $author);
+            }
             abort_if(! $enabled && ! $model instanceof CommunityProfile && ! self::outranks($moderator, $author), 403);
             if ($model instanceof CommunityPost) {
                 if (! $enabled) {
@@ -103,6 +106,33 @@ final class CommunityModeration
 
             return $profile;
         });
+    }
+
+    /**
+     * Chi può sospendere una persona da tutta la community
+     * (`community_suspended_at`) o togliere quella sospensione. Una regola
+     * sola per le quattro vie (`community/users/{id}/suspend|unsuspend` e
+     * `carpool/users/{id}/suspend|restore` con `scope=global`, nell'app), per
+     * le pagine «Profili e post» e «Passaggi in auto» e per l'elenco degli
+     * utenti del pannello: redazione con `community.manage` e `users.manage`
+     * (la più restrittiva delle due che c'erano: la via dei passaggi chiedeva
+     * già `users.manage`) e rango più alto di chi la subisce, in tutte e due
+     * le direzioni. Prima togliere la sospensione era libero: un moderatore
+     * annullava quella messa da un amministratore.
+     */
+    public static function canSuspendGlobally(User $actor, User $target): bool
+    {
+        $safety = app(CommunitySafety::class);
+
+        return $safety->staff($actor, Permission::ManageCommunity) && $safety->staff($actor, Permission::ManageUsers)
+            && self::outranks($actor, $target);
+    }
+
+    /** `canSuspendGlobally` o 403, fuori dall'impersonificazione. */
+    public static function requireGlobalSuspension(User $actor, User $target): void
+    {
+        app(CommunitySafety::class)->requireStaff($actor, Permission::ManageCommunity);
+        abort_unless(self::canSuspendGlobally($actor, $target), 403);
     }
 
     /**

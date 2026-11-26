@@ -105,6 +105,7 @@
     <string name="editorial_ee_ticketing_hint">Biglietti gratuiti o pagamento all\'ingresso, senza incassi online. Si attiva data per data dalla gestione biglietti.</string>
     <string name="editorial_ee_ticketing_disabled">Il locale deve essere abilitato al ticketing dalla redazione (scheda del locale, «Ticketing»).</string>
     <string name="editorial_ee_ticketing_manage">%1$s — Gestisci biglietti</string>
+    <string name="editorial_ee_date_refs_truncated">Qui ci sono solo le prossime %1$d date: le altre sono nella sezione «Date».</string>
     <string name="editorial_ee_ticketing_no_dates">Salva l\'evento e aggiungi almeno una data per configurare il ticketing.</string>
     <string name="editorial_ee_tiers">Listino</string>
     <string name="editorial_ee_tiers_hint">Le voci del listino dell\'evento. Il listino di una sola data si compila dalla data.</string>

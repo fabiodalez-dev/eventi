@@ -146,7 +146,8 @@ it('elenca le campagne con fase, avanzamento, abilità e i filtri del pannello',
         ->and($row['progress']['state'])->toBe('period')
         ->and($row['click_rate'])->toBe('1.5%')
         ->and($row['toggle_label'])->toBe(__('sponsorships.admin.actions.pause'))
-        ->and($row['abilities'])->toBe(['update' => true, 'toggle' => true, 'destroy' => true])
+        // Ha già raccolto visualizzazioni: non si elimina, si sospende (`SponsorshipPolicy::delete`).
+        ->and($row['abilities'])->toBe(['update' => true, 'toggle' => true, 'destroy' => false])
         ->and($page->json('choices.placements'))->toHaveCount(count(SponsorshipPlacement::cases()));
 
     $byPlacement = r8($this->s->admin)->getJson('/api/v1/editorial/sponsorships?filter[placement]=home_card')->assertOk();

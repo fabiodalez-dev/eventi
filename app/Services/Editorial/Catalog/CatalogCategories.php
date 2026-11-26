@@ -67,6 +67,7 @@ final class CatalogCategories extends CatalogSection
             'is_nightlife' => (bool) $record->is_nightlife,
             'is_active' => (bool) $record->is_active,
             'events_count' => (int) ($record->events_count ?? 0),
+            'web_path' => $this->webPath($record),
             'abilities' => $this->abilities($record, $user),
         ];
     }

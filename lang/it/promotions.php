@@ -176,6 +176,7 @@ return [
         'reject_request_confirm' => 'Chi ha chiesto riceve la motivazione. Non c’è niente da rimborsare: la richiesta non è stata pagata online.',
         'awaiting_badge' => 'Ordini e richieste da decidere',
         'rejected' => 'Ordine rifiutato.',
+        'decided_meanwhile' => 'Nel frattempo l’ordine è stato deciso da un’altra persona: ora è «:status». Ricarica l’elenco.',
         'status' => [
             'requested' => 'Richiesta, da approvare',
             'pending_payment' => 'In attesa di pagamento', 'paid' => 'Pagato, da approvare',

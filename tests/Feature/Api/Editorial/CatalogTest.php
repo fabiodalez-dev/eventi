@@ -108,7 +108,8 @@ it('dà le scelte dei moduli solo a chi può scrivere nel catalogo', function ()
 // ------------------------------------------------------------ categorie
 
 it('elenca le categorie a tutta la redazione con le colonne, i filtri e l\'ordine del pannello', function (): void {
-    $this->s->category->update(['sort_order' => 10]);
+    // La categoria dello scenario esce a caso dalla fabbrica: qui non è da sera, così il filtro conta una riga sola.
+    $this->s->category->update(['sort_order' => 10, 'is_nightlife' => false]);
     Category::factory()->create(['name' => 'Discoteche', 'sort_order' => 0, 'is_nightlife' => true, 'is_active' => true, 'parent_id' => $this->s->category->id]);
     Category::factory()->create(['name' => 'Spenta', 'sort_order' => 50, 'is_active' => false]);
 
@@ -123,7 +124,9 @@ it('elenca le categorie a tutta la redazione con le colonne, i filtri e l\'ordin
             ->and($first['parent'])->toBe(['id' => $this->s->category->id, 'name' => $this->s->category->name])
             ->and($first['is_nightlife'])->toBeTrue()
             ->and($first)->toHaveKeys(['default_duration_minutes', 'supports_ongoing', 'events_count', 'is_active'])
-            ->and($first['abilities'])->toBe(['update' => $person !== $this->s->moderator, 'destroy' => $person !== $this->s->moderator]);
+            ->and($first['abilities'])->toBe(['update' => $person !== $this->s->moderator, 'delete_on_web' => $person !== $this->s->moderator])
+            // Eliminare si fa sul sito (decisione 4): la riga porta la pagina del pannello.
+            ->and($first['web_path'])->toBe('admin/categories/discoteche/edit');
     }
 
     $admin = EditorialSession::as($this, EditorialSession::token($this->s->admin));
@@ -136,7 +139,7 @@ it('elenca le categorie a tutta la redazione con le colonne, i filtri e l\'ordin
     expect($row['events_count'])->toBe($this->s->category->events()->count());
 });
 
-it('crea, modifica ed elimina una categoria come admin e super admin, mai come moderatore', function (): void {
+it('crea e modifica una categoria come admin e super admin, mai come moderatore, e non la elimina dall\'app', function (): void {
     $body = [
         'name' => 'Laboratori per bambini',
         'sort_order' => 3,
@@ -170,11 +173,10 @@ it('crea, modifica ed elimina una categoria come admin e super admin, mai come m
         ->and($category->is_demo)->toBeTrue()
         ->and($data['content_details']['faqs'][0]['question'])->toBe('Serve prenotare?');
 
-    // Il moderatore non apre il modulo, non modifica, non elimina.
+    // Il moderatore non apre il modulo e non modifica.
     $moderator = EditorialSession::as($this, EditorialSession::token($this->s->moderator));
     $moderator->getJson('/api/v1/editorial/categories/'.$category->id)->assertForbidden();
     $moderator->patchJson('/api/v1/editorial/categories/'.$category->id, ['name' => 'X', 'sort_order' => 1])->assertForbidden();
-    $moderator->deleteJson('/api/v1/editorial/categories/'.$category->id)->assertForbidden();
 
     $super = EditorialSession::as($this, EditorialSession::token($this->superAdmin));
     $super->getJson('/api/v1/editorial/categories/'.$category->id)->assertOk()->assertJsonPath('data.parent_id', null);
@@ -186,9 +188,9 @@ it('crea, modifica ed elimina una categoria come admin e super admin, mai come m
         // Il cambio di indirizzo lascia il reindirizzamento della lista, come dal pannello (`CategoryObserver`).
         ->and(Redirect::query()->where('from_path', '/eventi/categoria/laboratori-per-bambini')->exists())->toBeTrue();
 
-    r11NeedsPassword($this, 'DELETE', '/api/v1/editorial/categories/'.$category->id);
-    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/categories/'.$category->id)->assertOk();
-    expect(Category::query()->whereKey($category->id)->exists())->toBeFalse();
+    // Eliminare resta sul sito (decisione 4): nell'app la rotta non c'è.
+    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/categories/'.$category->id)->assertStatus(405);
+    expect(Category::query()->whereKey($category->id)->exists())->toBeTrue();
 });
 
 it('convalida la categoria con le regole del modulo del pannello', function (): void {
@@ -208,12 +210,6 @@ it('convalida la categoria con le regole del modulo del pannello', function (): 
     ])->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['content_details.faqs']]]);
 });
 
-it('non elimina una categoria che ha ancora eventi: 409 con la spiegazione', function (): void {
-    EditorialSession::as($this, EditorialSession::token($this->s->admin))->deleteJson('/api/v1/editorial/categories/'.$this->s->category->id)
-        ->assertStatus(409)->assertJsonPath('error.code', 'CONFLICT');
-    expect(Category::query()->whereKey($this->s->category->id)->exists())->toBeTrue();
-});
-
 // ------------------------------------------------------------ tag
 
 it('elenca i tag a tutta la redazione e lascia scrivere e unire solo admin e super admin', function (): void {
@@ -227,7 +223,7 @@ it('elenca i tag a tutta la redazione e lascia scrivere e unire solo admin e sup
         // Ordine predefinito per nome.
         expect(array_column($rows, 'name'))->toBe(['Blues', 'Jazz'])
             ->and($rows[1]['category'])->toBe(['id' => $this->s->category->id, 'name' => $this->s->category->name])
-            ->and($rows[1]['abilities'])->toBe(['update' => $person !== $this->s->moderator, 'destroy' => $person !== $this->s->moderator, 'merge' => $person !== $this->s->moderator]);
+            ->and($rows[1]['abilities'])->toBe(['update' => $person !== $this->s->moderator, 'delete_on_web' => $person !== $this->s->moderator, 'merge' => $person !== $this->s->moderator]);
     }
     EditorialSession::as($this, EditorialSession::token($this->s->admin))->getJson('/api/v1/editorial/tags?filter[is_approved]=0')
         ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.name', 'Jazz');
@@ -296,21 +292,20 @@ it('lascia le caratteristiche degli eventi solo ad admin e super admin e non eli
     $admin = EditorialSession::as($this, EditorialSession::token($this->s->admin));
     $created = $admin->postJson('/api/v1/editorial/event-features', ['name' => 'Guardaroba', 'group' => 'Servizi', 'icon' => 'shopping-bag', 'description' => 'Al piano terra'])
         ->assertCreated()->json('data');
-    expect($created['is_active'])->toBeTrue()->and($created['is_system'])->toBeFalse()->and($created['abilities']['destroy'])->toBeTrue();
+    expect($created['is_active'])->toBeTrue()->and($created['is_system'])->toBeFalse()->and($created['abilities']['delete_on_web'])->toBeTrue()->and($created['web_path'])->toBe('admin/event-features/'.$created['id'].'/edit');
     $admin->postJson('/api/v1/editorial/event-features', ['name' => 'X', 'group' => 'Altro', 'icon' => 'drago'])
         ->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['group', 'icon']]]);
 
     $row = collect(EditorialSession::as($this, EditorialSession::token($this->superAdmin))->getJson('/api/v1/editorial/event-features?q=Tessera')->assertOk()->json('data'))->first();
-    expect($row['is_system'])->toBeTrue()->and($row['abilities'])->toBe(['update' => true, 'destroy' => false]);
+    expect($row['is_system'])->toBeTrue()->and($row['abilities'])->toBe(['update' => true, 'delete_on_web' => false]);
 
     // «Disponibile» delle voci di sistema non si cambia; il nome sì.
     EditorialSession::as($this, EditorialSession::token($this->superAdmin))->patchJson('/api/v1/editorial/event-features/'.$system->id, ['name' => 'Tessera associativa', 'group' => 'Ingresso', 'icon' => 'identification', 'is_active' => false])
         ->assertOk();
     expect($system->refresh()->is_active)->toBeTrue()->and($system->name)->toBe('Tessera associativa');
 
-    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/event-features/'.$system->id)->assertForbidden();
-    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/event-features/'.$created['id'])->assertOk();
-    expect(EventFeature::query()->whereKey($created['id'])->exists())->toBeFalse();
+    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/event-features/'.$created['id'])->assertStatus(405);
+    expect(EventFeature::query()->whereKey($created['id'])->exists())->toBeTrue();
 });
 
 // ------------------------------------------------------------ città
@@ -344,8 +339,10 @@ it('elenca le città a tutta la redazione e chiede la password recente per modif
         ->and($city->bounds)->toBe(['north' => 45.7, 'south' => 45.4, 'east' => 11.7, 'west' => 11.3]);
 });
 
-it('crea una città con i valori e i tetti del modulo del pannello, senza password', function (): void {
-    $admin = EditorialSession::as($this, EditorialSession::token($this->s->admin, passwordMinutesAgo: 16));
+it('crea una città con i valori e i tetti del modulo del pannello, con la password recente', function (): void {
+    // Una città nuova e attiva compare subito nel sito: come la modifica, chiede la password recente.
+    r11NeedsPassword($this, 'POST', '/api/v1/editorial/cities', r11CityBody());
+    $admin = EditorialSession::as($this, EditorialSession::token($this->s->admin));
     $admin->postJson('/api/v1/editorial/cities', r11CityBody(['timezone' => 'Europa/Padova', 'locale' => 'fr', 'night_cutoff_time' => '25:00', 'default_zoom' => 21, 'radius_km' => 0, 'center_lat' => 91]))
         ->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['timezone', 'locale', 'night_cutoff_time', 'default_zoom', 'radius_km', 'center_lat']]]);
 
@@ -356,10 +353,6 @@ it('crea una città con i valori e i tetti del modulo del pannello, senza passwo
         ->and($city->settings)->toBe(['community' => true, 'carpool' => false])
         ->and($data['settings'])->toBe([['key' => 'community', 'enabled' => true], ['key' => 'carpool', 'enabled' => false]]);
 
-    r11NeedsPassword($this, 'DELETE', '/api/v1/editorial/cities/'.$city->id);
-    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/cities/'.$city->id)->assertOk();
-    // Una città con locali ed eventi non si elimina.
-    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/cities/'.$this->s->city->id)->assertStatus(409);
 });
 
 // ------------------------------------------------------------ pagine
@@ -399,9 +392,6 @@ it('lascia le pagine solo a chi ha pages.manage, con anteprima e controllo della
     $created = $admin->postJson('/api/v1/editorial/pages', ['title' => 'Chi siamo', 'body' => 'Siamo noi.'])->assertCreated()->json('data');
     expect($created['slug'])->toBe('chi-siamo')->and($created['is_published'])->toBeFalse();
 
-    r11NeedsPassword($this, 'DELETE', '/api/v1/editorial/pages/'.$created['id']);
-    EditorialSession::as($this, EditorialSession::token($this->superAdmin))->deleteJson('/api/v1/editorial/pages/'.$created['id'])->assertOk();
-    expect(Page::query()->whereKey($created['id'])->exists())->toBeFalse();
 });
 
 it('scarta visibilità sui motori e contenuto dimostrativo di chi non è admin, come il pannello', function (): void {

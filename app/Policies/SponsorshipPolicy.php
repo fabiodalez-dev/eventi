@@ -49,9 +49,15 @@ class SponsorshipPolicy
      * gia' raccolto visualizzazioni e' anche una riga di contabilita': resta,
      * eventualmente sospesa. La cancellazione e' comunque morbida
      * (`SoftDeletes`), quindi nulla sparisce dal database.
+     *
+     * «Mai partito» si legge dai contatori: nessuna visualizzazione e nessun
+     * clic. Il pannello (azione «Elimina» e cancellazione in gruppo, riga per
+     * riga) e l'app chiedono tutti e due a questa regola.
      */
     public function delete(User $user, Sponsorship $sponsorship): bool
     {
-        return $user->can(Permission::ManageSponsorships->value);
+        return $user->can(Permission::ManageSponsorships->value)
+            && (int) $sponsorship->impressions === 0
+            && (int) $sponsorship->clicks === 0;
     }
 }

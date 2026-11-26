@@ -173,7 +173,10 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         '/editorial/pages/preview',
     ])
         ->and($document['paths']['/editorial/categories'])->toHaveKeys(['get', 'post'])
-        ->and($document['paths']['/editorial/cities/{id}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/cities/{id}'])->toHaveKeys(['get', 'patch'])
+        // L'eliminazione definitiva del catalogo resta solo sul sito (seconda revisione di sicurezza).
+        ->and($document['paths']['/editorial/cities/{id}'])->not->toHaveKey('delete')
+        ->and($document['paths']['/editorial/tags/{id}'])->not->toHaveKey('delete')
         ->and($document['paths']['/editorial/tags/{id}/merge'])->toHaveKey('post')
         ->and($document['paths']['/editorial/pages/preview'])->toHaveKey('post');
     // R2 della redazione (26/11/2026): eventi, decisioni, cronologia, proposte dal pubblico.

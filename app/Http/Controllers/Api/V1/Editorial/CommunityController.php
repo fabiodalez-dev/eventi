@@ -63,13 +63,13 @@ final class CommunityController extends Controller
         return $this->done($desk->profileRow($fresh, $staff));
     }
 
-    /** Sospende una persona dalla community: solo chi nello staff sta sotto. Pericolosa. */
+    /** Sospende una persona dalla community (`users.manage`, solo chi nello staff sta sotto). Pericolosa. */
     public function suspend(ReasonRequest $request, int $user, CommunityModeration $moderation, CommunityDesk $desk): JsonResponse
     {
         return $this->suspension($request, $user, false, $moderation, $desk);
     }
 
-    /** Riattiva una persona sospesa: chiunque abbia il permesso, come il pannello. */
+    /** Riattiva una persona sospesa: la stessa regola della sospensione (`CommunityModeration::canSuspendGlobally`). */
     public function unsuspend(ReasonRequest $request, int $user, CommunityModeration $moderation, CommunityDesk $desk): JsonResponse
     {
         return $this->suspension($request, $user, true, $moderation, $desk);

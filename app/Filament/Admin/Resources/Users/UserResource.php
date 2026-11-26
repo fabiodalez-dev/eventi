@@ -297,9 +297,9 @@ class UserResource extends Resource
                 ActionGroup::make([
                     self::impersonateAction(),
                     Action::make('community_suspend')->label(fn (User $record): string => __($record->community_suspended_at ? 'community.unsuspend' : 'community.suspend'))
-                        // Si sospende solo chi sta sotto nello staff (vedi CommunityModeration).
-                        ->visible(fn (User $record): bool => ! $record->trashed() && ($staff = auth()->user()) instanceof User && $staff->isEditorialStaff()
-                            && ($record->community_suspended_at !== null || CommunityModeration::outranks($staff, $record)))->requiresConfirmation()
+                        // Data e tolta con la regola unica di CommunityModeration::canSuspendGlobally.
+                        ->visible(fn (User $record): bool => ! $record->trashed() && ($staff = auth()->user()) instanceof User
+                            && CommunityModeration::canSuspendGlobally($staff, $record))->requiresConfirmation()
                         ->action(fn (User $record) => app(CommunityModeration::class)->apply(auth()->user(), 'user', $record->id, $record->community_suspended_at !== null)),
                     /* La redazione cambia un nome utente senza l'attesa che vale per il
                    titolare (D64): regole del nome uguali al modulo, verso il basso. */

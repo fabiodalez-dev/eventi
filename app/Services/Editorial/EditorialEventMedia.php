@@ -6,7 +6,9 @@ namespace App\Services\Editorial;
 
 use App\Http\Resources\V1\PosterResource;
 use App\Models\Event;
+use App\Services\Management\ManagementOptions;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -19,6 +21,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * pulizia EXIF e varianti partono da sole con la libreria; il controllo del
  * file (`RealImage`) lo fa la richiesta. La redazione non passa dalla
  * revisione: una locandina nuova non rimanda l'evento alla redazione.
+ *
+ * La galleria ha lo stesso tetto della gestione e del modulo del pannello
+ * (`ManagementOptions::GALLERY_MAX` foto): ogni foto con le sue varianti
+ * occupa spazio su un hosting con la quota già stretta.
  */
 final class EditorialEventMedia
 {
@@ -43,7 +49,16 @@ final class EditorialEventMedia
     /** @return array{poster: array<string, mixed>|null, gallery: list<array<string, mixed>>} */
     public function addToGallery(Event $event, UploadedFile $file): array
     {
-        $event->addMedia($file)->toMediaCollection('gallery');
+        // La riga dell'evento resta bloccata finché la foto non è salvata: due caricamenti insieme non superano il tetto.
+        DB::transaction(function () use ($event, $file): void {
+            Event::query()->whereKey($event->getKey())->lockForUpdate()->first();
+            $count = Media::query()->where('model_type', $event->getMorphClass())->where('model_id', $event->getKey())
+                ->where('collection_name', 'gallery')->count();
+            if ($count >= ManagementOptions::GALLERY_MAX) {
+                throw ValidationException::withMessages(['image' => 'La galleria ha già '.ManagementOptions::GALLERY_MAX.' foto: togline una prima di aggiungerne un’altra.']);
+            }
+            $event->addMedia($file)->toMediaCollection('gallery');
+        });
         $event->touch();
 
         return $this->images($event);

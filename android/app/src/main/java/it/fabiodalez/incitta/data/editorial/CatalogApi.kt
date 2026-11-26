@@ -166,6 +166,8 @@ internal data class CatalogRecord(
     @SerialName("content_details") val contentDetails: CatalogContentDetails = CatalogContentDetails(),
     val seo: CatalogSeo = CatalogSeo(),
     @SerialName("is_demo") val isDemo: Boolean = false,
+    /* La pagina della voce nel pannello: eliminare si fa lì (decisione 4), l'app ci porta con «Elimina sul sito». */
+    @SerialName("web_path") val webPath: String = "",
     val abilities: JsonElement? = null,
 ) {
     val can: Map<String, Boolean> get() = abilitiesOf(abilities)
@@ -184,12 +186,6 @@ internal data class CatalogEnvelope(val data: CatalogRecord = CatalogRecord(), v
 internal data class CatalogChange(val record: CatalogRecord, val message: String?)
 
 @Serializable
-internal data class CatalogDeleted(val id: Long = 0)
-
-@Serializable
-internal data class CatalogDeletedEnvelope(val data: CatalogDeleted = CatalogDeleted(), val meta: CatalogMessageMeta = CatalogMessageMeta())
-
-@Serializable
 internal data class CatalogPreview(val html: String = "")
 
 @Serializable
@@ -206,7 +202,6 @@ internal interface EditorialCatalogSource {
     suspend fun show(kind: CatalogKind, id: Long): CatalogRecord
     suspend fun create(kind: CatalogKind, body: JsonObject): CatalogChange
     suspend fun update(kind: CatalogKind, id: Long, body: JsonObject): CatalogChange
-    suspend fun destroy(kind: CatalogKind, id: Long): String?
     suspend fun mergeTag(keepId: Long, absorbedId: Long): CatalogChange
     suspend fun previewPage(body: String): String
 }
@@ -233,7 +228,6 @@ internal class EditorialCatalogApi(
         api.execute<CatalogEnvelope>(path(kind.path), "POST", body.toString(), token).change()
     override suspend fun update(kind: CatalogKind, id: Long, body: JsonObject): CatalogChange =
         api.execute<CatalogEnvelope>(path("${kind.path}/$id"), "PATCH", body.toString(), token).change()
-    override suspend fun destroy(kind: CatalogKind, id: Long): String? = api.delete<CatalogDeletedEnvelope>(path("${kind.path}/$id"), token).meta.message
     override suspend fun mergeTag(keepId: Long, absorbedId: Long): CatalogChange =
         api.post<CatalogEnvelope, CatalogMergeBody>(path("tags/$keepId/merge"), CatalogMergeBody(absorbedId), token).change()
     override suspend fun previewPage(body: String): String =

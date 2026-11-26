@@ -69,6 +69,7 @@ final class CatalogPages extends CatalogSection
             'is_published' => (bool) $record->is_published,
             'sort_order' => (int) $record->sort_order,
             'updated_at' => self::updatedAt($record)?->toIso8601String(),
+            'web_path' => $this->webPath($record),
             'abilities' => $this->abilities($record, $user),
         ];
     }
@@ -135,7 +136,7 @@ final class CatalogPages extends CatalogSection
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:191', Rule::unique('pages', 'slug')->ignore($record?->getKey()), 'regex:/^[a-z0-9][a-z0-9-]*$/'],
             'excerpt' => ['nullable', 'string', 'max:500'],
-            'body' => ['required', 'string'],
+            'body' => ['required', 'string', 'max:'.Page::BODY_MAX],
             'is_published' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
             'seo_title' => ['nullable', 'string', 'max:255'],

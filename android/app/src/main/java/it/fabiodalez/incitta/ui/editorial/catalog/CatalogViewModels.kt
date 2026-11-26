@@ -89,14 +89,13 @@ internal data class MergeState(
 
 /** Lo stato delle azioni di riga: la conferma aperta, l'unione, la richiesta in corso, l'esito. */
 internal data class CatalogActionsState(
-    val pendingDelete: CatalogRecord? = null,
     val merge: MergeState? = null,
     val busy: Boolean = false,
     val error: String? = null,
     val message: UiText? = null,
 )
 
-/** L'elenco di una voce: ricerca, filtri, ordinamento, eliminazione e (per i tag) unione dalla riga. */
+/** L'elenco di una voce: ricerca, filtri, ordinamento e (per i tag) unione dalla riga. Eliminare si fa sul sito (decisione 4). */
 internal class CatalogListViewModel(
     private val repository: EditorialRepository,
     private val api: EditorialCatalogSource,
@@ -123,30 +122,8 @@ internal class CatalogListViewModel(
     fun sortBy(sort: String?) { saved[KEY_SORT] = sort; list.sortBy(sort) }
     fun refresh() = list.refresh()
 
-    fun requestDelete(record: CatalogRecord) {
-        if (!record.allows("destroy")) return
-        actionState.update { it.copy(pendingDelete = record, error = null) }
-    }
-
-    fun dismiss() = actionState.update { if (it.busy) it else it.copy(pendingDelete = null, merge = null, error = null) }
+    fun dismiss() = actionState.update { if (it.busy) it else it.copy(merge = null, error = null) }
     fun clearMessage() = actionState.update { it.copy(message = null) }
-
-    fun confirmDelete() {
-        val record = actionState.value.pendingDelete ?: return
-        if (actionState.value.busy) return
-        actionState.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch {
-            try {
-                val message = repository.call { api.destroy(kind, record.id) }
-                list.remove { it.id == record.id }
-                actionState.update { it.copy(busy = false, pendingDelete = null, message = message?.let(UiText::Raw) ?: UiText.Res(R.string.editorial_catalog_deleted)) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                actionState.update { it.copy(busy = false, error = requestFailureMessage(e)) }
-            }
-        }
-    }
 
     /** «Unisci» di un tag: apre la finestra e cerca subito fra tutti i tag. */
     fun requestMerge(record: CatalogRecord) {
@@ -214,8 +191,6 @@ internal class CatalogListViewModel(
 internal sealed interface CatalogDone {
     /** Voce nuova: si apre il suo modulo al posto di quello vuoto. */
     data class Created(val id: Long) : CatalogDone
-    /** Voce eliminata: si torna all'elenco. */
-    data object Deleted : CatalogDone
 }
 
 /** Lo stato del modulo, a parte la bozza. */
@@ -229,7 +204,6 @@ internal data class CatalogFormState(
     val message: UiText? = null,
     /* 409 sul salvataggio di una pagina: qualcuno l'ha cambiata nel frattempo. */
     val conflict: Boolean = false,
-    val confirmDelete: Boolean = false,
     val preview: Loadable<String>? = null,
     val done: CatalogDone? = null,
 )
@@ -310,29 +284,6 @@ internal class CatalogFormViewModel(
             } catch (e: Exception) {
                 val conflict = (e as? ApiException)?.status == 409 && kind == CatalogKind.Pages
                 formState.update { it.copy(busy = false, conflict = conflict, errors = FormErrors.from(e, CatalogDraft.fieldKeys(kind))) }
-            }
-        }
-    }
-
-    fun requestDelete() {
-        val record = (formState.value.record as? Loadable.Ready)?.value ?: return
-        if (record.allows("destroy")) formState.update { it.copy(confirmDelete = true, errors = FormErrors.None) }
-    }
-
-    fun dismissDelete() = formState.update { if (it.busy) it else it.copy(confirmDelete = false) }
-
-    fun confirmDelete() {
-        val current = id ?: return
-        if (formState.value.busy) return
-        formState.update { it.copy(busy = true) }
-        viewModelScope.launch {
-            try {
-                repository.call { api.destroy(kind, current) }
-                formState.update { it.copy(busy = false, confirmDelete = false, done = CatalogDone.Deleted) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                formState.update { it.copy(busy = false, confirmDelete = false, errors = FormErrors(general = requestFailureMessage(e))) }
             }
         }
     }

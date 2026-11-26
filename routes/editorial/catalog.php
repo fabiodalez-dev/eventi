@@ -29,9 +29,11 @@ Route::get('/catalog/choices', [CatalogController::class, 'choices'])->middlewar
 /*
  * Le cinque voci hanno le stesse rotte; la voce la porta `section`. `{id}`
  * è sempre l'id numerico (le risorse usano lo slug come chiave di rotta sul
- * sito, qui no). Eliminare è pericoloso (decisione 4) e lo è anche
- * modificare una città, che sposta il motore temporale: password recente.
- * `preview` delle pagine prima di `{id}`.
+ * sito, qui no). Eliminare resta solo sul sito (decisione 4: è
+ * definitivo, nessuna delle cinque voci ha il cestino): nessuna rotta
+ * `destroy`. Creare o modificare una città è pericoloso (una città nuova
+ * attiva compare subito nel sito, una modifica sposta il motore temporale):
+ * password recente. `preview` delle pagine prima di `{id}`.
  */
 // Dentro una funzione: le variabili non escono in `routes/api.php`, che include anche gli altri file.
 (function (): void {
@@ -43,8 +45,10 @@ Route::get('/catalog/choices', [CatalogController::class, 'choices'])->middlewar
         $name = 'catalog.'.str_replace('_', '-', $section);
         Route::get('/'.$path, [CatalogController::class, 'index'])->defaults('section', $section)
             ->middleware('throttle:60,1,editorial-catalog')->name($name.'.index');
-        Route::post('/'.$path, [CatalogController::class, 'store'])->defaults('section', $section)
-            ->middleware('throttle:20,1,editorial-catalog-save')->name($name.'.store');
+        $store = Route::post('/'.$path, [CatalogController::class, 'store'])->defaults('section', $section)->name($name.'.store');
+        $section === 'cities'
+            ? $store->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-catalog-save'])
+            : $store->middleware('throttle:20,1,editorial-catalog-save');
         Route::get('/'.$path.'/{id}', [CatalogController::class, 'show'])->defaults('section', $section)->whereNumber('id')
             ->middleware('throttle:60,1,editorial-catalog')->name($name.'.show');
         $update = Route::patch('/'.$path.'/{id}', [CatalogController::class, 'update'])->defaults('section', $section)->whereNumber('id')
@@ -52,8 +56,6 @@ Route::get('/catalog/choices', [CatalogController::class, 'choices'])->middlewar
         $section === 'cities'
             ? $update->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-catalog-save'])
             : $update->middleware('throttle:30,1,editorial-catalog-save');
-        Route::delete('/'.$path.'/{id}', [CatalogController::class, 'destroy'])->defaults('section', $section)->whereNumber('id')
-            ->middleware([RequireRecentPassword::class, 'throttle:10,1,editorial-catalog-destroy'])->name($name.'.destroy');
     }
 })();
 

@@ -4,6 +4,7 @@
     use App\Enums\RideStatus;
     use App\Services\Carpool\CommunitySafety;
     use App\Services\Community\CommunityModeration;
+    use App\Support\PhoneMask;
     use Filament\Support\Facades\FilamentTimezone;
     use Illuminate\Support\Carbon;
 
@@ -166,7 +167,7 @@
                             </div>
                             <div class="flex flex-wrap gap-3">
                                 @foreach (['social' => 'social_suspended_at', 'carpool' => 'carpool_suspended_at', 'global' => 'community_suspended_at'] as $scope => $field)
-                                    @if (($scope !== 'global' || auth()->user()->hasPermissionTo(Permission::ManageUsers->value)) && ($item->{$field} || CommunityModeration::outranks(auth()->user(), $item)))
+                                    @if ($scope === 'global' ? CommunityModeration::canSuspendGlobally(auth()->user(), $item) : ($item->{$field} || CommunityModeration::outranks(auth()->user(), $item)))
                                         {{ ($this->restrictUserAction)(['id' => $item->id, 'scope' => $scope, 'suspend' => ! $item->{$field}]) }}
                                     @endif
                                 @endforeach
@@ -174,7 +175,7 @@
                         @elseif ($section === 'audit')
                             <p class="text-sm text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">#{{ $item->id }} · {{ $at($item->created_at) }} · {{ $item->action }} · {{ $item->subject_type }} #{{ $item->subject_id }} · {{ $item->actor?->name ?? __('carpool.admin.system') }}</p>
                         @elseif ($section === 'deliveries')
-                            <p class="text-sm text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">#{{ $item->id }} · {{ __('carpool.admin.delivery_summary', ['user' => $item->user_id, 'attempts' => $item->attempts]) }} · {{ $item->last_error }}</p>
+                            <p class="text-sm text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">#{{ $item->id }} · {{ __('carpool.admin.delivery_summary', ['user' => $item->user_id, 'attempts' => $item->attempts]) }} · {{ PhoneMask::mask($item->last_error) }}</p>
                             <div class="flex flex-wrap gap-3">{{ ($this->retryDeliveryAction)(['id' => $item->id]) }}</div>
                         @else
                             <div class="flex min-w-0 flex-col gap-1">

@@ -40,9 +40,13 @@ const EDITORIAL_DANGEROUS_SUFFIXES = ['destroy', 'merge', 'roles', 'suspend'];
 const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.events.cancel',
     'api.v1.editorial.catalog.cities.update',
+    // Una città nuova e attiva compare subito nel sito: come la modifica.
+    'api.v1.editorial.catalog.cities.store',
     'api.v1.editorial.carpool.cases.hold',
     // R7: la lettura delle evidenze di un caso (nel pannello chiede la password).
     'api.v1.editorial.carpool.cases.evidence',
+    // Chi scrive il codice di Search Console diventa proprietario verificato del sito.
+    'api.v1.editorial.seo.verification',
 ];
 
 /** @return Collection<int, RouteDefinition> */

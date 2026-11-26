@@ -8,6 +8,7 @@ use App\Actions\CreateSharedEventTag;
 use App\Actions\ScheduleEventPublication;
 use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\RequireRecentPassword;
 use App\Http\Requests\Api\V1\Management\ImageRules;
 use App\Models\Event;
 use App\Models\Organizer;
@@ -73,11 +74,27 @@ final class EventEditorController extends Controller
         return response()->json(['data' => $this->form->values($event, $desk->user), 'message' => 'Salvato'], 201);
     }
 
-    /** «Salva»: le chiavi ricevute (una sezione o il modulo intero). */
-    public function update(Request $request, int $event): JsonResponse
+    /**
+     * Gli stati che fermano un evento: annullato (biglietti e prenotazioni
+     * annullati, mail agli acquirenti), archiviato, rifiutato. Dal `PATCH`
+     * valgono come «Annulla evento» (`events.cancel`): password recente.
+     */
+    public const STOPPING_STATUSES = [EventStatus::Cancelled, EventStatus::Archived, EventStatus::Rejected];
+
+    /**
+     * «Salva»: le chiavi ricevute (una sezione o il modulo intero). Portare
+     * l'evento in uno stato che lo ferma chiede la password scritta negli
+     * ultimi 15 minuti, come l'azione «Annulla evento».
+     */
+    public function update(Request $request, int $event, RequireRecentPassword $recentPassword): JsonResponse
     {
         $desk = EditorialDesk::require();
         $record = EventController::findActive($event);
+        Gate::authorize('update', $record);
+        $status = is_string($request->input('status')) ? EventStatus::tryFrom($request->input('status')) : null;
+        if ($status !== null && $status !== $record->status && in_array($status, self::STOPPING_STATUSES, true)) {
+            $recentPassword->ensure($request);
+        }
         $saved = $this->editor->update($record, $request->all(), $desk->user);
 
         return response()->json(['data' => $this->form->values($saved, $desk->user), 'message' => 'Salvato']);

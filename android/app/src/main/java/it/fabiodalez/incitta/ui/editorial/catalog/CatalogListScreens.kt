@@ -24,7 +24,6 @@ import it.fabiodalez.incitta.ui.editorial.common.ActionMenu
 import it.fabiodalez.incitta.ui.editorial.common.FilterDefinition
 import it.fabiodalez.incitta.ui.editorial.common.PagedListScreen
 import it.fabiodalez.incitta.ui.editorial.common.RowAction
-import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.ManagementRow
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
@@ -113,6 +112,7 @@ internal fun CatalogListScreen(
     onBack: () -> Unit,
     onOpen: (CatalogRecord) -> Unit,
     onCreate: () -> Unit,
+    onOpenWeb: (String) -> Unit,
 ) {
     val kind = viewModel.kind
     val state by viewModel.rows.collectAsState()
@@ -123,10 +123,11 @@ internal fun CatalogListScreen(
         FilterDefinition(key, stringResource(label), listOf(OptionChoice("1", yes), OptionChoice("0", no)))
     }
     val mergeLabel = stringResource(R.string.editorial_catalog_action_merge)
-    val deleteLabel = stringResource(R.string.editorial_catalog_action_delete)
+    val deleteLabel = stringResource(R.string.editorial_catalog_action_delete_web)
     val rowActions = buildList {
         if (kind == CatalogKind.Tags) add(RowAction("merge", mergeLabel))
-        add(RowAction("destroy", deleteLabel, destructive = true))
+        // Eliminare è definitivo e resta sul sito (decisione 4): la riga apre la voce nel pannello.
+        add(RowAction("delete_on_web", deleteLabel))
     }
     val snackbar = remember { SnackbarHostState() }
     val message = actions.message?.resolve()
@@ -161,24 +162,13 @@ internal fun CatalogListScreen(
             CatalogRow(kind, record, rowActions, onOpen = { onOpen(record) }, onAction = { action ->
                 when (action.key) {
                     "merge" -> viewModel.requestMerge(record)
-                    "destroy" -> viewModel.requestDelete(record)
+                    "delete_on_web" -> record.webPath.takeIf { it.isNotBlank() }?.let(onOpenWeb)
                 }
             })
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(padding))
     }
 
-    actions.pendingDelete?.let { record ->
-        ConfirmDialog(
-            title = stringResource(R.string.editorial_catalog_delete_title, record.label),
-            text = actions.error ?: stringResource(if (kind == CatalogKind.Pages) R.string.editorial_catalog_delete_page_text else R.string.editorial_catalog_delete_text),
-            confirmLabel = deleteLabel,
-            onConfirm = viewModel::confirmDelete,
-            onDismiss = viewModel::dismiss,
-            destructive = true,
-            enabled = !actions.busy,
-        )
-    }
     actions.merge?.let { merge -> MergeDialog(merge, actions.busy, actions.error, viewModel::searchMerge, viewModel::chooseMerge, viewModel::confirmMerge, viewModel::dismiss) }
 }
 

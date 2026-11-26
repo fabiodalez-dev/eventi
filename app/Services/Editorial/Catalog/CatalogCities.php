@@ -6,6 +6,7 @@ namespace App\Services\Editorial\Catalog;
 
 use App\Models\City;
 use App\Models\User;
+use App\Support\Catalog\CatalogAudit;
 use App\Support\CitySettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,9 +20,11 @@ use Illuminate\Validation\Rule;
  * (fuso, chiusura della notte, «inizia tra poco», lingua), funzioni (attiva
  * e interruttori), più informazioni e anteprima su Google.
  *
- * Fuso e chiusura della notte spostano tutto il motore temporale: dall'app
- * la modifica di una città chiede la password recente (decisione 4,
- * `catalog.cities.update`). Il cambio di indirizzo lascia il suo
+ * Fuso e chiusura della notte spostano tutto il motore temporale, e una
+ * città nuova attiva compare subito nel sito: dall'app creare e modificare
+ * una città chiede la password recente (decisione 4, `catalog.cities.store`
+ * e `catalog.cities.update`); ogni modifica va nel registro di sicurezza
+ * (`CatalogAudit::cityChanged`, anche dal pannello). Il cambio di indirizzo lascia il suo
  * reindirizzamento con il jolly (`CityObserver`), come dal pannello.
  */
 final class CatalogCities extends CatalogSection
@@ -71,6 +74,7 @@ final class CatalogCities extends CatalogSection
             'venues_count' => (int) ($record->venues_count ?? 0),
             'events_count' => (int) ($record->events_count ?? 0),
             'is_active' => (bool) $record->is_active,
+            'web_path' => $this->webPath($record),
             'abilities' => $this->abilities($record, $user),
         ];
     }
@@ -191,6 +195,12 @@ final class CatalogCities extends CatalogSection
             $record->setAttribute('settings', CitySettings::toMap($state['settings']));
         }
         CatalogContent::fill($record, $state, $actor);
+    }
+
+    /** La modifica nel registro di sicurezza, come dal pannello (`EditCity::afterSave`). */
+    protected function updated(Model $record, User $actor): void
+    {
+        CatalogAudit::cityChanged(self::record($record), $actor);
     }
 
     private static function time(mixed $value): string

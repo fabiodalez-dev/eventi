@@ -19383,7 +19383,8 @@
                                                                 "type": [
                                                                     "string",
                                                                     "null"
-                                                                ]
+                                                                ],
+                                                                "description": "Il servizio d'invio scrive spesso il numero del destinatario nell'errore: coperto (`PhoneMask`), come nel pannello."
                                                             },
                                                             "available_at": {
                                                                 "type": [
@@ -24847,7 +24848,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.catalog.categories.update",
-                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa)",
+                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa, anche per crearne una)",
                 "tags": [
                     "Catalog"
                 ],
@@ -24879,77 +24880,6 @@
                                                 "message": {
                                                     "type": "string",
                                                     "const": "Modifiche salvate."
-                                                }
-                                            },
-                                            "required": [
-                                                "message"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "429": {
-                        "description": "Troppe richieste.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "v1.editorial.catalog.categories.destroy",
-                "summary": "Elimina (password recente). 409 se la voce \u00e8 ancora usata (eventi, locali)",
-                "tags": [
-                    "Catalog"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "id"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "const": "Eliminato."
                                                 }
                                             },
                                             "required": [
@@ -25244,7 +25174,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.catalog.tags.update",
-                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa)",
+                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa, anche per crearne una)",
                 "tags": [
                     "Catalog"
                 ],
@@ -25276,77 +25206,6 @@
                                                 "message": {
                                                     "type": "string",
                                                     "const": "Modifiche salvate."
-                                                }
-                                            },
-                                            "required": [
-                                                "message"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "429": {
-                        "description": "Troppe richieste.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "v1.editorial.catalog.tags.destroy",
-                "summary": "Elimina (password recente). 409 se la voce \u00e8 ancora usata (eventi, locali)",
-                "tags": [
-                    "Catalog"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "id"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "const": "Eliminato."
                                                 }
                                             },
                                             "required": [
@@ -25641,7 +25500,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.catalog.event-features.update",
-                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa)",
+                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa, anche per crearne una)",
                 "tags": [
                     "Catalog"
                 ],
@@ -25673,77 +25532,6 @@
                                                 "message": {
                                                     "type": "string",
                                                     "const": "Modifiche salvate."
-                                                }
-                                            },
-                                            "required": [
-                                                "message"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "429": {
-                        "description": "Troppe richieste.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "v1.editorial.catalog.event-features.destroy",
-                "summary": "Elimina (password recente). 409 se la voce \u00e8 ancora usata (eventi, locali)",
-                "tags": [
-                    "Catalog"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "id"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "const": "Eliminato."
                                                 }
                                             },
                                             "required": [
@@ -26038,7 +25826,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.catalog.cities.update",
-                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa)",
+                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa, anche per crearne una)",
                 "tags": [
                     "Catalog"
                 ],
@@ -26070,77 +25858,6 @@
                                                 "message": {
                                                     "type": "string",
                                                     "const": "Modifiche salvate."
-                                                }
-                                            },
-                                            "required": [
-                                                "message"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "429": {
-                        "description": "Troppe richieste.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "v1.editorial.catalog.cities.destroy",
-                "summary": "Elimina (password recente). 409 se la voce \u00e8 ancora usata (eventi, locali)",
-                "tags": [
-                    "Catalog"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "id"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "const": "Eliminato."
                                                 }
                                             },
                                             "required": [
@@ -26435,7 +26152,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.catalog.pages.update",
-                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa)",
+                "summary": "Salva il modulo. Le pagine chiedono anche la `revision` letta (409 se\nnel frattempo sono cambiate); le citt\u00e0 la password recente (rotta\npericolosa, anche per crearne una)",
                 "tags": [
                     "Catalog"
                 ],
@@ -26467,77 +26184,6 @@
                                                 "message": {
                                                     "type": "string",
                                                     "const": "Modifiche salvate."
-                                                }
-                                            },
-                                            "required": [
-                                                "message"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "429": {
-                        "description": "Troppe richieste.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "v1.editorial.catalog.pages.destroy",
-                "summary": "Elimina (password recente). 409 se la voce \u00e8 ancora usata (eventi, locali)",
-                "tags": [
-                    "Catalog"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "id"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "const": "Eliminato."
                                                 }
                                             },
                                             "required": [
@@ -26657,13 +26303,16 @@
                                                 "is_approved": {
                                                     "type": "boolean"
                                                 },
+                                                "web_path": {
+                                                    "type": "string"
+                                                },
                                                 "abilities": {
                                                     "type": "object",
                                                     "properties": {
                                                         "update": {
                                                             "type": "boolean"
                                                         },
-                                                        "destroy": {
+                                                        "delete_on_web": {
                                                             "type": "boolean"
                                                         },
                                                         "merge": {
@@ -26672,7 +26321,7 @@
                                                     },
                                                     "required": [
                                                         "update",
-                                                        "destroy",
+                                                        "delete_on_web",
                                                         "merge"
                                                     ]
                                                 },
@@ -26749,6 +26398,7 @@
                                                 "events_count",
                                                 "usage_count",
                                                 "is_approved",
+                                                "web_path",
                                                 "abilities",
                                                 "category_id",
                                                 "synonyms",
@@ -27663,7 +27313,7 @@
                 ]
             },
             "post": {
-                "operationId": "web.catalogReview.store_418",
+                "operationId": "web.catalogReview.store_413",
                 "tags": [
                     "CatalogReview"
                 ],
@@ -27751,7 +27401,7 @@
                 }
             },
             "delete": {
-                "operationId": "web.catalogReview.destroy_420",
+                "operationId": "web.catalogReview.destroy_415",
                 "tags": [
                     "CatalogReview"
                 ],
@@ -27922,7 +27572,7 @@
                 ]
             },
             "post": {
-                "operationId": "web.catalogReview.store_419",
+                "operationId": "web.catalogReview.store_414",
                 "tags": [
                     "CatalogReview"
                 ],
@@ -28010,7 +27660,7 @@
                 }
             },
             "delete": {
-                "operationId": "web.catalogReview.destroy_421",
+                "operationId": "web.catalogReview.destroy_416",
                 "tags": [
                     "CatalogReview"
                 ],
@@ -28085,7 +27735,7 @@
         },
         "/venues/{slug}/reviews/{review}/report": {
             "post": {
-                "operationId": "web.catalogReview.report_422",
+                "operationId": "web.catalogReview.report_417",
                 "tags": [
                     "CatalogReview"
                 ],
@@ -28211,7 +27861,7 @@
         },
         "/organizers/{slug}/reviews/{review}/report": {
             "post": {
-                "operationId": "web.catalogReview.report_423",
+                "operationId": "web.catalogReview.report_418",
                 "tags": [
                     "CatalogReview"
                 ],
@@ -31744,7 +31394,8 @@
                                                                         "type": "boolean"
                                                                     },
                                                                     "suspend": {
-                                                                        "type": "boolean"
+                                                                        "type": "boolean",
+                                                                        "description": "Data e tolta con la regola unica (`users.manage` e rango pi\u00f9 alto)."
                                                                     },
                                                                     "unsuspend": {
                                                                         "type": "boolean"
@@ -32064,7 +31715,8 @@
                                                             "type": "boolean"
                                                         },
                                                         "suspend": {
-                                                            "type": "boolean"
+                                                            "type": "boolean",
+                                                            "description": "Data e tolta con la regola unica (`users.manage` e rango pi\u00f9 alto)."
                                                         },
                                                         "unsuspend": {
                                                             "type": "boolean"
@@ -32134,7 +31786,7 @@
         "/editorial/community/users/{user}/suspend": {
             "post": {
                 "operationId": "v1.editorial.community.users.suspend",
-                "summary": "Sospende una persona dalla community: solo chi nello staff sta sotto. Pericolosa",
+                "summary": "Sospende una persona dalla community (`users.manage`, solo chi nello staff sta sotto). Pericolosa",
                 "tags": [
                     "Community"
                 ],
@@ -32217,7 +31869,8 @@
                                                                     "type": "boolean"
                                                                 },
                                                                 "suspend": {
-                                                                    "type": "boolean"
+                                                                    "type": "boolean",
+                                                                    "description": "Data e tolta con la regola unica (`users.manage` e rango pi\u00f9 alto)."
                                                                 },
                                                                 "unsuspend": {
                                                                     "type": "boolean"
@@ -32309,7 +31962,7 @@
         "/editorial/community/users/{user}/unsuspend": {
             "post": {
                 "operationId": "v1.editorial.community.users.unsuspend",
-                "summary": "Riattiva una persona sospesa: chiunque abbia il permesso, come il pannello",
+                "summary": "Riattiva una persona sospesa: la stessa regola della sospensione (`CommunityModeration::canSuspendGlobally`)",
                 "tags": [
                     "Community"
                 ],
@@ -32392,7 +32045,8 @@
                                                                     "type": "boolean"
                                                                 },
                                                                 "suspend": {
-                                                                    "type": "boolean"
+                                                                    "type": "boolean",
+                                                                    "description": "Data e tolta con la regola unica (`users.manage` e rango pi\u00f9 alto)."
                                                                 },
                                                                 "unsuspend": {
                                                                     "type": "boolean"
@@ -34267,7 +33921,7 @@
         },
         "/community/people/{user}/follow": {
             "post": {
-                "operationId": "community.community.follow_540",
+                "operationId": "community.community.follow_535",
                 "tags": [
                     "Community"
                 ],
@@ -34343,7 +33997,7 @@
                 }
             },
             "delete": {
-                "operationId": "community.community.follow_541",
+                "operationId": "community.community.follow_536",
                 "tags": [
                     "Community"
                 ],
@@ -34421,7 +34075,7 @@
         },
         "/community/people/{user}/block": {
             "post": {
-                "operationId": "community.community.block_542",
+                "operationId": "community.community.block_537",
                 "tags": [
                     "Community"
                 ],
@@ -34497,7 +34151,7 @@
                 }
             },
             "delete": {
-                "operationId": "community.community.block_543",
+                "operationId": "community.community.block_538",
                 "tags": [
                     "Community"
                 ],
@@ -46396,7 +46050,7 @@
                                                 },
                                                 "date_refs": {
                                                     "type": "array",
-                                                    "description": "Le date per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
+                                                    "description": "Le date non ancora finite per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
@@ -46419,6 +46073,22 @@
                                                             "ticketing_path"
                                                         ]
                                                     }
+                                                },
+                                                "date_refs_meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "truncated": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "limit": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "truncated",
+                                                        "limit"
+                                                    ]
                                                 },
                                                 "ticketing_enabled": {
                                                     "type": "boolean"
@@ -46509,6 +46179,7 @@
                                                 "poster",
                                                 "gallery",
                                                 "date_refs",
+                                                "date_refs_meta",
                                                 "ticketing_enabled",
                                                 "abilities"
                                             ]
@@ -47615,7 +47286,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.events.update",
-                "summary": "\u00abSalva\u00bb: le chiavi ricevute (una sezione o il modulo intero)",
+                "summary": "\u00abSalva\u00bb: le chiavi ricevute (una sezione o il modulo intero). Portare\nl'evento in uno stato che lo ferma chiede la password scritta negli\nultimi 15 minuti, come l'azione \u00abAnnulla evento\u00bb",
                 "tags": [
                     "EventEditor"
                 ],
@@ -47629,6 +47300,20 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "",
@@ -48292,7 +47977,7 @@
                                                 },
                                                 "date_refs": {
                                                     "type": "array",
-                                                    "description": "Le date per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
+                                                    "description": "Le date non ancora finite per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
@@ -48315,6 +48000,22 @@
                                                             "ticketing_path"
                                                         ]
                                                     }
+                                                },
+                                                "date_refs_meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "truncated": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "limit": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "truncated",
+                                                        "limit"
+                                                    ]
                                                 },
                                                 "ticketing_enabled": {
                                                     "type": "boolean"
@@ -48405,6 +48106,7 @@
                                                 "poster",
                                                 "gallery",
                                                 "date_refs",
+                                                "date_refs_meta",
                                                 "ticketing_enabled",
                                                 "abilities"
                                             ]
@@ -48421,6 +48123,9 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -64103,7 +63808,7 @@
             },
             "patch": {
                 "operationId": "v1.editorial.events.dates.update",
-                "summary": "\u00abModifica\u00bb: le chiavi assenti restano come sono",
+                "summary": "\u00abModifica\u00bb: le chiavi assenti restano come sono. Portare a \u00abAnnullata\u00bb\nuna data con prenotazioni attive le annulla tutte e scrive a chi aveva\nprenotato: password recente, come \u00abAnnulla la data\u00bb",
                 "tags": [
                     "EventDates"
                 ],
@@ -64448,6 +64153,9 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -64926,6 +64634,7 @@
         "/editorial/events/{event}/dates/{occurrence}/status": {
             "post": {
                 "operationId": "v1.editorial.events.dates.status",
+                "description": "Annullare \u00e8 pericoloso come eliminare la data (decisione 4) quando\ntocca la serie da qui in avanti o una data con prenotazioni attive:\nprenotazioni e biglietti si annullano e partono le mail. In quei casi\nserve la password scritta negli ultimi 15 minuti.",
                 "summary": "Lo stato della data dalla riga: `cancel` (\u00abAnnulla la data\u00bb, con\n`status_note` e `scope`) oppure `sold_out` (\u00abTutto esaurito\u00bb, o\n\u00abRimetti in programma\u00bb se lo \u00e8 gi\u00e0; sempre la sola data)",
                 "tags": [
                     "EventDates"
@@ -67346,7 +67055,7 @@
                                                         },
                                                         "date_refs": {
                                                             "type": "array",
-                                                            "description": "Le date per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
+                                                            "description": "Le date non ancora finite per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
                                                             "items": {
                                                                 "type": "object",
                                                                 "properties": {
@@ -67369,6 +67078,22 @@
                                                                     "ticketing_path"
                                                                 ]
                                                             }
+                                                        },
+                                                        "date_refs_meta": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "truncated": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "limit": {
+                                                                    "type": "integer",
+                                                                    "const": 100
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "truncated",
+                                                                "limit"
+                                                            ]
                                                         },
                                                         "ticketing_enabled": {
                                                             "type": "boolean"
@@ -67459,6 +67184,7 @@
                                                         "poster",
                                                         "gallery",
                                                         "date_refs",
+                                                        "date_refs_meta",
                                                         "ticketing_enabled",
                                                         "abilities"
                                                     ]
@@ -69741,7 +69467,7 @@
                                                 },
                                                 "date_refs": {
                                                     "type": "array",
-                                                    "description": "Le date per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
+                                                    "description": "Le date non ancora finite per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
@@ -69764,6 +69490,22 @@
                                                             "ticketing_path"
                                                         ]
                                                     }
+                                                },
+                                                "date_refs_meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "truncated": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "limit": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "truncated",
+                                                        "limit"
+                                                    ]
                                                 },
                                                 "ticketing_enabled": {
                                                     "type": "boolean"
@@ -69854,6 +69596,7 @@
                                                 "poster",
                                                 "gallery",
                                                 "date_refs",
+                                                "date_refs_meta",
                                                 "ticketing_enabled",
                                                 "abilities"
                                             ]
@@ -70571,7 +70314,7 @@
                                                 },
                                                 "date_refs": {
                                                     "type": "array",
-                                                    "description": "Le date per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
+                                                    "description": "Le date non ancora finite per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
@@ -70594,6 +70337,22 @@
                                                             "ticketing_path"
                                                         ]
                                                     }
+                                                },
+                                                "date_refs_meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "truncated": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "limit": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "truncated",
+                                                        "limit"
+                                                    ]
                                                 },
                                                 "ticketing_enabled": {
                                                     "type": "boolean"
@@ -70684,6 +70443,7 @@
                                                 "poster",
                                                 "gallery",
                                                 "date_refs",
+                                                "date_refs_meta",
                                                 "ticketing_enabled",
                                                 "abilities"
                                             ]
@@ -71397,7 +71157,7 @@
                                                 },
                                                 "date_refs": {
                                                     "type": "array",
-                                                    "description": "Le date per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
+                                                    "description": "Le date non ancora finite per il programma (\u00abData collegata\u00bb) e i collegamenti \u00abGestisci biglietti\u00bb della scheda Biglietti.",
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
@@ -71420,6 +71180,22 @@
                                                             "ticketing_path"
                                                         ]
                                                     }
+                                                },
+                                                "date_refs_meta": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "truncated": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "limit": {
+                                                            "type": "integer",
+                                                            "const": 100
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "truncated",
+                                                        "limit"
+                                                    ]
                                                 },
                                                 "ticketing_enabled": {
                                                     "type": "boolean"
@@ -71510,6 +71286,7 @@
                                                 "poster",
                                                 "gallery",
                                                 "date_refs",
+                                                "date_refs_meta",
                                                 "ticketing_enabled",
                                                 "abilities"
                                             ]
@@ -133327,9 +133104,6 @@
                             }
                         }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     },
@@ -133636,9 +133410,6 @@
                                 }
                             }
                         }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -141260,7 +141031,7 @@
         "/editorial/users/{user}/community/unsuspend": {
             "post": {
                 "operationId": "v1.editorial.users.community.unsuspend",
-                "summary": "Riattiva: chiunque abbia `community.manage`, anche verso chi sta sopra (come il pannello)",
+                "summary": "Riattiva: con la stessa regola della sospensione (`users.manage` e rango pi\u00f9 alto, `CommunityModeration::canSuspendGlobally`)",
                 "tags": [
                     "UserCommunity"
                 ],
@@ -159233,8 +159004,8 @@
                             "integer",
                             "null"
                         ],
-                        "minimum": 1779808274,
-                        "maximum": 1795705874
+                        "minimum": 1779815947,
+                        "maximum": 1795713547
                     },
                     "lat": {
                         "type": "number",

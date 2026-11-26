@@ -19,6 +19,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Editorial\AnalyticsController;
 use App\Http\Controllers\Api\V1\Editorial\SearchMissController;
 use App\Http\Controllers\Api\V1\Editorial\SeoController;
+use App\Http\Middleware\RequireRecentPassword;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,12 +43,15 @@ Route::get('/analytics/subjects/{type}/{id}/export', [AnalyticsController::class
 
 /*
  * SEO e qualità del catalogo (R-ST-04, R-ST-05): admin e super admin. Il
- * codice di Search Console non è un'azione pericolosa: è un valore pubblico
- * nella pagina, e il pannello lo salva senza conferme.
+ * codice di Search Console è pubblico nella pagina, ma scriverlo fa di chi lo
+ * scrive un proprietario verificato del sito: dall'app chiede la password
+ * recente, e ogni cambio (anche dal pannello) va nel registro di sicurezza.
  */
 Route::get('/seo', [SeoController::class, 'show'])->middleware('throttle:60,1,editorial-seo')->name('seo.show');
 Route::get('/seo/audit', [SeoController::class, 'audit'])->middleware('throttle:60,1,editorial-seo')->name('seo.audit');
-Route::put('/seo/verification', [SeoController::class, 'verification'])->middleware('throttle:20,1,editorial-seo-verification')->name('seo.verification');
+// Chi scrive il codice diventa proprietario verificato del sito su Search Console: password recente.
+Route::put('/seo/verification', [SeoController::class, 'verification'])
+    ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-seo-verification'])->name('seo.verification');
 
 /*
  * Ricerche senza risultati (R-ST-06): moderatore, admin e super admin.

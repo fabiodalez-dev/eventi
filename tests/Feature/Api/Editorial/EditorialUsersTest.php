@@ -62,8 +62,9 @@ it('dà a ogni riga le azioni del pannello per chi guarda', function (): void {
         return collect($rows)->firstWhere('id', $target->id)['abilities'];
     };
 
-    // Il moderatore vede, sospende chi sta sotto, guarda lo storico: non modifica, non elimina, non revoca.
-    expect($row($this->s->moderator, $this->s->plainUser))->toMatchArray(['update' => false, 'roles' => false, 'destroy' => false, 'suspend' => true, 'whatsapp_history' => true, 'whatsapp_revoke' => false])
+    // Il moderatore vede e guarda lo storico: non modifica, non elimina, non revoca e, senza `users.manage`, non sospende.
+    expect($row($this->s->moderator, $this->s->plainUser))->toMatchArray(['update' => false, 'roles' => false, 'destroy' => false, 'suspend' => false, 'whatsapp_history' => true, 'whatsapp_revoke' => false])
+        ->and($row($this->s->admin, $this->s->plainUser)['suspend'])->toBeTrue()
         // …e non sospende un pari grado né un admin.
         ->and($row($this->s->moderator, $this->s->admin)['suspend'])->toBeFalse()
         // L'admin modifica e elimina chi non è super admin, ma non se stesso (eliminare) né un super admin.
@@ -252,20 +253,25 @@ it('elimina nel cestino e ripristina come la policy, e lo scrive nel registro', 
         ->and(r5Log('utente_ripristinato', $this->s->plainUser))->not->toBeNull();
 });
 
-it('lascia al moderatore sospendere solo chi ha rango più basso, e riattivare chiunque', function (): void {
+it('sospende e riattiva dalla community con users.manage, solo chi ha rango più basso', function (): void {
     $suspend = fn (User $target): string => '/api/v1/editorial/users/'.$target->id.'/community/suspend';
-    $otherModerator = EditorialSession::user(UserRole::Moderator);
+    $otherAdmin = EditorialSession::user(UserRole::Admin);
 
-    r5As($this, $this->s->moderator)->postJson($suspend($this->s->admin))->assertForbidden();
-    r5As($this, $this->s->moderator)->postJson($suspend($otherModerator))->assertForbidden();
-    r5As($this, $this->s->moderator)->postJson($suspend($this->s->plainUser))->assertOk()
+    // La regola unica della sospensione da tutta la community: il moderatore non ha `users.manage`.
+    r5As($this, $this->s->moderator)->postJson($suspend($this->s->plainUser))->assertForbidden();
+    r5As($this, $this->s->admin)->postJson($suspend($this->superAdmin))->assertForbidden();
+    r5As($this, $this->s->admin)->postJson($suspend($otherAdmin))->assertForbidden();
+    r5As($this, $this->s->admin)->postJson($suspend($this->s->plainUser))->assertOk()
         ->assertJsonPath('data.abilities.unsuspend', true)->assertJsonPath('data.abilities.suspend', false);
     expect($this->s->plainUser->fresh()->community_suspended_at)->not->toBeNull()
         ->and(Activity::query()->where('log_name', 'community')->where('event', 'moderation')->latest('id')->first()?->getProperty('canale'))->toBe('app');
 
-    // L'admin sospeso da un super admin lo riattiva anche il moderatore (come il pannello).
+    // Riattivare segue la stessa regola: l'admin sospeso dal super admin non lo riattiva né il moderatore né un altro admin.
     r5As($this, $this->superAdmin)->postJson($suspend($this->s->admin))->assertOk();
-    r5As($this, $this->s->moderator, passwordMinutesAgo: 16)->postJson('/api/v1/editorial/users/'.$this->s->admin->id.'/community/unsuspend')->assertOk();
+    r5As($this, $this->s->moderator)->postJson('/api/v1/editorial/users/'.$this->s->admin->id.'/community/unsuspend')->assertForbidden();
+    r5As($this, $otherAdmin)->postJson('/api/v1/editorial/users/'.$this->s->admin->id.'/community/unsuspend')->assertForbidden();
+    expect($this->s->admin->fresh()->community_suspended_at)->not->toBeNull();
+    r5As($this, $this->superAdmin, passwordMinutesAgo: 16)->postJson('/api/v1/editorial/users/'.$this->s->admin->id.'/community/unsuspend')->assertOk();
     expect($this->s->admin->fresh()->community_suspended_at)->toBeNull();
     r5As($this, $this->s->ownerA)->postJson($suspend($this->s->plainUser))->assertNotFound();
 });

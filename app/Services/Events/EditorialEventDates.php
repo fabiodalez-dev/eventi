@@ -6,12 +6,14 @@ namespace App\Services\Events;
 
 use App\Actions\GenerateOccurrencesAction;
 use App\Actions\UpdateOccurrencesAction;
+use App\Enums\BookingStatus;
 use App\Enums\LineupRole;
 use App\Enums\MembershipRequirement;
 use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
 use App\Enums\VenueStatus;
+use App\Exceptions\InvalidRecurrenceRule;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\EventOccurrence;
@@ -142,15 +144,17 @@ final class EditorialEventDates
     /**
      * Le regole del modulo della data (`OccurrencesRelationManager::form`).
      * In creazione l'inizio è obbligatorio; in modifica le chiavi assenti non
-     * si toccano.
+     * si toccano. `$cityId` è la città dell'evento, l'unica dei locali scelti.
      *
      * @return array<string, list<mixed>>
      */
-    public static function rules(bool $creating): array
+    public static function rules(bool $creating, ?int $cityId = null): array
     {
         $presence = $creating ? 'required' : 'sometimes';
         $rules = [
-            'venue_id' => ['sometimes', 'nullable', 'integer', Rule::exists('venues', 'id')->where('status', VenueStatus::Approved->value)],
+            // Un locale approvato, non nel cestino, della città dell'evento (le scelte del campo del pannello).
+            'venue_id' => ['sometimes', 'nullable', 'integer', Rule::exists('venues', 'id')->where('status', VenueStatus::Approved->value)
+                ->where('city_id', $cityId ?? 0)->withoutTrashed()],
             'starts_at' => [$presence, 'required', 'date'],
             'ends_at' => ['sometimes', 'nullable', 'date'],
             'doors_at' => ['sometimes', 'nullable', 'date'],
@@ -201,7 +205,7 @@ final class EditorialEventDates
         $creating
             ? Gate::forUser($actor)->authorize('create', [EventOccurrence::class, $event])
             : Gate::forUser($actor)->authorize('update', $date);
-        $data = Validator::make($input, self::rules($creating), [], self::attributes())->validate();
+        $data = Validator::make($input, self::rules($creating, (int) $event->city_id), [], self::attributes())->validate();
 
         return DB::transaction(function () use ($event, $date, $data): EventOccurrence {
             $columns = Arr::only($data, self::COLUMNS);
@@ -261,6 +265,15 @@ final class EditorialEventDates
     }
 
     /**
+     * La data ha prenotazioni non annullate: annullarla le annullerebbe
+     * (`TicketingService::cancelDate` prende le stesse righe).
+     */
+    public function hasActiveBookings(EventOccurrence $date): bool
+    {
+        return Booking::query()->where('occurrence_id', $date->getKey())->where('status', '!=', BookingStatus::Cancelled)->exists();
+    }
+
+    /**
      * «Tutto esaurito» o, se lo è già, «Rimetti in programma»: sempre la
      * sola data.
      *
@@ -279,7 +292,9 @@ final class EditorialEventDates
     /**
      * «Genera date»: materializza le date di ogni ricorrenza dell'evento.
      * Idempotente (D20, D22): rieseguirla non aggiunge doppioni e non tocca
-     * le date modificate a mano.
+     * le date modificate a mano. Una regola che il generatore rifiuta
+     * (illeggibile, più fitta di una volta al giorno, troppe date) ferma il
+     * gesto con una `ValidationException` su `recurrences`.
      *
      * @return int quante date sono nate
      */
@@ -289,7 +304,12 @@ final class EditorialEventDates
         foreach ($event->recurrences()->get() as $recurrence) {
             /** @var EventRecurrence $recurrence */
             $recurrence->setRelation('event', $event);
-            $created += ($this->generator)($recurrence);
+            try {
+                $created += ($this->generator)($recurrence);
+            } catch (InvalidRecurrenceRule $exception) {
+                // Una regola salvata prima dei controlli (o arrivata da un import): il motivo, non un 500.
+                throw ValidationException::withMessages(['recurrences' => $exception->getMessage().' ('.$recurrence->rrule.')']);
+            }
         }
 
         return $created;

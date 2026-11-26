@@ -138,7 +138,8 @@ it('elenca le quattro sezioni della community a tutta la redazione e tiene fuori
             ->assertJsonPath('meta.total', 1)->assertJsonPath('meta.per_page', 24)->json('data.0');
         expect($profile)->toMatchArray(['kind' => 'profile', 'user_id' => $author->id, 'display_name' => 'Marta Bellini', 'handle' => 'persona_'.$author->id,
             'featured' => false, 'suspended' => false, 'visibility' => 'public', 'visibility_label' => 'Tutti, anche senza account'])
-            ->and($profile['abilities'])->toBe(['feature' => true, 'suspend' => true, 'unsuspend' => false]);
+            // La sospensione da tutta la community chiede `users.manage`, che il moderatore non ha.
+            ->and($profile['abilities'])->toBe(['feature' => true, 'suspend' => ! $person->is($this->moderator), 'unsuspend' => false]);
 
         $row = r7As($this, $person)->getJson('/api/v1/editorial/community/posts')->assertOk()->json('data.0');
         expect($row)->toMatchArray(['kind' => 'post', 'id' => $post->id, 'author' => 'Marta Bellini', 'body' => 'Consiglio questa serata', 'hidden' => false])
@@ -217,25 +218,28 @@ it('mette e toglie un profilo dall\'evidenza con il motivo e lo scrive nei regis
 
 it('sospende con la password recente solo chi sta sotto nello staff, e riattiva', function (): void {
     $author = r7Person();
-    $colleague = r7Person('Altra moderatrice', UserRole::Moderator);
+    $colleague = r7Person('Altro amministratore', UserRole::Admin);
     $url = '/api/v1/editorial/community/users/'.$author->id.'/suspend';
     $body = ['reason' => 'Messaggi offensivi ripetuti'];
 
     r7Gate($this, 'POST', $url, $body);
-    r7NeedsPassword($this, $this->moderator, $url, $body);
+    r7NeedsPassword($this, $this->admin, $url, $body);
+    // Tutta la community chiede `users.manage` (la regola unica): il moderatore no.
+    r7As($this, $this->moderator)->postJson($url, $body)->assertForbidden();
 
-    r7As($this, $this->moderator)->postJson($url, $body)->assertOk()
+    r7As($this, $this->admin)->postJson($url, $body)->assertOk()
         ->assertJsonPath('data.kind', 'profile')->assertJsonPath('data.suspended', true)
         ->assertJsonPath('data.abilities.suspend', false)->assertJsonPath('data.abilities.unsuspend', true);
     expect($author->fresh()->community_suspended_at)->not->toBeNull();
 
     // Un pari grado no: come il pannello (403), e la riga non offre il pulsante.
-    r7As($this, $this->moderator)->getJson('/api/v1/editorial/community/profiles?q=Altra')->assertOk()->assertJsonPath('data.0.abilities.suspend', false);
-    r7As($this, $this->moderator)->postJson('/api/v1/editorial/community/users/'.$colleague->id.'/suspend', $body)->assertForbidden();
+    r7As($this, $this->admin)->getJson('/api/v1/editorial/community/profiles?q=Altro')->assertOk()->assertJsonPath('data.0.abilities.suspend', false);
+    r7As($this, $this->admin)->postJson('/api/v1/editorial/community/users/'.$colleague->id.'/suspend', $body)->assertForbidden();
     expect($colleague->fresh()->community_suspended_at)->toBeNull();
 
-    // Riattivare non chiede la password ed è libero.
-    r7As($this, $this->moderator)->postJson('/api/v1/editorial/community/users/'.$author->id.'/unsuspend', ['reason' => 'Chiarimento avvenuto'])->assertOk()
+    // Riattivare non chiede la password, ma segue la stessa regola: il moderatore no.
+    r7As($this, $this->moderator)->postJson('/api/v1/editorial/community/users/'.$author->id.'/unsuspend', ['reason' => 'Chiarimento avvenuto'])->assertForbidden();
+    r7As($this, $this->admin)->postJson('/api/v1/editorial/community/users/'.$author->id.'/unsuspend', ['reason' => 'Chiarimento avvenuto'])->assertOk()
         ->assertJsonPath('data.suspended', false);
     expect($author->fresh()->community_suspended_at)->toBeNull();
 });

@@ -6,9 +6,11 @@ namespace App\Actions;
 
 use App\Models\Tag;
 use App\Models\User;
+use App\Support\Catalog\CatalogAudit;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Unisce due tag doppioni (§9.2, «Tag — con merge dei duplicati»).
@@ -23,7 +25,9 @@ use Illuminate\Support\Facades\Gate;
  *   porta **entrambi** i tag farebbe fallire un `UPDATE` diretto: le righe da
  *   spostare vengono scelte escludendo quelle già presenti sul superstite;
  * - tutto avviene in una transazione, perché un merge interrotto a metà
- *   lascerebbe eventi senza tag e un doppione ancora vivo.
+ *   lascerebbe eventi senza tag e un doppione ancora vivo; dentro, i due tag
+ *   sono bloccati e riletti, così due unioni incrociate non li perdono
+ *   entrambi. L'unione va nel registro di sicurezza (`tag_uniti`).
  *
  * Chi unisce elimina il tag assorbito: serve `delete` su **tutti e due**,
  * non solo su quello da cui parte l'azione (`allows`/`authorize`, la stessa
@@ -49,6 +53,8 @@ final class MergeTagsAction
 
     /**
      * @return int Quanti eventi hanno cambiato tag.
+     *
+     * @throws ValidationException se uno dei due tag non c'è più
      */
     public function execute(Tag $keep, Tag $absorbed): int
     {
@@ -57,12 +63,30 @@ final class MergeTagsAction
         }
 
         return DB::transaction(function () use ($keep, $absorbed): int {
+            /*
+             * Le due righe bloccate in ordine di id, sempre lo stesso: «A in
+             * B» e «B in A» lanciate insieme si mettono in fila invece di
+             * eliminarsi a vicenda, e la seconda trova uno dei due tag già
+             * sparito.
+             */
+            $locked = Tag::query()->whereKey([$keep->getKey(), $absorbed->getKey()])
+                ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $lockedKeep = $locked->get($keep->getKey());
+            $lockedAbsorbed = $locked->get($absorbed->getKey());
+            if (! $lockedKeep instanceof Tag || ! $lockedAbsorbed instanceof Tag) {
+                throw ValidationException::withMessages(['absorbed_id' => __('admin.notifications.merge_gone')]);
+            }
+            $keep->setRawAttributes($lockedKeep->getAttributes(), true);
+            $absorbed->setRawAttributes($lockedAbsorbed->getAttributes(), true);
+
             $eventIds = DB::table('event_tag')
                 ->where('tag_id', $absorbed->getKey())
                 ->whereNotIn('event_id', DB::table('event_tag')
                     ->where('tag_id', $keep->getKey())
                     ->pluck('event_id'))
+                ->orderBy('event_id')
                 ->pluck('event_id')
+                ->map(fn (mixed $id): int => (int) $id)
                 ->all();
 
             if ($eventIds !== []) {
@@ -82,10 +106,13 @@ final class MergeTagsAction
             $keep->synonyms = array_values(array_unique($synonyms));
 
             $absorbed->events()->detach();
-            $absorbed->delete();
+            /* La riga `tag_uniti` dice già tutto: niente «voce eliminata» per il doppione. */
+            CatalogAudit::quietly(fn () => $absorbed->delete());
 
             $keep->usage_count = $keep->events()->count();
             $keep->save();
+
+            CatalogAudit::tagsMerged($keep, $absorbed, $eventIds);
 
             return count($eventIds);
         });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Editorial;
 
+use App\Actions\Sponsorship\SaveSponsorshipBanners;
 use App\Enums\ApiErrorCode;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
@@ -27,14 +28,14 @@ final class SponsorshipBannerController extends Controller
     }
 
     /** `web_enabled`, `android_enabled` (sì/no). */
-    public function update(Request $request, SponsorshipBannerSettings $settings): JsonResponse
+    public function update(Request $request, SaveSponsorshipBanners $save): JsonResponse
     {
-        $this->ensureAdmin();
+        $desk = $this->ensureAdmin();
         $data = $request->validate([
             'web_enabled' => ['required', 'boolean'],
             'android_enabled' => ['required', 'boolean'],
         ]);
-        $settings->fill(['web_enabled' => (bool) $data['web_enabled'], 'android_enabled' => (bool) $data['android_enabled']])->save();
+        $settings = $save(['web_enabled' => (bool) $data['web_enabled'], 'android_enabled' => (bool) $data['android_enabled']], $desk->user);
 
         return response()->json(['data' => $this->payload($settings), 'message' => __('sponsorships.banners.saved')]);
     }
@@ -51,10 +52,13 @@ final class SponsorshipBannerController extends Controller
         ];
     }
 
-    private function ensureAdmin(): void
+    private function ensureAdmin(): EditorialDesk
     {
-        if (! EditorialDesk::require()->isAdmin()) {
+        $desk = EditorialDesk::require();
+        if (! $desk->isAdmin()) {
             throw new ApiException(ApiErrorCode::Forbidden);
         }
+
+        return $desk;
     }
 }
