@@ -46,7 +46,7 @@ final class ScheduledNotificationController extends Controller
         $user = EditorialDesk::require()->user;
         $found = $notifications->notification($notification);
         Gate::forUser($user)->authorize('cancel', $found);
-        $found->markCancelled();
+        $notifications->cancel($found);
 
         return response()->json([
             'data' => $notifications->row($notifications->notification($found->id), $user),

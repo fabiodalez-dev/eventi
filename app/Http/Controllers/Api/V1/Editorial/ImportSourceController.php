@@ -15,6 +15,8 @@ use App\Models\ImportSource;
 use App\Services\Editorial\EditorialImportSources;
 use App\Services\Editorial\ModerationDesk;
 use App\Support\Editorial\EditorialDesk;
+use App\Support\Import\ImportPreviewLimiter;
+use App\Support\Import\ImportUrlMask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -116,10 +118,16 @@ final class ImportSourceController extends Controller
      * L'anteprima: le prime date che entrerebbero, nell'ora della città,
      * senza scrivere niente. Un calendario che non si legge non è un errore
      * della richiesta: il motivo torna in `error`, come nella finestra.
+     *
+     * Oltre al limite della rotta per persona c'è un tetto per tutto il sito,
+     * lo stesso del pannello (`ImportPreviewLimiter`): 429 `RATE_LIMITED`.
      */
     public function preview(int $source, EditorialImportSources $sources): JsonResponse
     {
         $found = $this->runnable($source, $sources);
+        if (! ImportPreviewLimiter::attempt(EditorialDesk::require()->user)) {
+            throw new ApiException(ApiErrorCode::RateLimited, (string) __('import.preview.busy'));
+        }
 
         return response()->json(['data' => [...$sources->preview($found), 'timezone' => $found->city->timezone]]);
     }
@@ -139,9 +147,10 @@ final class ImportSourceController extends Controller
         $found = $sources->source($source);
         Gate::forUser(EditorialDesk::require()->user)->authorize('view', $found);
         $page = $sources->runs($found, $request->filterValue('status'), $request->sortField(), $request->perPage(), $request->pageNumber());
+        $secret = ImportUrlMask::sourceIsSecret($found);
 
         return response()->json([
-            'data' => $page->getCollection()->map(fn (ImportRun $run): array => $sources->runRow($run))->values(),
+            'data' => $page->getCollection()->map(fn (ImportRun $run): array => $sources->runRow($run, $secret))->values(),
             'meta' => ModerationDesk::meta($page),
         ]);
     }

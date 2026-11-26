@@ -316,6 +316,7 @@ L'area «Sistema» della redazione è nativa (`EditorialArea.System`, `native = 
 - **Notifiche programmate** (`ScheduledNotificationsScreen`, `SystemNotificationsRoute(tab, filter)`): ricerca per email del destinatario, filtri stato, tipo e «in scadenza», ordine per orario di invio; «Annulla questo invio» nel menu «⋮» della riga solo dove si può, con conferma.
 - **Cron e programmazioni** (`ScheduledOperationsScreen`, `SystemOperationsRoute`): le righe di cron (selezionabili per copiarle), se il crontab le ha, la coda, i collegamenti social con «Apri Social» quando la persona apre quell'area, e le attività registrate con espressione, prossimo controllo e storico in UTC.
 - Test: `SystemModelsTest`, `SystemViewModelsTest` (unitari), `SystemUiTest` (strumentato).
+- **Revisione di sicurezza dell'ondata 3.** Un indirizzo che il server manda mascherato (`url_masked`: calendario privato o sorgente con credenziali, `https://host/…`) nel modulo è in sola lettura con la nota «Si cambia dal sito», e non parte con il salvataggio (`importUrlEditable`). Creare, modificare ed «Esegui adesso» chiedono la password recente come l'eliminazione, e così le impostazioni social, «Scollega Meta», i testi delle email, il loro ripristino e la newsletter: passano da `repository.call { }`, che sul 423 `PASSWORD_REQUIRED` chiede la password e ripete la richiesta. L'anteprima oltre il tetto del sito risponde 429 e la schermata lo mostra con «Riprova».
 
 ## Redazione: community e passaggi (R7, 26 novembre 2026)
 

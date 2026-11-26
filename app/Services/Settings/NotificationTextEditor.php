@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\NotificationText;
 use App\Models\User;
 use App\Support\NotificationTextCatalog;
+use App\Support\SecurityLog;
 
 /**
  * Le regole della pagina «Testi delle email», per il pannello e per l'app.
@@ -168,6 +169,9 @@ final class NotificationTextEditor
     {
         $written = 0;
         $reset = 0;
+        $current = NotificationText::tutte();
+        $before = [];
+        $after = [];
 
         foreach (self::groups($user) as $group) {
             foreach ($group['testi'] as $key => $text) {
@@ -175,6 +179,12 @@ final class NotificationTextEditor
                     continue;
                 }
                 $new = trim($values[$key]);
+                $old = $current[$key] ?? $text['predefinito'];
+                $effective = $new === '' ? $text['predefinito'] : $new;
+                if ($effective !== $old) {
+                    $before[$key] = $old;
+                    $after[$key] = $effective;
+                }
 
                 if ($new === '' || $new === $text['predefinito']) {
                     $reset += NotificationText::query()->where('key', $key)->delete();
@@ -189,14 +199,24 @@ final class NotificationTextEditor
 
         NotificationText::dimenticaLaCache();
 
+        if ($after !== []) {
+            // Sono i testi che partono dall'indirizzo del sito verso tutti: chi li cambia, e da che cosa a che cosa.
+            SecurityLog::configurazione('testi_email_cambiati', ['oggetto' => 'notification_texts', 'prima' => $before, 'dopo' => $after]);
+        }
+
         return ['scritti' => $written, 'ripristinati' => $reset];
     }
 
     /** «Riporta tutto all'originale»: cancella le riscritture che la persona vede. */
     public static function resetAll(?User $user): void
     {
-        NotificationText::query()->whereNotIn('key', self::reserved($user))->delete();
+        $query = NotificationText::query()->whereNotIn('key', self::reserved($user));
+        /** @var array<string, string> $before */
+        $before = (clone $query)->orderBy('key')->pluck('value', 'key')->all();
+        $query->delete();
         NotificationText::dimenticaLaCache();
+
+        SecurityLog::configurazione('testi_email_ripristinati', ['oggetto' => 'notification_texts', 'prima' => $before]);
     }
 
     /**

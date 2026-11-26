@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Filament\Admin\Resources\CookieDeclarations\Pages\ManageCookieDeclarations;
 use App\Models\CookieDeclaration;
 use App\Models\User;
+use App\Support\SecurityLog;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -98,6 +99,11 @@ class CookieDeclarationResource extends Resource
         return $table
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
+            // Lo stesso registro del riordino dall'app (il trascinamento non passa dai modelli).
+            ->afterReordering(fn (array $order) => SecurityLog::configurazione('cookie_riordinati', [
+                'oggetto' => 'cookie_declaration',
+                'dopo' => array_map('intval', array_values($order)),
+            ]))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('cookies.fields.name'))

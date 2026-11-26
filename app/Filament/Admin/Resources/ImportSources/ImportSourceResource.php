@@ -12,12 +12,15 @@ use App\Filament\Admin\Resources\ImportSources\Pages\ListImportSources;
 use App\Filament\Admin\Resources\ImportSources\RelationManagers\RunsRelationManager;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
-use App\Jobs\Import\ImportSourceJob;
 use App\Models\City;
 use App\Models\ImportSource;
+use App\Models\User;
 use App\Queries\EditorialDashboardQuery;
 use App\Rules\SafeImportUrl;
+use App\Rules\UrlWithoutUserInfo;
+use App\Services\Editorial\EditorialImportSources;
 use App\Services\Import\ImportDriverFactory;
+use App\Support\Import\ImportPreviewLimiter;
 use App\Support\Import\ImportPreviewRows;
 use App\Support\Import\ImportSourceRules;
 use BackedEnum;
@@ -125,12 +128,17 @@ class ImportSourceResource extends Resource
                          * `SafeImportUrl` è la stessa difesa che il driver
                          * applica prima di scaricare: qui serve a dirlo mentre
                          * si scrive l'indirizzo, invece di lasciarlo scoprire
-                         * alla prima esecuzione.
+                         * alla prima esecuzione. Niente `utente:password@`:
+                         * le credenziali hanno il loro campo, cifrato. Se
+                         * l'origine (schema, host, porta) cambia e le
+                         * credenziali non vengono riscritte, si cancellano
+                         * (`EditImportSource`): partirebbero verso il nuovo host.
                          */
                         TextInput::make('url')
                             ->label(__('admin.fields.url'))
                             ->url()
                             ->maxLength(ImportSourceRules::MAX_URL_LENGTH)
+                            ->rule(new UrlWithoutUserInfo)
                             ->rule(new SafeImportUrl)
                             ->columnSpanFull(),
 
@@ -238,6 +246,9 @@ class ImportSourceResource extends Resource
      * esclusione già applicato, fusi già risolti.
      *
      * Non scrive niente e non tocca `last_run_at`: guardare non è eseguire.
+     * Legge il calendario dentro la richiesta, quindi ha i tempi corti di
+     * `ImportRunner::preview` e il tetto per persona e per tutto il sito di
+     * `ImportPreviewLimiter`, lo stesso dell'app.
      */
     private static function previewAction(): Action
     {
@@ -250,7 +261,14 @@ class ImportSourceResource extends Resource
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('admin.actions.close'))
             ->visible(fn (ImportSource $record): bool => app(ImportDriverFactory::class)->supports($record))
-            ->modalContent(fn (ImportSource $record): View => view('filament.import.preview', ImportPreviewRows::forSource($record)));
+            ->modalContent(function (ImportSource $record): View {
+                $user = auth()->user();
+                $preview = ImportPreviewLimiter::attempt($user instanceof User ? $user : null)
+                    ? ImportPreviewRows::forSource($record)
+                    : ['rows' => [], 'error' => __('import.preview.busy')];
+
+                return view('filament.import.preview', $preview);
+            });
     }
 
     /**
@@ -269,7 +287,8 @@ class ImportSourceResource extends Resource
             ->modalDescription(__('admin.import.run_confirm'))
             ->visible(fn (ImportSource $record): bool => app(ImportDriverFactory::class)->supports($record))
             ->action(function (ImportSource $record): void {
-                ImportSourceJob::dispatch((int) $record->getKey());
+                // Lo stesso «Esegui adesso» dell'app: accoda e scrive nel registro di sicurezza.
+                app(EditorialImportSources::class)->run($record);
 
                 Notification::make()
                     ->title(__('admin.notifications.import_queued'))

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Settings\NewsletterSettings;
 use App\Support\Features;
 use App\Support\NotificationTextCatalog;
+use App\Support\SecurityLog;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
@@ -95,6 +96,7 @@ final class NewsletterConfiguration
      */
     public static function save(array $values, ?User $user): void
     {
+        $before = self::auditable(self::values());
         $defaults = NotificationTextCatalog::predefiniti();
         DB::transaction(function () use ($values, $defaults, $user): void {
             $settings = app(NewsletterSettings::class);
@@ -113,5 +115,21 @@ final class NewsletterConfiguration
             }
         });
         NotificationText::dimenticaLaCache();
+
+        // La mail a tutti gli iscritti: chi la cambia, prima e dopo.
+        SecurityLog::configurazione('newsletter_cambiata', ['oggetto' => 'newsletter', 'prima' => $before, 'dopo' => self::auditable(self::values())]);
+    }
+
+    /**
+     * Interruttore, giorno, ora, quante proposte e i quattro testi.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private static function auditable(array $values): array
+    {
+        $keys = ['enabled', 'weekday', 'time', 'max_items', ...array_keys(self::TEXTS)];
+
+        return array_combine($keys, array_map(static fn (string $key): mixed => $values[$key] ?? null, $keys));
     }
 }

@@ -49,6 +49,8 @@ internal data class EditorialImportSource(
     val type: String = "",
     @SerialName("type_label") val typeLabel: String = "",
     val url: String? = null,
+    /* Vero quando il server manda solo schema e host (`https://host/…`): l'indirizzo apre un calendario privato o la sorgente ha credenziali. */
+    @SerialName("url_masked") val urlMasked: Boolean = false,
     /* Solo se ci sono: si scrivono e si cambiano dal sito (decisione 6). */
     @SerialName("has_credentials") val hasCredentials: Boolean = false,
     /* Il dizionario della mappatura (`timezone`, `auth`, `exclude_keywords`…), così com'è. */

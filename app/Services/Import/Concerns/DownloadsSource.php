@@ -45,17 +45,31 @@ trait DownloadsSource
      *    e ci si ferma appena supera il limite. Chiedere l'intero corpo e
      *    misurarlo dopo significa averlo già tenuto tutto in memoria, che è
      *    esattamente ciò da cui il limite dovrebbe difendere.
+     *
+     * Con `import.total_timeout` (l'anteprima, `ImportRunner::preview`) il
+     * tempo è complessivo: ogni salto ha solo quello che resta, e un salto
+     * che non ha più tempo non parte.
      */
     protected function download(ImportSource $source): string
     {
         $url = $this->guard->assert((string) $source->url);
+        $total = config('import.total_timeout');
+        $deadline = is_numeric($total) ? now()->addSeconds((int) $total) : null;
 
         try {
             $origin = parse_url($url);
             for ($hop = 0; ; $hop++) {
+                $timeout = config()->integer('import.timeout');
+                if ($deadline !== null) {
+                    $left = now()->diffInMilliseconds($deadline, false) / 1000;
+                    if ($left <= 0) {
+                        throw ImportException::previewTimeout((int) $total);
+                    }
+                    $timeout = max(1, min($timeout, (int) ceil($left)));
+                }
                 $response = $this->request($source, $url, parse_url($url, PHP_URL_HOST) === ($origin['host'] ?? null)
                     && parse_url($url, PHP_URL_SCHEME) === ($origin['scheme'] ?? null)
-                    && parse_url($url, PHP_URL_PORT) === ($origin['port'] ?? null))->get($url);
+                    && parse_url($url, PHP_URL_PORT) === ($origin['port'] ?? null), $timeout)->get($url);
                 if (! in_array($response->status(), [301, 302, 303, 307, 308], true)) {
                     break;
                 }
@@ -88,12 +102,12 @@ trait DownloadsSource
      * al portatore — che è come i calendari privati di Google e Nextcloud si
      * fanno leggere quando non usano un URL segreto.
      */
-    protected function request(ImportSource $source, string $url, bool $sendCredentials = true): PendingRequest
+    protected function request(ImportSource $source, string $url, bool $sendCredentials = true, ?int $timeout = null): PendingRequest
     {
         $address = $this->guard->resolvedAddress($url);
         $host = (string) parse_url($url, PHP_URL_HOST);
         $port = parse_url($url, PHP_URL_PORT) ?: (parse_url($url, PHP_URL_SCHEME) === 'https' ? 443 : 80);
-        $request = Http::timeout(config()->integer('import.timeout'))
+        $request = Http::timeout($timeout ?? config()->integer('import.timeout'))
             ->connectTimeout(config()->integer('import.connect_timeout'))
             ->setHandler(new CurlHandler)
             ->withUserAgent(config()->string('app.name').' calendar import')

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Settings\MailSettings;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Throwable;
 
 /**
@@ -131,6 +132,25 @@ final class MailConfigurationTester
         $settings->verified_fingerprint = self::fingerprint($values);
         $settings->verified_at = now()->toDateTimeString();
         $settings->save();
+    }
+
+    /**
+     * Il dettaglio da mostrare quando la prova non parte. Il messaggio del
+     * server di posta per esteso («autenticazione fallita», «certificato non
+     * valido», «host irraggiungibile» chiedono tre rimedi diversi), ma solo
+     * per un errore del trasporto: qualunque altro guasto (il database al
+     * salvataggio dell'impronta, un percorso del server) va nel registro
+     * degli errori e a chi prova arriva una frase generica.
+     */
+    public static function failureDetail(Throwable $e): string
+    {
+        if ($e instanceof TransportExceptionInterface) {
+            return $e->getMessage();
+        }
+
+        report($e);
+
+        return (string) __('mail_settings.test.internal_error');
     }
 
     private static function text(mixed $value): string

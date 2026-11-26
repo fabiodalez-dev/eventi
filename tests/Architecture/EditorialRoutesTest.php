@@ -47,6 +47,15 @@ const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.social.batches.publish',
     'api.v1.editorial.social.batches.schedule',
     'api.v1.editorial.social.publications.retry',
+    // Revisione dell'ondata 3: scritture che arrivano a tutti o che pubblicano da sole.
+    'api.v1.editorial.social.settings.update',
+    'api.v1.editorial.social.meta.disconnect',
+    'api.v1.editorial.settings.newsletter.update',
+    'api.v1.editorial.settings.texts.update',
+    'api.v1.editorial.settings.texts.reset',
+    'api.v1.editorial.import-sources.run',
+    'api.v1.editorial.import-sources.store',
+    'api.v1.editorial.import-sources.update',
 ];
 
 /** @return Collection<int, RouteDefinition> */

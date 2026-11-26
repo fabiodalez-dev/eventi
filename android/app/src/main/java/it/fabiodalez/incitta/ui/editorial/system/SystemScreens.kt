@@ -413,14 +413,16 @@ private fun ImportFormFields(state: ImportFormUiState, options: ImportSourceForm
 
         // Indirizzo
         val urlError = problemText(state, ImportField.URL)
+        val urlEditable = importUrlEditable(state.original)
         OutlinedTextField(
             value = draft.url,
             onValueChange = callbacks.onUrl,
             label = { Text(stringResource(R.string.system_import_url)) },
             singleLine = true,
-            enabled = !state.saving,
+            enabled = !state.saving && urlEditable,
+            readOnly = !urlEditable,
             isError = urlError != null,
-            supportingText = { Text(urlError ?: stringResource(R.string.system_import_url_help)) },
+            supportingText = { Text(urlError ?: stringResource(if (urlEditable) R.string.system_import_url_help else R.string.system_import_url_masked)) },
             modifier = Modifier.fillMaxWidth(),
         )
 

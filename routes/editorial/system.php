@@ -22,7 +22,11 @@ use Illuminate\Support\Facades\Route;
  * delle fondamenta e le controlla `EditorialRoutesTest`.
  *
  * Pericolosa: l'eliminazione di una sorgente (definitiva: il modello non ha
- * il cestino, e con la sorgente va il suo storico). Fermare un invio
+ * il cestino, e con la sorgente va il suo storico). Chiedono la password
+ * recente anche creazione, modifica ed «Esegui adesso» (revisione
+ * dell'ondata 3): gli eventi di una sorgente senza locale, o con un locale
+ * approvato, nascono pubblicati e visibili a tutti, e un indirizzo cambiato
+ * decide che cosa arriva da lì in avanti. Fermare un invio
  * previsto non elimina niente (la riga resta «annullata»): nel pannello
  * chiede solo una conferma, e così nell'app.
  */
@@ -31,14 +35,18 @@ use Illuminate\Support\Facades\Route;
 Route::get('/import-sources', [ImportSourceController::class, 'index'])->middleware('throttle:60,1,editorial-import-sources')->name('import-sources.index');
 Route::get('/import-sources/form', [ImportSourceController::class, 'form'])->middleware('throttle:60,1,editorial-import-sources-form')->name('import-sources.form');
 Route::get('/import-sources/venues', [ImportSourceController::class, 'venues'])->middleware('throttle:60,1,editorial-import-sources-venues')->name('import-sources.venues');
-Route::post('/import-sources', [ImportSourceController::class, 'store'])->middleware('throttle:20,1,editorial-import-sources-store')->name('import-sources.store');
+Route::post('/import-sources', [ImportSourceController::class, 'store'])
+    ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-import-sources-store'])->name('import-sources.store');
 Route::get('/import-sources/{source}', [ImportSourceController::class, 'show'])->whereNumber('source')->middleware('throttle:60,1,editorial-import-sources-show')->name('import-sources.show');
-Route::patch('/import-sources/{source}', [ImportSourceController::class, 'update'])->whereNumber('source')->middleware('throttle:30,1,editorial-import-sources-update')->name('import-sources.update');
+Route::patch('/import-sources/{source}', [ImportSourceController::class, 'update'])->whereNumber('source')
+    ->middleware([RequireRecentPassword::class, 'throttle:30,1,editorial-import-sources-update'])->name('import-sources.update');
 Route::delete('/import-sources/{source}', [ImportSourceController::class, 'destroy'])->whereNumber('source')
     ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-import-sources-destroy'])->name('import-sources.destroy');
-// Anteprima ed esecuzione leggono un calendario esterno: un tetto più basso delle altre.
+// Anteprima ed esecuzione leggono un calendario esterno: un tetto più basso delle altre
+// (l'anteprima ha anche il tetto globale di `ImportPreviewLimiter`, condiviso con il pannello).
 Route::post('/import-sources/{source}/preview', [ImportSourceController::class, 'preview'])->whereNumber('source')->middleware('throttle:10,1,editorial-import-sources-preview')->name('import-sources.preview');
-Route::post('/import-sources/{source}/run', [ImportSourceController::class, 'run'])->whereNumber('source')->middleware('throttle:10,1,editorial-import-sources-run')->name('import-sources.run');
+Route::post('/import-sources/{source}/run', [ImportSourceController::class, 'run'])->whereNumber('source')
+    ->middleware([RequireRecentPassword::class, 'throttle:10,1,editorial-import-sources-run'])->name('import-sources.run');
 Route::get('/import-sources/{source}/runs', [ImportSourceController::class, 'runs'])->whereNumber('source')->middleware('throttle:60,1,editorial-import-sources-runs')->name('import-sources.runs');
 
 // Invii previsti (R-SY-05, R-SY-06): li guarda tutta la redazione, li ferma admin e super admin

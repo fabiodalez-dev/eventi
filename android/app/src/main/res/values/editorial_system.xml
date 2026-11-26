@@ -78,6 +78,7 @@
     <string name="system_import_venue_searching">Cerco i locali…</string>
     <string name="system_import_venue_nothing">Nessun locale con questo nome.</string>
     <string name="system_import_url_help">Verificato prima di salvare: niente indirizzi della rete interna.</string>
+    <string name="system_import_url_masked">Indirizzo nascosto: apre un calendario privato o porta le credenziali. Si cambia dal sito.</string>
     <string name="system_import_mapping_help">Coppie chiave e valore, per esempio timezone = Europe/Rome. Gli elenchi (exclude_keywords) si scrivono separati da virgole.</string>
     <string name="system_import_mapping_key">Chiave</string>
     <string name="system_import_mapping_value">Valore</string>

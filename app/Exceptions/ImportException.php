@@ -58,6 +58,12 @@ final class ImportException extends RuntimeException
         return new self(__('import.errors.unreachable', ['url' => $url, 'reason' => $reason]));
     }
 
+    /** L'anteprima ha un tempo complessivo, redirect compresi: finito quello, si ferma. */
+    public static function previewTimeout(int $seconds): self
+    {
+        return new self(__('import.errors.preview_timeout', ['seconds' => $seconds]));
+    }
+
     public static function httpStatus(int $status): self
     {
         return new self(__('import.errors.http_status', ['status' => $status]));

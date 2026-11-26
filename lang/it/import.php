@@ -12,6 +12,7 @@ return [
         'private_address' => 'L\'indirizzo :host appartiene alla rete interna del server: un calendario pubblico non può stare lì.',
         'unreachable' => 'Calendario irraggiungibile (:url): :reason',
         'http_status' => 'Il calendario remoto ha risposto con lo stato HTTP :status.',
+        'preview_timeout' => 'Il calendario non ha risposto entro :seconds secondi: per l\'anteprima non si aspetta di più. «Esegui adesso» lo legge in coda, con più tempo.',
         'too_large' => 'Il calendario supera la dimensione ammessa (:bytes byte).',
         'unreadable' => 'Il file non è un calendario iCalendar leggibile: :reason',
         'not_a_calendar' => 'La risposta non contiene un calendario iCalendar.',
@@ -34,6 +35,7 @@ return [
     ],
 
     'preview' => [
+        'busy' => 'Troppe anteprime in questo momento: riprova fra un minuto.',
         'all_day' => 'Intera giornata',
         'recurring' => 'Si ripete',
         'cancelled' => 'Annullato alla sorgente',

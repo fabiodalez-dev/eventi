@@ -6,6 +6,7 @@ namespace App\Support\Import;
 
 use App\Enums\ImportSourceType;
 use App\Rules\SafeImportUrl;
+use App\Rules\UrlWithoutUserInfo;
 use Illuminate\Validation\Rule;
 
 /**
@@ -17,7 +18,8 @@ use Illuminate\Validation\Rule;
  * - **categoria predefinita obbligatoria quando manca il locale**: è la sola
  *   combinazione in cui gli eventi nascerebbero senza classificazione;
  * - indirizzo fino a 1000 caratteri, verificato con `SafeImportUrl` (la stessa
- *   difesa del driver prima di scaricare);
+ *   difesa del driver prima di scaricare) e senza `utente:password@`
+ *   (`UrlWithoutUserInfo`: le credenziali hanno il loro campo cifrato);
  * - la mappatura è un dizionario di chiavi testuali (`timezone`, `auth`,
  *   `exclude_keywords`…), come il campo `KeyValue` del pannello.
  *
@@ -64,7 +66,7 @@ final class ImportSourceRules
                 'integer',
                 Rule::exists('categories', 'id'),
             ],
-            'url' => ['nullable', 'string', 'url', 'max:'.self::MAX_URL_LENGTH, new SafeImportUrl],
+            'url' => ['nullable', 'string', 'url', 'max:'.self::MAX_URL_LENGTH, new UrlWithoutUserInfo, new SafeImportUrl],
             'mapping' => ['nullable', 'array', 'max:'.self::MAX_MAPPING_ENTRIES, function (string $attribute, mixed $value, \Closure $fail): void {
                 if (is_array($value) && ! self::validMapping($value)) {
                     $fail(__('admin.import.mapping_invalid'));

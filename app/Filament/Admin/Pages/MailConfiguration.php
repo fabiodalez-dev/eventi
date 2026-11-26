@@ -264,11 +264,13 @@ class MailConfiguration extends Page implements HasSchemas
              * «autenticazione fallita», «certificato non valido» e «host
              * irraggiungibile» richiedono tre rimedi diversi, e chi sta
              * configurando deve poterli distinguere senza aprire i registri.
+             * Solo per gli errori del trasporto, però: un guasto del database
+             * o del server va nel registro degli errori, non sullo schermo.
              */
             Notification::make()
                 ->danger()
                 ->title(__('mail_settings.test.failed'))
-                ->body($e->getMessage())
+                ->body(MailConfigurationTester::failureDetail($e))
                 ->persistent()
                 ->send();
         }

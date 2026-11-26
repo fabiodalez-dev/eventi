@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Editorial\MailSettingsController;
 use App\Http\Controllers\Api\V1\Editorial\NewsletterSettingsController;
 use App\Http\Controllers\Api\V1\Editorial\NotificationTextController;
 use App\Http\Controllers\Api\V1\Editorial\RedirectController;
+use App\Http\Middleware\RequireRecentPassword;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,16 +30,19 @@ use Illuminate\Support\Facades\Route;
  * cache, manda la prova della posta); la scrittura dei segreti e del codice
  * (SMTP, script di consenso, Redis) resta sul sito. Si scrivono dall'app i
  * testi delle email, la newsletter, il registro dei cookie e gli indirizzi
- * cambiati. Nessuna rotta del pacchetto è pericolosa: il pannello non
- * elimina niente in queste pagine (il ripristino dei testi chiede solo una
- * conferma, come nel pannello).
+ * cambiati. Il pannello non elimina niente in queste pagine; chiedono
+ * però la password recente (revisione dell'ondata 3) i testi delle email e
+ * il loro ripristino, che partono dall'indirizzo del sito verso tutti, e la
+ * newsletter, che va a tutti gli iscritti.
  */
 
 // Testi delle email (R-SY-08): admin e super admin
 Route::get('/notification-texts', [NotificationTextController::class, 'index'])->middleware('throttle:60,1,editorial-settings-texts')->name('settings.texts.index');
 Route::post('/notification-texts/preview', [NotificationTextController::class, 'preview'])->middleware('throttle:120,1,editorial-settings-texts-preview')->name('settings.texts.preview');
-Route::post('/notification-texts/reset', [NotificationTextController::class, 'reset'])->middleware('throttle:10,1,editorial-settings-texts-reset')->name('settings.texts.reset');
-Route::put('/notification-texts/{key}', [NotificationTextController::class, 'update'])->where('key', '[a-z0-9_]+(\.[a-z0-9_]+)+')->middleware('throttle:30,1,editorial-settings-texts-update')->name('settings.texts.update');
+Route::post('/notification-texts/reset', [NotificationTextController::class, 'reset'])
+    ->middleware([RequireRecentPassword::class, 'throttle:10,1,editorial-settings-texts-reset'])->name('settings.texts.reset');
+Route::put('/notification-texts/{key}', [NotificationTextController::class, 'update'])->where('key', '[a-z0-9_]+(\.[a-z0-9_]+)+')
+    ->middleware([RequireRecentPassword::class, 'throttle:30,1,editorial-settings-texts-update'])->name('settings.texts.update');
 
 // Posta (R-SY-09): solo super admin; le credenziali si scrivono dal sito
 Route::get('/mail', [MailSettingsController::class, 'show'])->middleware('throttle:60,1,editorial-settings-mail')->name('settings.mail.show');
@@ -46,7 +50,8 @@ Route::post('/mail/test', [MailSettingsController::class, 'test'])->middleware('
 
 // Newsletter (R-SY-10): solo super admin
 Route::get('/newsletter', [NewsletterSettingsController::class, 'show'])->middleware('throttle:60,1,editorial-settings-newsletter')->name('settings.newsletter.show');
-Route::put('/newsletter', [NewsletterSettingsController::class, 'update'])->middleware('throttle:20,1,editorial-settings-newsletter-update')->name('settings.newsletter.update');
+Route::put('/newsletter', [NewsletterSettingsController::class, 'update'])
+    ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-settings-newsletter-update'])->name('settings.newsletter.update');
 
 // Script di consenso (R-SY-11): sola lettura, admin e super admin
 Route::get('/consent-scripts', [ConsentScriptController::class, 'index'])->middleware('throttle:60,1,editorial-settings-scripts')->name('settings.scripts.index');

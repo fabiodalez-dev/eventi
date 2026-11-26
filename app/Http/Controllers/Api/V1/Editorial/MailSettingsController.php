@@ -32,7 +32,9 @@ final class MailSettingsController extends Controller
      * Il messaggio di prova con la configurazione salvata, all'indirizzo di
      * chi lo chiede. Se parte, la configurazione risulta provata (il sito
      * permette di accenderla); se il server di posta rifiuta, la risposta
-     * porta il suo messaggio per esteso, come la notifica del pannello. In
+     * porta il suo messaggio per esteso, come la notifica del pannello; un
+     * guasto che non è del trasporto va nel registro degli errori e qui
+     * arriva una frase generica (`MailConfigurationTester::failureDetail`). In
      * tutti e due i casi è un 200: la prova è andata, con un esito.
      */
     public function test(EditorialSettings $settings): JsonResponse
@@ -54,7 +56,7 @@ final class MailSettingsController extends Controller
             $result = [
                 'sent' => false,
                 'title' => (string) __('mail_settings.test.failed'),
-                'detail' => $e->getMessage(),
+                'detail' => MailConfigurationTester::failureDetail($e),
             ];
         }
 

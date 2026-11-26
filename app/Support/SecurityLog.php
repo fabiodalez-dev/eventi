@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\User;
+use BackedEnum;
+use DateTimeInterface;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -60,6 +63,74 @@ final class SecurityLog
         }
 
         $registro->log($evento);
+    }
+
+    /** I testi più lunghi di così entrano troncati: il registro deve dire che cosa è cambiato, non conservare pagine. */
+    public const MAX_TEXT = 2000;
+
+    /**
+     * Una scrittura della configurazione fatta da una persona della redazione
+     * (impostazioni social, sorgenti di import, testi delle email, newsletter,
+     * redirect, cookie, cache, invii e post programmati), dal pannello o
+     * dall'app. Chi la fa è la persona collegata; il canale `app` lo aggiunge
+     * da sé `Activity::creating` per le richieste della redazione nell'app.
+     *
+     * I dettagli portano di solito `oggetto`, `id`, `prima` e `dopo`, mai un
+     * segreto: chi chiama toglie password, token e credenziali (al più dice
+     * che sono cambiati). I testi lunghi si troncano.
+     *
+     * @param  array<string, mixed>  $dettagli
+     */
+    public static function configurazione(string $evento, array $dettagli = []): void
+    {
+        $causa = Auth::user();
+
+        self::scrivi($evento, null, self::pulisci($dettagli), $causa instanceof User ? $causa : null);
+    }
+
+    /**
+     * Le sole voci cambiate fra due istantanee, con il loro valore prima e
+     * dopo; vuoto se non è cambiato niente.
+     *
+     * @param  array<string, mixed>  $prima
+     * @param  array<string, mixed>  $dopo
+     * @return array{prima: array<string, mixed>, dopo: array<string, mixed>}
+     */
+    public static function differenze(array $prima, array $dopo): array
+    {
+        $before = [];
+        $after = [];
+        foreach (array_unique([...array_keys($prima), ...array_keys($dopo)]) as $key) {
+            $old = self::valore($prima[$key] ?? null);
+            $new = self::valore($dopo[$key] ?? null);
+            if (json_encode($old) !== json_encode($new)) {
+                $before[$key] = $old;
+                $after[$key] = $new;
+            }
+        }
+
+        return ['prima' => $before, 'dopo' => $after];
+    }
+
+    /** Un valore come si scrive nel registro: enum come valore, date in ISO, testi troncati. */
+    public static function valore(mixed $value): mixed
+    {
+        return match (true) {
+            $value instanceof BackedEnum => $value->value,
+            $value instanceof DateTimeInterface => $value->format(DATE_ATOM),
+            is_string($value) && mb_strlen($value) > self::MAX_TEXT => mb_substr($value, 0, self::MAX_TEXT).'…',
+            is_array($value) => array_map(self::valore(...), $value),
+            default => $value,
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $dettagli
+     * @return array<string, mixed>
+     */
+    private static function pulisci(array $dettagli): array
+    {
+        return array_map(self::valore(...), $dettagli);
     }
 
     /**

@@ -29,7 +29,11 @@ use Illuminate\Support\Facades\Route;
  * azioni pericolose (decisione 4) e chiedono la password scritta negli
  * ultimi 15 minuti (`RequireRecentPassword`, 423 `PASSWORD_REQUIRED`), oltre
  * alla conferma nell'app come `wire:confirm` della pagina. Riprogrammare e
- * annullare una programmazione non pubblicano niente.
+ * annullare una programmazione non pubblicano niente. Chiedono la password
+ * recente anche le impostazioni (revisione dell'ondata 3: accendere
+ * l'automatico o cambiare il testo pubblica ogni giorno senza passare da
+ * «Pubblica») e «Scollega Meta», che si rimedia solo rifacendo il
+ * collegamento dal sito.
  * L'anteprima consuma il secchio del sito (`social-preview`).
  */
 Route::prefix('social')->name('social.')->group(function (): void {
@@ -67,8 +71,8 @@ Route::prefix('social')->name('social.')->group(function (): void {
     });
 
     Route::middleware('throttle:20,1,editorial-social-settings')->group(function (): void {
-        Route::put('/settings', [SocialSettingsController::class, 'update'])->name('settings.update');
-        Route::post('/meta/disconnect', [SocialSettingsController::class, 'disconnect'])->name('meta.disconnect');
+        Route::put('/settings', [SocialSettingsController::class, 'update'])->middleware(RequireRecentPassword::class)->name('settings.update');
+        Route::post('/meta/disconnect', [SocialSettingsController::class, 'disconnect'])->middleware(RequireRecentPassword::class)->name('meta.disconnect');
     });
     Route::middleware('throttle:10,1,editorial-social-verify')->group(function (): void {
         Route::post('/settings/verify', [SocialSettingsController::class, 'verify'])->name('settings.verify');

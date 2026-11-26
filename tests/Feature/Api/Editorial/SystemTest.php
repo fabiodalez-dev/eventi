@@ -85,7 +85,9 @@ it('elenca le sorgenti ad admin e super admin con le colonne del pannello, senza
             ->and($row['venue'])->toBeNull()
             ->and($row['type'])->toBe('ics')
             ->and($row['type_label'])->toBe(ImportSourceType::Ics->label())
-            ->and($row['url'])->toBe(IcsFixtures::URL)
+            // Con le credenziali l'indirizzo arriva mascherato (revisione dell'ondata 3).
+            ->and($row['url'])->toBe('https://calendario.test/…')
+            ->and($row['url_masked'])->toBeTrue()
             ->and($row['has_credentials'])->toBeTrue()
             ->and($row['mapping'])->toBe(['timezone' => 'Europe/Rome', 'exclude_keywords' => ['riunione', 'staff']])
             ->and($row['default_category'])->toBe(['id' => $this->s->category->id, 'name' => $this->s->category->name])

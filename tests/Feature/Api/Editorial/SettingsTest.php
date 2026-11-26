@@ -30,8 +30,10 @@ use Tests\Support\VenueIsolationScenario;
  * decisione 5: i segreti non escono e non si scrivono dall'app.
  *
  * La griglia: moderatore, admin, super admin, referente di un locale,
- * utente comune, token non sbloccato (423). Nessuna rotta del pacchetto è
- * pericolosa: con la password vecchia di 16 minuti le scritture passano.
+ * utente comune, token non sbloccato (423). Con la password vecchia di 16
+ * minuti le scritture passano, tranne i testi delle email, il loro
+ * ripristino e la newsletter, che vanno a tutti (revisione dell'ondata 3:
+ * `r13Fresh`, e il 423 in `Wave3SecurityTest`).
  */
 beforeEach(function (): void {
     Notification::fake();
@@ -50,6 +52,12 @@ function r13Gate(mixed $test, string $method, string $url, array $body = []): vo
         ->assertStatus(423)->assertJsonPath('error.code', 'EDITORIAL_LOCKED');
     EditorialSession::as($test, EditorialSession::token($test->superAdmin, unlockedHoursAgo: 12))->json($method, $url, $body)
         ->assertStatus(423)->assertJsonPath('error.code', 'EDITORIAL_LOCKED');
+}
+
+/** Le richieste di una persona con lo sblocco valido e la password appena scritta (testi delle email e newsletter). */
+function r13Fresh(mixed $test, mixed $user): mixed
+{
+    return EditorialSession::as($test, EditorialSession::token($user));
 }
 
 /** Le richieste di una persona con lo sblocco valido ma la password di 16 minuti fa. */
@@ -84,9 +92,9 @@ it('salva un testo con la revisione letta, e vuoto o uguale all\'originale torna
     $revision = NotificationTextEditor::revision($key);
 
     r13Gate($this, 'PUT', $url, ['value' => 'Cambiato :title', 'revision' => $revision]);
-    r13As($this, $this->s->moderator)->putJson($url, ['value' => 'Cambiato :title', 'revision' => $revision])->assertForbidden();
+    r13Fresh($this, $this->s->moderator)->putJson($url, ['value' => 'Cambiato :title', 'revision' => $revision])->assertForbidden();
 
-    $row = r13As($this, $this->s->admin)->putJson($url, ['value' => 'Nuovo orario per :title', 'revision' => $revision])->assertOk()
+    $row = r13Fresh($this, $this->s->admin)->putJson($url, ['value' => 'Nuovo orario per :title', 'revision' => $revision])->assertOk()
         ->assertJsonPath('data.value', 'Nuovo orario per :title')
         ->assertJsonPath('data.modified', true)
         ->assertJsonPath('meta.message', __('notification_texts.saved', ['scritti' => 1, 'ripristinati' => 0]))
@@ -96,15 +104,15 @@ it('salva un testo con la revisione letta, e vuoto o uguale all\'originale torna
         ->and($row['preview'])->toBe('Nuovo orario per '.__('notification_texts.examples.title'));
 
     // La revisione di prima non vale più: qualcuno ha scritto nel frattempo.
-    r13As($this, $this->superAdmin)->putJson($url, ['value' => 'Altro :title', 'revision' => $revision])
+    r13Fresh($this, $this->superAdmin)->putJson($url, ['value' => 'Altro :title', 'revision' => $revision])
         ->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['revision']]]);
 
     // Un segnaposto che l'originale non ha.
-    r13As($this, $this->s->admin)->putJson($url, ['value' => 'Nuovo :inventato', 'revision' => $row['revision']])
+    r13Fresh($this, $this->s->admin)->putJson($url, ['value' => 'Nuovo :inventato', 'revision' => $row['revision']])
         ->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['value']]]);
 
     // Vuoto: torna all'originale, la riga sparisce.
-    r13As($this, $this->s->admin)->putJson($url, ['value' => '', 'revision' => $row['revision']])->assertOk()
+    r13Fresh($this, $this->s->admin)->putJson($url, ['value' => '', 'revision' => $row['revision']])->assertOk()
         ->assertJsonPath('data.modified', false)
         ->assertJsonPath('meta.message', __('notification_texts.saved', ['scritti' => 0, 'ripristinati' => 1]));
     expect(NotificationText::query()->where('key', $key)->exists())->toBeFalse();
@@ -114,9 +122,9 @@ it('non lascia scrivere all\'admin i testi della newsletter né chiavi che non e
     $key = 'notifications.weekend.subject';
     $body = ['value' => 'Weekend', 'revision' => NotificationTextEditor::revision($key)];
 
-    r13As($this, $this->s->admin)->putJson('/api/v1/editorial/notification-texts/'.$key, $body)->assertNotFound();
-    r13As($this, $this->s->admin)->putJson('/api/v1/editorial/notification-texts/notifications.inventata.subject', $body)->assertNotFound();
-    r13As($this, $this->superAdmin)->putJson('/api/v1/editorial/notification-texts/'.$key, $body)->assertOk();
+    r13Fresh($this, $this->s->admin)->putJson('/api/v1/editorial/notification-texts/'.$key, $body)->assertNotFound();
+    r13Fresh($this, $this->s->admin)->putJson('/api/v1/editorial/notification-texts/notifications.inventata.subject', $body)->assertNotFound();
+    r13Fresh($this, $this->superAdmin)->putJson('/api/v1/editorial/notification-texts/'.$key, $body)->assertOk();
     expect(NotificationText::query()->where('key', $key)->value('value'))->toBe('Weekend');
 });
 
@@ -137,8 +145,8 @@ it('riporta all\'originale solo i testi che la persona vede', function (): void 
     NotificationText::dimenticaLaCache();
 
     r13Gate($this, 'POST', '/api/v1/editorial/notification-texts/reset');
-    r13As($this, $this->s->moderator)->postJson('/api/v1/editorial/notification-texts/reset')->assertForbidden();
-    r13As($this, $this->s->admin)->postJson('/api/v1/editorial/notification-texts/reset')->assertOk()
+    r13Fresh($this, $this->s->moderator)->postJson('/api/v1/editorial/notification-texts/reset')->assertForbidden();
+    r13Fresh($this, $this->s->admin)->postJson('/api/v1/editorial/notification-texts/reset')->assertOk()
         ->assertJsonPath('meta.message', __('notification_texts.reset_done'));
 
     expect(NotificationText::query()->pluck('key')->all())->toBe(['notifications.weekend.line']);
@@ -213,7 +221,7 @@ it('legge e salva la newsletter solo per il super admin, con le regole del panne
     r13Gate($this, 'PUT', '/api/v1/editorial/newsletter', $body);
     foreach ([$this->s->moderator, $this->s->admin] as $person) {
         r13As($this, $person)->getJson('/api/v1/editorial/newsletter')->assertForbidden();
-        r13As($this, $person)->putJson('/api/v1/editorial/newsletter', $body)->assertForbidden();
+        r13Fresh($this, $person)->putJson('/api/v1/editorial/newsletter', $body)->assertForbidden();
     }
 
     r13As($this, $this->superAdmin)->getJson('/api/v1/editorial/newsletter')->assertOk()
@@ -221,7 +229,7 @@ it('legge e salva la newsletter solo per il super admin, con le regole del panne
         ->assertJsonPath('data.texts.line.max', 2000)
         ->assertJsonPath('data.texts.line.variables.0.name', 'count');
 
-    r13As($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', $body)->assertOk()
+    r13Fresh($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', $body)->assertOk()
         ->assertJsonPath('data.time', '18:45')
         ->assertJsonPath('data.enabled', true)
         ->assertJsonPath('data.texts.subject.value', 'Il tuo weekend')
@@ -232,11 +240,11 @@ it('legge e salva la newsletter solo per il super admin, con le regole del panne
         // Il titolo vuoto torna all'originale: nessuna riga.
         ->and(NotificationText::query()->where('key', 'notifications.weekend.heading')->exists())->toBeFalse();
 
-    r13As($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', [...$body, 'line' => 'Variabile :inesistente'])
+    r13Fresh($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', [...$body, 'line' => 'Variabile :inesistente'])
         ->assertStatus(422)->assertJsonPath('error.fields.line.0', 'Variabili non riconosciute: inesistente');
-    r13As($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', [...$body, 'weekday' => 9, 'time' => '25:00', 'max_items' => 0])
+    r13Fresh($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', [...$body, 'weekday' => 9, 'time' => '25:00', 'max_items' => 0])
         ->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['weekday', 'time', 'max_items']]]);
-    r13As($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', [...$body, 'enabled' => false])->assertOk();
+    r13Fresh($this, $this->superAdmin)->putJson('/api/v1/editorial/newsletter', [...$body, 'enabled' => false])->assertOk();
     expect(Features::newsletterActive())->toBeFalse();
 });
 

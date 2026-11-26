@@ -17,6 +17,9 @@ use App\Queries\EditorialDashboardQuery;
 use App\Services\Import\ImportDriverFactory;
 use App\Support\Import\ImportPreviewRows;
 use App\Support\Import\ImportSourceRules;
+use App\Support\Import\ImportUrlMask;
+use App\Support\Import\ImportUrlOrigin;
+use App\Support\SecurityLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
@@ -33,7 +36,10 @@ use Illuminate\Support\Facades\Gate;
  * pannello); l'esecuzione accoda lo stesso `ImportSourceJob` del pulsante.
  *
  * Le credenziali non escono mai, nemmeno cifrate: la riga dice solo se ci
- * sono (`has_credentials`). Si scrivono dal sito (decisione 6).
+ * sono (`has_credentials`). Si scrivono dal sito (decisione 6). Anche
+ * l'indirizzo può essere un segreto (un calendario privato, o una sorgente
+ * con credenziali): allora arriva mascherato, e lo stesso `last_error` e i
+ * messaggi delle esecuzioni che lo citano (`ImportUrlMask`).
  *
  * Il pannello vede le sorgenti di tutte le città: anche l'app.
  */
@@ -100,6 +106,7 @@ final class EditorialImportSources
         $runnable = $this->drivers->supports($source);
         $run = $runnable && $gate->allows('run', $source);
         $mapping = $source->mapping;
+        $secret = ImportUrlMask::sourceIsSecret($source);
 
         return [
             'id' => $source->id,
@@ -107,9 +114,11 @@ final class EditorialImportSources
             'venue' => $source->venue === null ? null : ['id' => $source->venue->id, 'name' => $source->venue->name],
             'type' => $source->type->value,
             'type_label' => $source->type->label(),
-            'url' => $source->url,
+            // Mascherato (solo schema e host, poi «…») se apre un calendario privato o se la sorgente ha credenziali.
+            'url' => ImportUrlMask::forSource($source),
+            'url_masked' => $secret,
             // Solo se ci sono: il segreto resta sul server, come nel modulo del pannello.
-            'has_credentials' => filled($source->getRawOriginal('credentials')),
+            'has_credentials' => ImportUrlOrigin::hasCredentials($source),
             'mapping' => is_array($mapping) && $mapping !== [] ? $mapping : null,
             'default_category' => $source->defaultCategory === null ? null : ['id' => $source->defaultCategory->id, 'name' => $source->defaultCategory->name],
             'is_active' => (bool) $source->is_active,
@@ -117,7 +126,7 @@ final class EditorialImportSources
             // Una stringa libera per contratto: un valore che l'enum non conosce si mostra così com'è.
             'last_status' => $source->last_status,
             'last_status_label' => $status?->label() ?? $source->last_status,
-            'last_error' => $source->last_error,
+            'last_error' => ImportUrlMask::text($source->last_error, $secret),
             'runnable' => $runnable,
             // La scheda del pannello dove si scrivono le credenziali.
             'web_path' => 'admin/import-sources/'.$source->id.'/edit',
@@ -219,16 +228,27 @@ final class EditorialImportSources
      */
     public function preview(ImportSource $source): array
     {
-        return ImportPreviewRows::forSource($source);
+        $preview = ImportPreviewRows::forSource($source);
+        $preview['error'] = ImportUrlMask::text($preview['error'], ImportUrlMask::sourceIsSecret($source));
+
+        return $preview;
     }
 
     /**
      * «Esegui adesso»: accoda lo stesso lavoro dell'esecuzione oraria, come
-     * il pulsante del pannello. Non esegue nel processo della richiesta.
+     * il pulsante del pannello (che chiama questo metodo). Non esegue nel
+     * processo della richiesta. Va nel registro di sicurezza: gli eventi di
+     * una sorgente senza locale, o con un locale approvato, nascono pubblicati.
      */
     public function run(ImportSource $source): void
     {
         ImportSourceJob::dispatch((int) $source->getKey());
+
+        SecurityLog::configurazione('import_sorgente_eseguita', [
+            'oggetto' => 'import_source',
+            'id' => (int) $source->getKey(),
+            'url' => ImportUrlMask::forSource($source),
+        ]);
     }
 
     public function runnable(ImportSource $source): bool
@@ -257,8 +277,13 @@ final class EditorialImportSources
         return $query->paginate($perPage, page: $page);
     }
 
-    /** @return array<string, mixed> */
-    public function runRow(ImportRun $run): array
+    /**
+     * Una riga dello storico; `$secret` (la sorgente è segreta) maschera
+     * l'indirizzo che il messaggio cita.
+     *
+     * @return array<string, mixed>
+     */
+    public function runRow(ImportRun $run, bool $secret = false): array
     {
         return [
             'id' => $run->id,
@@ -271,7 +296,7 @@ final class EditorialImportSources
             'excluded_count' => (int) $run->excluded_count,
             'cancelled_count' => (int) $run->cancelled_count,
             'error_count' => (int) $run->error_count,
-            'message' => $run->message,
+            'message' => ImportUrlMask::text($run->message, $secret),
         ];
     }
 

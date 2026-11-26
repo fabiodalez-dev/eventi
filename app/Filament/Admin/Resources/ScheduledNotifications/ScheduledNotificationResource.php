@@ -11,6 +11,7 @@ use App\Enums\NotificationType;
 use App\Filament\Admin\Resources\ScheduledNotifications\Pages\ListScheduledNotifications;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\ScheduledNotification;
+use App\Services\Editorial\EditorialScheduledNotifications;
 use App\Support\Notifications\ScheduledNotificationSubject;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -181,7 +182,8 @@ class ScheduledNotificationResource extends Resource
                     ->modalDescription(__('admin.confirmations.cancel_notification'))
                     ->visible(fn (ScheduledNotification $record): bool => auth()->user()?->can('cancel', $record) ?? false)
                     ->action(function (ScheduledNotification $record): void {
-                        $record->markCancelled();
+                        // Lo stesso dell'app: annulla e scrive nel registro di sicurezza.
+                        app(EditorialScheduledNotifications::class)->cancel($record);
                     })
                     ->successNotificationTitle(__('admin.notifications.notification_cancelled')),
             ]);

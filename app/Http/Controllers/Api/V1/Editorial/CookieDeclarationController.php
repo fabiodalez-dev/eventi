@@ -13,6 +13,7 @@ use App\Models\CookieDeclaration;
 use App\Services\Editorial\EditorialPermissions;
 use App\Services\Editorial\EditorialSettings;
 use App\Support\Editorial\EditorialDesk;
+use App\Support\SecurityLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,7 @@ final class CookieDeclarationController extends Controller
                 CookieDeclaration::query()->whereKey($id)->where('category', $category)->update(['sort_order' => $index + 1]);
             }
         });
+        SecurityLog::configurazione('cookie_riordinati', ['oggetto' => 'cookie_declaration', 'categoria' => $category, 'dopo' => $ids]);
 
         $rows = CookieDeclaration::query()->where('category', $category)->orderBy('sort_order')->orderBy('id')->get()
             ->map(fn (CookieDeclaration $cookie): array => $settings->cookieRow($cookie))->values()->all();

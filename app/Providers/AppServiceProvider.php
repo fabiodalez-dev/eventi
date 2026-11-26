@@ -17,6 +17,7 @@ use App\Models\City;
 use App\Models\CommunityComment;
 use App\Models\CommunityPost;
 use App\Models\CommunityProfile;
+use App\Models\CookieDeclaration;
 use App\Models\Event;
 use App\Models\EventCollection;
 use App\Models\EventComment;
@@ -42,6 +43,7 @@ use App\Models\VenueApplication;
 use App\Models\VenueNotice;
 use App\Observers\CategoryObserver;
 use App\Observers\CityObserver;
+use App\Observers\ConfigurationAuditObserver;
 use App\Observers\EventObserver;
 use App\Observers\EventOccurrenceObserver;
 use App\Observers\TagObserver;
@@ -636,6 +638,15 @@ class AppServiceProvider extends ServiceProvider
         Category::observe(CategoryObserver::class);
         Tag::observe(TagObserver::class);
         City::observe(CityObserver::class);
+
+        /*
+         * Il registro di sicurezza delle tabelle di configurazione che pannello
+         * e app scrivono (sorgenti di import, redirect, cookie): chi, che cosa,
+         * prima e dopo, mai le credenziali. Revisione dell'ondata 3, punto 3.
+         */
+        ImportSource::observe(ConfigurationAuditObserver::class);
+        Redirect::observe(ConfigurationAuditObserver::class);
+        CookieDeclaration::observe(ConfigurationAuditObserver::class);
 
         /*
          * La documentazione OpenAPI (`/docs/api`) prende titolo e descrizione

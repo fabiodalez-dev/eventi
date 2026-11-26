@@ -30,6 +30,28 @@ return [
     'connect_timeout' => 10,
 
     /*
+     * Un tetto complessivo, redirect compresi, in secondi; `null` = nessuno.
+     * L'esecuzione oraria in coda non ne ha bisogno (ha `timeout` per
+     * richiesta e i tentativi della coda); l'anteprima sì, perché tiene
+     * occupato un processo della richiesta web: `ImportRunner::preview` lo
+     * mette a `preview.timeout`.
+     */
+    'total_timeout' => null,
+
+    /*
+     * L'anteprima del pannello e dell'app (§14.2) si legge **dentro la
+     * richiesta**: su un hosting condiviso i processi PHP sono pochi, e
+     * quattro tentativi da 30 secondi ne tenevano uno fermo due minuti.
+     * Quindici secondi in tutto e un solo redirect: un calendario più lento
+     * si prova con «Esegui adesso», che va in coda.
+     */
+    'preview' => [
+        'timeout' => 15,
+        'connect_timeout' => 5,
+        'max_redirects' => 1,
+    ],
+
+    /*
      * Byte massimi accettati da una risposta. Un calendario pubblico che
      * supera questa soglia non è un calendario: è un guasto, o qualcuno che
      * ci sta puntando contro un file enorme.

@@ -6,6 +6,7 @@ namespace App\Services\Social;
 
 use App\Models\City;
 use App\Models\SocialConnection;
+use App\Support\SecurityLog;
 use App\Support\Social\SocialErrorMessage;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -31,6 +32,10 @@ final class SocialSettingsDesk
 {
     /** I segreti del collegamento, scritti solo dalla pagina del sito. */
     public const SECRETS = ['access_token', 'app_secret', 'telegram_bot_token'];
+
+    /** I campi che il registro di sicurezza confronta prima e dopo: tutti tranne i segreti. */
+    public const AUDITED = ['city_id', 'app_id', 'page_id', 'instagram_id', 'graph_version', 'facebook_enabled', 'instagram_enabled',
+        'telegram_chat_id', 'telegram_enabled', 'automatic', 'graphic_options', 'publish_time', 'caption'];
 
     /** Le opzioni della grafica dei post automatici quando non sono mai state salvate. */
     public const GRAPHIC_DEFAULTS = ['monochrome' => true, 'show_address' => true, 'show_price' => true, 'image_fit' => 'contain'];
@@ -73,12 +78,14 @@ final class SocialSettingsDesk
             throw ValidationException::withMessages([$captionKey => __('social.invalid_tokens', ['tokens' => implode(', ', $unknown)])]);
         }
         $connection = SocialConnection::first() ?? new SocialConnection;
+        $before = $connection->exists ? self::snapshot($connection) : [];
         foreach (self::SECRETS as $secret) {
             if (blank($values[$secret] ?? null)) {
                 unset($values[$secret]);
             }
         }
         $connection->fill($values);
+        $secrets = array_values(array_filter(self::SECRETS, fn (string $secret): bool => $connection->isDirty($secret)));
         if ($connection->isDirty(['city_id', 'app_id', 'app_secret', 'access_token', 'page_id', 'instagram_id', 'graph_version', 'facebook_enabled', 'instagram_enabled'])) {
             $connection->verified_at = null;
         }
@@ -92,13 +99,55 @@ final class SocialSettingsDesk
         }
         $connection->save();
 
+        $after = self::snapshot($connection);
+        if (SecurityLog::differenze($before, $after)['dopo'] !== [] || $secrets !== []) {
+            // Il registro: chi, i campi prima e dopo; dei segreti solo il nome, mai il valore.
+            SecurityLog::configurazione('social_impostazioni_cambiate', array_filter([
+                'oggetto' => 'social_connection',
+                'id' => (int) $connection->getKey(),
+                'prima' => $before,
+                'dopo' => $after,
+                'segreti_cambiati' => $secrets,
+            ], static fn (mixed $value): bool => $value !== []));
+        }
+
         return ['connection' => $connection, 'automatic_off' => $off];
     }
 
     /** «Scollega Meta»: via il token della Pagina, la verifica e la pubblicazione automatica. */
     public function disconnectMeta(): void
     {
+        $connection = SocialConnection::first();
+        $state = static fn (?SocialConnection $c): array => [
+            'access_token_saved' => filled($c?->access_token),
+            'verified' => $c?->verified_at !== null,
+            'automatic' => (bool) $c?->automatic,
+        ];
+        $before = $state($connection);
+
         SocialConnection::query()->update(['access_token' => null, 'verified_at' => null, 'automatic' => false]);
+
+        SecurityLog::configurazione('meta_scollegato', [
+            'oggetto' => 'social_connection',
+            'id' => $connection?->getKey(),
+            'prima' => $before,
+            'dopo' => $state(SocialConnection::first()),
+        ]);
+    }
+
+    /**
+     * I campi del collegamento senza i segreti, come li confronta il registro.
+     *
+     * @return array<string, mixed>
+     */
+    private static function snapshot(SocialConnection $connection): array
+    {
+        $values = [];
+        foreach (self::AUDITED as $field) {
+            $values[$field] = SecurityLog::valore($connection->getAttribute($field));
+        }
+
+        return $values;
     }
 
     /**

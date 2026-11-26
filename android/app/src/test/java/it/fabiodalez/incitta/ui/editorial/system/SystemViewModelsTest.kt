@@ -154,6 +154,20 @@ class SystemViewModelsTest {
         assertEquals(JsonNull, edited["venue_id"])
     }
 
+    @Test fun aMaskedAddressIsReadOnlyAndNeverSentBack() {
+        val masked = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString(
+            EditorialImportSource.serializer(),
+            """{"id":4,"type":"ics","url":"https://calendar.google.com/…","url_masked":true,"has_credentials":false,"is_active":true}""",
+        )
+        assertTrue(masked.urlMasked)
+        assertFalse(importUrlEditable(masked))
+        assertTrue(importUrlEditable(null))
+        assertTrue(importUrlEditable(masked.copy(urlMasked = false)))
+        /* Il modulo apre con l'indirizzo mascherato: cambiando altro, l'indirizzo non parte. */
+        val body = importDraftBody(ImportDraft.of(masked).copy(active = false), masked)
+        assertEquals(setOf("is_active"), body.keys)
+    }
+
     @Test fun theFormCreatesASourceWithTheDefaultsOfThePanel() {
         val source = FakeSystem()
         val viewModel = ImportSourceFormViewModel(repository, source, SavedStateHandle(mapOf("id" to 0L)))

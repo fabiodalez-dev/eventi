@@ -8,6 +8,7 @@ use App\Enums\NotificationSkipReason;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use App\Support\Notifications\ScheduledNotificationSubject;
+use App\Support\SecurityLog;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -61,6 +62,25 @@ final class EditorialScheduledNotifications
         $query->orderBy('id', 'desc');
 
         return $query->paginate($perPage, page: $page);
+    }
+
+    /**
+     * «Ferma l'invio» del pannello e dell'app: la riga resta, annullata, e
+     * va nel registro di sicurezza (chi, quale invio, lo stato prima e dopo).
+     * Chi può farlo lo decide prima `ScheduledNotificationPolicy::cancel`.
+     */
+    public function cancel(ScheduledNotification $notification): void
+    {
+        $before = $notification->status;
+        $notification->markCancelled();
+
+        SecurityLog::configurazione('invio_programmato_annullato', [
+            'oggetto' => 'scheduled_notification',
+            'id' => (int) $notification->getKey(),
+            'tipo' => $notification->getAttribute('type'),
+            'prima' => ['status' => $before],
+            'dopo' => ['status' => $notification->status],
+        ]);
     }
 
     public function notification(int $id): ScheduledNotification

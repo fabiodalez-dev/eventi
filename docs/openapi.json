@@ -96000,7 +96000,11 @@
                                                         "type": [
                                                             "string",
                                                             "null"
-                                                        ]
+                                                        ],
+                                                        "description": "Mascherato (solo schema e host, poi \u00ab\u2026\u00bb) se apre un calendario privato o se la sorgente ha credenziali."
+                                                    },
+                                                    "url_masked": {
+                                                        "type": "boolean"
                                                     },
                                                     "has_credentials": {
                                                         "type": "boolean",
@@ -96101,6 +96105,7 @@
                                                     "type",
                                                     "type_label",
                                                     "url",
+                                                    "url_masked",
                                                     "has_credentials",
                                                     "mapping",
                                                     "default_category",
@@ -96288,7 +96293,11 @@
                                                     "type": [
                                                         "string",
                                                         "null"
-                                                    ]
+                                                    ],
+                                                    "description": "Mascherato (solo schema e host, poi \u00ab\u2026\u00bb) se apre un calendario privato o se la sorgente ha credenziali."
+                                                },
+                                                "url_masked": {
+                                                    "type": "boolean"
                                                 },
                                                 "has_credentials": {
                                                     "type": "boolean",
@@ -96389,6 +96398,7 @@
                                                 "type",
                                                 "type_label",
                                                 "url",
+                                                "url_masked",
                                                 "has_credentials",
                                                 "mapping",
                                                 "default_category",
@@ -96822,7 +96832,11 @@
                                                     "type": [
                                                         "string",
                                                         "null"
-                                                    ]
+                                                    ],
+                                                    "description": "Mascherato (solo schema e host, poi \u00ab\u2026\u00bb) se apre un calendario privato o se la sorgente ha credenziali."
+                                                },
+                                                "url_masked": {
+                                                    "type": "boolean"
                                                 },
                                                 "has_credentials": {
                                                     "type": "boolean",
@@ -96923,6 +96937,7 @@
                                                 "type",
                                                 "type_label",
                                                 "url",
+                                                "url_masked",
                                                 "has_credentials",
                                                 "mapping",
                                                 "default_category",
@@ -97092,7 +97107,11 @@
                                                     "type": [
                                                         "string",
                                                         "null"
-                                                    ]
+                                                    ],
+                                                    "description": "Mascherato (solo schema e host, poi \u00ab\u2026\u00bb) se apre un calendario privato o se la sorgente ha credenziali."
+                                                },
+                                                "url_masked": {
+                                                    "type": "boolean"
                                                 },
                                                 "has_credentials": {
                                                     "type": "boolean",
@@ -97193,6 +97212,7 @@
                                                 "type",
                                                 "type_label",
                                                 "url",
+                                                "url_masked",
                                                 "has_credentials",
                                                 "mapping",
                                                 "default_category",
@@ -97327,6 +97347,7 @@
         "/editorial/import-sources/{source}/preview": {
             "post": {
                 "operationId": "v1.editorial.import-sources.preview",
+                "description": "Oltre al limite della rotta per persona c'\u00e8 un tetto per tutto il sito,\nlo stesso del pannello (`ImportPreviewLimiter`): 429 `RATE_LIMITED`.",
                 "summary": "L'anteprima: le prime date che entrerebbero, nell'ora della citt\u00e0,\nsenza scrivere niente. Un calendario che non si legge non \u00e8 un errore\ndella richiesta: il motivo torna in `error`, come nella finestra",
                 "tags": [
                     "ImportSource"
@@ -97352,14 +97373,57 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
+                                                "rows": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "when": {
+                                                                "type": "string"
+                                                            },
+                                                            "title": {
+                                                                "type": "string"
+                                                            },
+                                                            "where": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "notes": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "cancelled": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "when",
+                                                            "title",
+                                                            "where",
+                                                            "notes",
+                                                            "cancelled"
+                                                        ]
+                                                    }
+                                                },
+                                                "error": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "timezone": {
                                                     "type": "string"
                                                 }
                                             },
                                             "required": [
+                                                "rows",
+                                                "error",
                                                 "timezone"
-                                            ],
-                                            "additionalProperties": {}
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -98721,7 +98785,7 @@
         "/editorial/mail/test": {
             "post": {
                 "operationId": "v1.editorial.settings.mail.test",
-                "summary": "Il messaggio di prova con la configurazione salvata, all'indirizzo di\nchi lo chiede. Se parte, la configurazione risulta provata (il sito\npermette di accenderla); se il server di posta rifiuta, la risposta\nporta il suo messaggio per esteso, come la notifica del pannello. In\ntutti e due i casi \u00e8 un 200: la prova \u00e8 andata, con un esito",
+                "summary": "Il messaggio di prova con la configurazione salvata, all'indirizzo di\nchi lo chiede. Se parte, la configurazione risulta provata (il sito\npermette di accenderla); se il server di posta rifiuta, la risposta\nporta il suo messaggio per esteso, come la notifica del pannello; un\nguasto che non \u00e8 del trasporto va nel registro degli errori e qui\narriva una frase generica (`MailConfigurationTester::failureDetail`). In\ntutti e due i casi \u00e8 un 200: la prova \u00e8 andata, con un esito",
                 "tags": [
                     "MailSettings"
                 ],
@@ -170491,7 +170555,7 @@
             },
             "SaveImportSourceRequest": {
                 "type": "object",
-                "description": "Il modulo di una sorgente dall'app: `POST /import-sources` con tutti i\ncampi, `PATCH /import-sources/{source}` con quelli che cambiano (per\nesempio solo `is_active`, \u00abattiva/disattiva\u00bb). Le regole sono quelle del\nmodulo del pannello (`ImportSourceRules`); la categoria predefinita \u00e8\nobbligatoria se, dopo il salvataggio, la sorgente non avr\u00e0 un locale.\n\n`credentials` \u00e8 rifiutato (422): le credenziali si scrivono dal sito.\nPrima dei campi la policy (`ImportSourcePolicy::create` o `update`): chi\nnon pu\u00f2 scrivere riceve 403 senza sapere quali campi sarebbero sbagliati.",
+                "description": "Il modulo di una sorgente dall'app: `POST /import-sources` con tutti i\ncampi, `PATCH /import-sources/{source}` con quelli che cambiano (per\nesempio solo `is_active`, \u00abattiva/disattiva\u00bb). Le regole sono quelle del\nmodulo del pannello (`ImportSourceRules`); la categoria predefinita \u00e8\nobbligatoria se, dopo il salvataggio, la sorgente non avr\u00e0 un locale.\n\n`credentials` \u00e8 rifiutato (422): le credenziali si scrivono dal sito. Per\nla stessa ragione, l'indirizzo di una sorgente con credenziali non cambia\norigine (schema, host, porta) dall'app: le credenziali partirebbero verso\nil nuovo host alla prima anteprima (revisione dell'ondata 3, punto 1).\nL'indirizzo mascherato che l'app riceve (`ImportUrlMask`), rimandato cos\u00ec\ncom'\u00e8, non cambia niente.\nPrima dei campi la policy (`ImportSourcePolicy::create` o `update`): chi\nnon pu\u00f2 scrivere riceve 403 senza sapere quali campi sarebbero sbagliati.",
                 "properties": {
                     "city_id": {
                         "type": "integer"

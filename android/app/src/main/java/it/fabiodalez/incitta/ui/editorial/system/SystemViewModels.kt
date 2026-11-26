@@ -300,6 +300,13 @@ internal fun importDraftProblems(draft: ImportDraft, limits: ImportFormLimits): 
 }
 
 /**
+ * L'indirizzo si cambia dall'app solo se il server lo manda per intero. Un
+ * indirizzo mascherato (calendario privato, o sorgente con credenziali) si
+ * cambia dal sito: il campo resta in sola lettura e, non cambiando, non parte.
+ */
+internal fun importUrlEditable(original: EditorialImportSource?): Boolean = original?.urlMasked != true
+
+/**
  * Il corpo da mandare: per una sorgente nuova tutti i campi; per una
  * modifica solo quelli cambiati, così un indirizzo che non si tocca non
  * viene riverificato e un locale tolto arriva come `null` esplicito.

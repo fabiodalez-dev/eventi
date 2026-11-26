@@ -10,6 +10,7 @@ use App\Models\City;
 use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
+use App\Support\SecurityLog;
 use App\Support\Social\SocialErrorMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -90,8 +91,17 @@ final class EditorialPublishing
     /** Annulla una programmazione ancora in attesa; vero se qualcosa è cambiato. */
     public function cancel(int $id): bool
     {
-        return SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
+        $changed = SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
             ->update(['status' => SocialPublicationStatus::Cancelled->value]) > 0;
+
+        if ($changed) {
+            SecurityLog::configurazione('post_social_annullato', [
+                'oggetto' => 'social_publication', 'id' => $id,
+                'prima' => ['status' => SocialPublicationStatus::Scheduled->value], 'dopo' => ['status' => SocialPublicationStatus::Cancelled->value],
+            ]);
+        }
+
+        return $changed;
     }
 
     /**
@@ -105,8 +115,18 @@ final class EditorialPublishing
         $city = City::findOrFail(SocialConnection::findOrFail($publication->social_connection_id)->city_id);
         $when = $this->when($local, $city->timezone);
 
-        return SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
+        $changed = SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
             ->update(['scheduled_at' => $when]) > 0;
+
+        if ($changed) {
+            SecurityLog::configurazione('post_social_riprogrammato', [
+                'oggetto' => 'social_publication', 'id' => $id,
+                'prima' => ['scheduled_at' => $publication->scheduled_at?->utc()->toIso8601String()],
+                'dopo' => ['scheduled_at' => $when->utc()->toIso8601String()],
+            ]);
+        }
+
+        return $changed;
     }
 
     /**

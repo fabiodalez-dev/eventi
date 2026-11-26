@@ -114,19 +114,52 @@ final class ImportRunner
      *
      * @return list<ImportedEventDto>
      *
+     * Si legge dentro la richiesta web, quindi con i tempi corti di
+     * `import.preview` (15 secondi in tutto, un solo redirect), rimessi come
+     * erano subito dopo.
+     *
      * @throws ImportException quando la sorgente è irraggiungibile o illeggibile
      */
     public function preview(ImportSource $source, ?int $limit = null): array
     {
         $limit ??= config()->integer('import.preview_size');
         $driver = $this->drivers->for($source);
-        $candidates = $this->candidates($driver, $driver->fetch($source), $source, new ImportReport);
+        $candidates = $this->candidates($driver, self::withPreviewLimits(fn (): array => $driver->fetch($source)), $source, new ImportReport);
 
         $dtos = array_values($candidates);
 
         usort($dtos, static fn (ImportedEventDto $a, ImportedEventDto $b): int => $a->startsAt <=> $b->startsAt);
 
         return array_slice($dtos, 0, max(0, $limit));
+    }
+
+    /**
+     * `$fetch` con i tempi dell'anteprima al posto di quelli dell'esecuzione.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $fetch
+     * @return T
+     */
+    private static function withPreviewLimits(callable $fetch): mixed
+    {
+        $limits = [
+            'import.timeout' => config()->integer('import.preview.timeout'),
+            'import.connect_timeout' => config()->integer('import.preview.connect_timeout'),
+            'import.max_redirects' => config()->integer('import.preview.max_redirects'),
+            'import.total_timeout' => config()->integer('import.preview.timeout'),
+        ];
+        $previous = [];
+        foreach (array_keys($limits) as $key) {
+            $previous[$key] = config($key);
+        }
+
+        config($limits);
+        try {
+            return $fetch();
+        } finally {
+            config($previous);
+        }
     }
 
     // ------------------------------------------------------ mappatura e filtro
