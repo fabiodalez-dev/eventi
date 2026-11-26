@@ -18,6 +18,14 @@ return [
         'prepared' => 'preparate :when',
         'expected' => 'prevista per :date',
     ],
+    /* La redazione nell'app (R9): i messaggi dell'API dei social. */
+    'app' => [
+        'secret_web_only' => 'App Secret, token della Pagina e token del bot si scrivono solo dalla pagina del sito.',
+        'meta_not_ready' => 'Salva App ID e App Secret prima di collegare Meta.',
+        'verified_telegram' => 'Bot e permessi del canale Telegram verificati',
+        'disconnected' => 'Collegamento locale rimosso; pubblicazioni automatiche disattivate',
+        'today_empty' => 'Oggi non ci sono serate da preparare.',
+    ],
 
     'sponsorship' => [
         'campaign' => 'Campagna',
