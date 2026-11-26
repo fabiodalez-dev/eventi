@@ -53,4 +53,20 @@ return [
         'empty' => 'Ancora nessun iscritto',
         'empty_description' => 'Qui compaiono le persone appena si registrano dal sito o dall\'app.',
     ],
+
+    /* I messaggi dell'API della redazione (app) sugli account. */
+    'app' => [
+        'role_web_only' => 'Questo ruolo si conferisce solo dal pannello sul sito.',
+        'venue_roles_for_staff' => 'Dall\'app i ruoli di referente e collaboratore di un locale non si danno a chi fa parte della redazione: chi gestisce un locale ne diventa membro con l\'invito del locale.',
+        'credentials_web_only' => 'Email e password di un\'altra persona si cambiano solo dal pannello sul sito.',
+        'created' => 'Utente creato.',
+        'updated' => 'Modifiche salvate.',
+        'credentials_updated' => 'Credenziali cambiate: le sessioni dell\'app sono chiuse, accedi di nuovo.',
+        'roles_updated' => 'Ruoli aggiornati.',
+        'deleted' => 'Utente eliminato.',
+        'restored' => 'Utente ripristinato.',
+        'suspended' => 'Sospeso dalla community.',
+        'unsuspended' => 'Riattivato nella community.',
+        'whatsapp_revoked' => 'Verifica WhatsApp revocata.',
+    ],
 ];

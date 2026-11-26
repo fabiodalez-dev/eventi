@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Widgets;
 
 use App\Models\City;
-use App\Queries\EditorialDashboardQuery;
 use App\Support\CurrentCity;
 use Filament\Widgets\StatsOverviewWidget;
 
@@ -45,12 +44,13 @@ abstract class EditorialWidget extends StatsOverviewWidget
             ?? City::query()->orderBy('id')->first();
     }
 
-    protected function dashboard(): EditorialDashboardQuery
+    /** La città dei riquadri; senza città il widget non si disegna (`canView`). */
+    protected function city(): City
     {
         $city = static::resolveCity();
 
         abort_if($city === null, 404);
 
-        return EditorialDashboardQuery::for($city);
+        return $city;
     }
 }

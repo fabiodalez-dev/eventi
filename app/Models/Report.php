@@ -12,7 +12,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * Le colonne `created_at` e `updated_at` le crea `datetimes()` nella
+ * migrazione, che l'analisi statica non riconosce: le dichiaro qui.
+ *
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Report extends Model
 {
     /** @use HasFactory<ReportFactory> */

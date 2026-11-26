@@ -112,6 +112,23 @@ class VenueApplication extends Model
         'notes',
     ];
 
+    /**
+     * Vero se la richiesta l'ha mandata `$user`: dal suo account, o con la
+     * sua email come contatto (una richiesta da ospite a suo nome finisce
+     * comunque a lui con l'invito). Nessuno approva una richiesta propria:
+     * sarebbe darsi da sé un locale o un'organizzazione.
+     */
+    public function sentBy(User $user): bool
+    {
+        if ($this->user_id !== null && (int) $this->user_id === (int) $user->getKey()) {
+            return true;
+        }
+
+        $contact = mb_strtolower(trim((string) $this->contact_email));
+
+        return $contact !== '' && $contact === mb_strtolower(trim((string) $user->email));
+    }
+
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {

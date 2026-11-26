@@ -33,6 +33,7 @@ use App\Models\City;
 use App\Models\Venue;
 use App\Queries\EditorialDashboardQuery;
 use App\Services\Geo\AddressGeocoder;
+use App\Support\Venues\VenueCover;
 use App\Support\WidgetEmbed;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -528,12 +529,20 @@ class VenueResource extends Resource
                                 Section::make(__('admin.sections.moderation'))
                                     ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
+                                        /* Nella modifica lo stato si legge e basta: approvare,
+                                           rifiutare e sospendere sono le azioni di moderazione
+                                           (`ModerateVenueAction`), che scrivono chi e quando e
+                                           avvisano chi gestisce il locale. Salvato dal modulo,
+                                           «sospeso» passava senza niente di tutto questo. */
                                         ToggleButtons::make('status')
                                             ->label(__('admin.fields.status'))
                                             ->options(VenueStatus::options())
                                             ->inline()
                                             ->required()
                                             ->default(VenueStatus::Draft->value)
+                                            ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                            ->dehydrated(fn (string $operation): bool => $operation !== 'edit')
+                                            ->helperText(fn (string $operation): ?string => $operation === 'edit' ? __('admin.hints.venue_status_actions') : null)
                                             ->columnSpanFull(),
 
                                         Toggle::make('is_verified')
@@ -669,15 +678,7 @@ class VenueResource extends Resource
      */
     public static function coverUrl(Venue $venue): string
     {
-        foreach (['cover', 'logo'] as $collection) {
-            $media = $venue->getFirstMedia($collection);
-
-            if ($media !== null) {
-                return $media->hasGeneratedConversion('thumb') ? $media->getFullUrl('thumb') : $media->getFullUrl();
-            }
-        }
-
-        return asset(PosterColumn::PLACEHOLDER);
+        return VenueCover::url($venue) ?? asset(PosterColumn::PLACEHOLDER);
     }
 
     /**

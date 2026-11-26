@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Filament\Admin\Resources\Users\RegistrationState;
+use App\Enums\RegistrationState;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\User;
+use App\Support\Editorial\DeskRegistrations;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -35,7 +36,7 @@ class NewRegistrationsWidget extends TableWidget
     protected int|string|array $columnSpan = 'full';
 
     /** Quante iscrizioni mostra il riquadro: il resto è nell'elenco. */
-    public const LIMIT = 5;
+    public const LIMIT = DeskRegistrations::LIMIT;
 
     public static function canView(): bool
     {
@@ -44,14 +45,16 @@ class NewRegistrationsWidget extends TableWidget
 
     public function table(Table $table): Table
     {
-        $recent = RegistrationState::scopeRecent(User::query())->count();
-        $pending = RegistrationState::scopeIncomplete(User::query())->count();
+        /* Conteggi, frase e righe li dà `DeskRegistrations`, lo stesso che
+           risponde all'app. */
+        $registrations = app(DeskRegistrations::class);
+        $recent = $registrations->recent();
+        $pending = $registrations->pending();
 
         return $table
             ->heading(__('users.widget.heading'))
-            ->description(trans_choice('users.widget.description', $recent, ['count' => $recent, 'days' => RegistrationState::RECENT_DAYS])
-                .' · '.trans_choice('users.widget.pending', $pending, ['count' => $pending]))
-            ->query(fn () => User::query()->latest('created_at')->latest('id')->limit(self::LIMIT))
+            ->description($registrations->description($recent, $pending))
+            ->query(fn () => $registrations->latest())
             ->paginated(false)
             ->columns([
                 TextColumn::make('name')

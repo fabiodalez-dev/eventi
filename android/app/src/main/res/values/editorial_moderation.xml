@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R6: la moderazione dei contenuti nella redazione (segnalazioni, recensioni, commenti agli eventi). -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="moderation_hub_intro">Le segnalazioni del pubblico, le recensioni di locali e organizzatori, i commenti agli eventi.</string>
+    <string name="moderation_reports_title">Segnalazioni</string>
+    <string name="moderation_reports_help">Errori, doppioni e contenuti segnalati dal pubblico</string>
+    <string name="moderation_reviews_title">Recensioni</string>
+    <string name="moderation_reviews_help">Da approvare o rifiutare, con la risposta del gestore</string>
+    <string name="moderation_comments_title">Commenti agli eventi</string>
+    <string name="moderation_comments_help">Nascondi, rimetti in vista, elimina</string>
+    <string name="moderation_nothing_allowed">Il tuo ruolo non ha voci di moderazione.</string>
+    <string name="moderation_done">Fatto.</string>
+    <string name="moderation_changed">Qualcuno ha deciso nel frattempo: ho ricaricato l’elenco. Rileggi prima di decidere.</string>
+    <string name="moderation_sort">Ordine</string>
+    <string name="moderation_yes">Sì</string>
+
+    <!-- Segnalazioni -->
+    <string name="moderation_reports_empty">Nessuna segnalazione con questi criteri.</string>
+    <string name="moderation_filter_status">Stato</string>
+    <string name="moderation_filter_reason">Motivo</string>
+    <string name="moderation_filter_open">Solo quelle aperte</string>
+    <string name="moderation_sort_newest">Più recenti</string>
+    <string name="moderation_sort_oldest">Meno recenti</string>
+    <string name="moderation_sort_updated">Ultime toccate</string>
+    <string name="moderation_report_received">Arrivata il %1$s</string>
+    <string name="moderation_report_reviewed">Decisa da %1$s</string>
+    <string name="moderation_report_reviewed_at">Decisa da %1$s il %2$s</string>
+    <string name="moderation_report_open">Apri la segnalazione %1$s</string>
+    <string name="moderation_report_title">Segnalazione</string>
+    <string name="moderation_report_subject">Oggetto</string>
+    <string name="moderation_report_reason">Motivo</string>
+    <string name="moderation_report_note">Che cosa dice chi ha segnalato</string>
+    <string name="moderation_report_no_note">Nessun testo.</string>
+    <string name="moderation_report_outcome">Esito</string>
+    <string name="moderation_report_status">Stato</string>
+    <string name="moderation_report_resolution_note">Nota di risoluzione</string>
+    <string name="moderation_report_resolution_help">Resta nella segnalazione, con chi ha deciso e quando.</string>
+    <string name="moderation_report_save">Salva l’esito</string>
+    <string name="moderation_report_saved">Esito salvato.</string>
+    <string name="moderation_report_community">Modera il soggetto</string>
+    <string name="moderation_report_community_help">Apre la community, dove si moderano profili, post e commenti.</string>
+    <string name="moderation_report_delete">Elimina la segnalazione</string>
+    <string name="moderation_report_delete_title">Eliminare la segnalazione?</string>
+    <string name="moderation_report_delete_text">La segnalazione sparisce per sempre, con il suo esito. Serve la password del tuo account.</string>
+    <string name="moderation_report_missing">Questa segnalazione non c’è più.</string>
+    <string name="moderation_report_unsaved">Le note oltre %1$d caratteri non si salvano.</string>
+
+    <!-- Recensioni -->
+    <string name="moderation_reviews_empty">Nessuna recensione con questi criteri.</string>
+    <string name="moderation_reviews_search">Cerca per autore</string>
+    <string name="moderation_filter_type">Tipo</string>
+    <string name="moderation_review_type_venue">Locale</string>
+    <string name="moderation_review_type_organizer">Organizzatore</string>
+    <string name="moderation_review_subject">%1$s · %2$s</string>
+    <string name="moderation_review_author">Di %1$s</string>
+    <string name="moderation_review_no_rating">Senza voto</string>
+    <string name="moderation_review_rating">%1$d stelle su 5</string>
+    <string name="moderation_review_status">Stato: %1$s</string>
+    <string name="moderation_review_moderated">Decisa da %1$s il %2$s</string>
+    <string name="moderation_review_moderation_note">Nota: %1$s</string>
+    <string name="moderation_review_reply">Risposta del gestore</string>
+    <string name="moderation_review_replied_at">Scritta il %1$s</string>
+    <string name="moderation_review_approve">Approva</string>
+    <string name="moderation_review_reject">Rifiuta</string>
+    <string name="moderation_review_approve_title">Approvare la recensione?</string>
+    <string name="moderation_review_reject_title">Rifiutare la recensione?</string>
+    <string name="moderation_review_text">Testo della recensione</string>
+    <string name="moderation_review_note">Motivo della decisione (visibile all’autore)</string>
+    <string name="moderation_review_note_optional">Facoltativo; se lo scrivi, da %1$d a %2$d caratteri.</string>
+    <string name="moderation_review_note_required">Obbligatorio per rifiutare: da %1$d a %2$d caratteri.</string>
+    <string name="moderation_review_remove_reply">Togli la risposta</string>
+    <string name="moderation_review_remove_reply_title">Togliere la risposta del gestore?</string>
+    <string name="moderation_review_remove_reply_text">La risposta sparisce dalla scheda pubblica. Il gestore può scriverne un’altra quando vuole.</string>
+
+    <!-- Commenti -->
+    <string name="moderation_comments_empty">Nessun commento con questi criteri.</string>
+    <string name="moderation_comments_search">Cerca per evento, autore o testo</string>
+    <string name="moderation_comment_status_published">Pubblicato</string>
+    <string name="moderation_comment_status_hidden">Nascosto</string>
+    <string name="moderation_sort_most_liked">Più «Mi piace»</string>
+    <string name="moderation_comment_meta">%1$s · %2$s</string>
+    <string name="moderation_comment_reply">risposta</string>
+    <string name="moderation_comment_likes">%1$d «Mi piace»</string>
+    <string name="moderation_comment_status">Stato: %1$s</string>
+    <string name="moderation_comment_moderated">Moderato da %1$s</string>
+    <string name="moderation_comment_poster">Locandina di %1$s</string>
+    <string name="moderation_comment_details">Dettagli</string>
+    <string name="moderation_comment_details_title">Dettagli del commento</string>
+    <string name="moderation_comment_event">Evento</string>
+    <string name="moderation_comment_author">Autore</string>
+    <string name="moderation_comment_body">Testo</string>
+    <string name="moderation_comment_note">Nota della moderazione</string>
+    <string name="moderation_comment_moderator">Moderato da</string>
+    <string name="moderation_comment_date">Data della moderazione</string>
+    <string name="moderation_comment_none">—</string>
+    <string name="moderation_comment_close">Chiudi</string>
+    <string name="moderation_comment_hide">Nascondi</string>
+    <string name="moderation_comment_hide_title">Nascondere il commento?</string>
+    <string name="moderation_comment_hide_text">Esce dalla vista pubblica ma resta qui, con chi l’ha nascosto, quando e perché. Si può rimettere in vista.</string>
+    <string name="moderation_comment_hide_note">Nota (facoltativa)</string>
+    <string name="moderation_comment_hide_counter">%1$d / %2$d</string>
+    <string name="moderation_comment_restore">Ripristina</string>
+    <string name="moderation_comment_restore_title">Rimettere in vista il commento?</string>
+    <string name="moderation_comment_restore_text">Il commento torna visibile sulla scheda dell’evento.</string>
+    <string name="moderation_comment_delete">Elimina</string>
+    <string name="moderation_comment_delete_title">Eliminare il commento?</string>
+    <string name="moderation_comment_delete_text">Il commento sparisce per sempre, e con lui le risposte. Serve la password del tuo account.</string>
+</resources>

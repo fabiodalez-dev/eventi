@@ -17,7 +17,25 @@ import it.fabiodalez.incitta.data.management.OptionChoice
  * tabella: `key` diventa `filter[key]`, `options` sono i valori ammessi (per
  * un filtro sì/no basta una voce, «Sì» con valore `1`). Un valore alla volta.
  */
-internal data class FilterDefinition(val key: String, val label: String, val options: List<OptionChoice>)
+internal data class FilterDefinition(
+    val key: String,
+    val label: String,
+    val options: List<OptionChoice>,
+    /* Per gli elenchi lunghi (i locali): un campo cerca fra le scelte e ne mostra al più `SEARCH_LIMIT`. */
+    val searchable: Boolean = false,
+)
+
+/** Le scelte visibili di un filtro cercabile: quelle che contengono `query`, più quella scelta. */
+internal fun searchableOptions(definition: FilterDefinition, query: String, selected: String?): List<OptionChoice> {
+    if (!definition.searchable) return definition.options
+    val needle = query.trim()
+    val matching = definition.options.filter { needle.isEmpty() || it.label.contains(needle, ignoreCase = true) }.take(SEARCH_LIMIT)
+    val chosen = definition.options.firstOrNull { it.value == selected }
+    return if (chosen == null || chosen in matching) matching else listOf(chosen) + matching
+}
+
+/* Quante scelte mostra un filtro cercabile senza ricerca. */
+internal const val SEARCH_LIMIT = 30
 
 /** Il nuovo insieme di filtri dopo un tocco su una voce: toccare la voce scelta la toglie. */
 internal fun toggleFilter(current: Map<String, String>, key: String, value: String): Map<String, String> =
@@ -46,8 +64,18 @@ internal fun FilterSheet(
             Text(stringResource(R.string.editorial_filters_title), style = MaterialTheme.typography.titleLarge)
             definitions.forEach { definition ->
                 Text(definition.label, style = MaterialTheme.typography.titleMedium)
+                var query by rememberSaveable(definition.key) { mutableStateOf("") }
+                if (definition.searchable) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text(stringResource(R.string.editorial_filters_search, definition.label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    definition.options.forEach { option ->
+                    searchableOptions(definition, query, selected[definition.key]).forEach { option ->
                         FilterChip(
                             selected = selected[definition.key] == option.value,
                             onClick = { draft = toggleFilter(selected, definition.key, option.value).toList() },

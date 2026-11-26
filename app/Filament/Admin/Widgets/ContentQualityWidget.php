@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Filament\Admin\Resources\Events\EventResource;
-use App\Filament\Admin\Resources\ImportSources\ImportSourceResource;
-use App\Filament\Admin\Resources\Venues\VenueResource;
+use App\Filament\Admin\Support\DeskLinks;
+use App\Services\Editorial\DeskSummary;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -36,45 +35,12 @@ class ContentQualityWidget extends EditorialWidget
      */
     protected function getStats(): array
     {
-        $dashboard = $this->dashboard();
-
-        return [
-            Stat::make(__('admin.dashboard.missing_poster'), $dashboard->eventsWithoutPoster()->count())
-                ->description(__('admin.dashboard.descriptions.missing_poster'))
-                ->icon(Heroicon::OutlinedPhoto)
-                ->url(EventResource::getUrl('index', [
-                    'filters' => ['missing_poster' => ['isActive' => true]],
-                ])),
-
-            Stat::make(__('admin.dashboard.incomplete'), $dashboard->incompleteEvents()->count())
-                ->description(__('admin.dashboard.descriptions.incomplete'))
-                ->icon(Heroicon::OutlinedExclamationTriangle)
-                ->color('warning')
-                ->url(EventResource::getUrl('index', [
-                    'filters' => ['incomplete' => ['isActive' => true]],
-                ])),
-
-            Stat::make(__('admin.dashboard.possible_duplicates'), $dashboard->possibleDuplicates()->count())
-                ->description(__('admin.dashboard.descriptions.possible_duplicates'))
-                ->icon(Heroicon::OutlinedDocumentDuplicate)
-                ->url(EventResource::getUrl('index', [
-                    'filters' => ['possible_duplicates' => ['isActive' => true]],
-                ])),
-
-            Stat::make(__('admin.dashboard.inactive_venues'), $dashboard->inactiveVenues()->count())
-                ->description(__('admin.dashboard.descriptions.inactive_venues'))
-                ->icon(Heroicon::OutlinedMoon)
-                ->url(VenueResource::getUrl('index', [
-                    'filters' => ['inactive' => ['isActive' => true]],
-                ])),
-
-            Stat::make(__('admin.dashboard.import_failures'), $dashboard->failedImports()->count())
-                ->description(__('admin.dashboard.descriptions.import_failures'))
-                ->icon(Heroicon::OutlinedArrowDownTray)
-                ->color('danger')
-                ->url(ImportSourceResource::getUrl('index', [
-                    'filters' => ['failed' => ['isActive' => true]],
-                ])),
-        ];
+        return DeskLinks::stats(app(DeskSummary::class)->quality($this->city()), [
+            'missing_poster' => Heroicon::OutlinedPhoto,
+            'incomplete' => Heroicon::OutlinedExclamationTriangle,
+            'possible_duplicates' => Heroicon::OutlinedDocumentDuplicate,
+            'inactive_venues' => Heroicon::OutlinedMoon,
+            'import_failures' => Heroicon::OutlinedArrowDownTray,
+        ]);
     }
 }

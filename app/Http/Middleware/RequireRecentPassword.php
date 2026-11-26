@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Enums\ApiErrorCode;
-use App\Exceptions\ApiException;
 use App\Services\Editorial\EditorialUnlocks;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,7 +18,9 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Una rotta diventa pericolosa con `->middleware(RequireRecentPassword::class)`
  * nel file del suo pacchetto; `EditorialRoutesTest` controlla che le rotte
- * con i nomi delle azioni pericolose ce l'abbiano.
+ * con i nomi delle azioni pericolose ce l'abbiano. Le azioni pericolose solo
+ * con certi dati chiamano `EditorialUnlocks::requirePassword()` dal
+ * controller.
  */
 final class RequireRecentPassword
 {
@@ -28,13 +28,7 @@ final class RequireRecentPassword
 
     public function handle(Request $request, Closure $next): Response
     {
-        $unlock = $this->unlocks->find($request);
-        if (! $this->unlocks->unlocked($unlock)) {
-            throw new ApiException(ApiErrorCode::EditorialLocked);
-        }
-        if (! $this->unlocks->passwordConfirmed($unlock)) {
-            throw new ApiException(ApiErrorCode::PasswordRequired);
-        }
+        $this->unlocks->requirePassword($request);
 
         return $next($request);
     }

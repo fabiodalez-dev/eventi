@@ -60,6 +60,7 @@ return [
         'account_verified' => 'Email confermata',
         'account_unverified' => 'Email da confermare',
         'already_approved' => 'Questa richiesta è già stata approvata.',
+        'own_application' => 'Questa richiesta l\'hai mandata tu: la approva un\'altra persona della redazione.',
         'already_decided' => 'Questa richiesta è già stata valutata da qualcun altro: ricarica la pagina.',
         'approve_heading' => 'Approvare la richiesta per :venue?',
         'reject_heading' => 'Rifiutare la richiesta per :venue?',

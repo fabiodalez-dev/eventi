@@ -65,7 +65,12 @@ private sealed interface ImageTarget {
 }
 
 @Composable
-internal fun VenueImagesScreen(viewModel: VenueImagesViewModel, context: ManagementGraphContext) {
+internal fun VenueImagesScreen(viewModel: VenueImagesViewModel, context: ManagementGraphContext) =
+    VenueImagesScreen(viewModel, context.padding, context::back)
+
+/** La stessa schermata con margine e «indietro» espliciti: la usa anche la redazione. */
+@Composable
+internal fun VenueImagesScreen(viewModel: VenueImagesViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val galleryMax = state.galleryMax
     val android = LocalContext.current
@@ -96,7 +101,7 @@ internal fun VenueImagesScreen(viewModel: VenueImagesViewModel, context: Managem
             } finally { preparing = false }
         }
     }
-    ManagementScaffold(title = stringResource(R.string.profile_section_images), padding = context.padding, onBack = context::back, busy = state.busy || preparing) {
+    ManagementScaffold(title = stringResource(R.string.profile_section_images), padding = padding, onBack = onBack, busy = state.busy || preparing) {
         if (preparing) Text(stringResource(R.string.profile_image_preparing), color = Muted)
         LoadState(state.images, onRetry = viewModel::load) { images ->
             SlotCard(

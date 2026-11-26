@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\EventComments;
 
 use App\Actions\Comments\ModerateComment;
+use App\Actions\Moderation\DeleteModeratedContent;
 use App\Enums\EventCommentStatus;
 use App\Filament\Admin\Resources\EventComments\Pages\ListEventComments;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
@@ -149,7 +150,14 @@ class EventCommentResource extends Resource
                 self::azioneNascondi(),
                 self::azioneRipristina(),
                 DeleteAction::make()->label(__('comments.delete'))->authorize('delete')
-                    ->modalDescription(__('comments.delete_confirm')),
+                    ->modalDescription(__('comments.delete_confirm'))
+                    // Eliminazione definitiva: resta la riga nel registro di sicurezza.
+                    ->using(function (EventComment $record): bool {
+                        $moderator = auth()->user();
+                        app(DeleteModeratedContent::class)->comment($record, $moderator instanceof User ? $moderator : null);
+
+                        return true;
+                    }),
             ], position: RecordActionsPosition::AfterContent);
     }
 

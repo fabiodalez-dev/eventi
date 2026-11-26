@@ -40,6 +40,16 @@ class VenueApplicationPolicy
     }
 
     /**
+     * «Approva»: come `update`, ma mai sulla propria richiesta. Chi è nella
+     * redazione e chiede un locale o un'organizzazione aspetta che la approvi
+     * un altro.
+     */
+    public function approve(User $user, VenueApplication $application): bool
+    {
+        return $this->update($user, $application) && ! $application->sentBy($user);
+    }
+
+    /**
      * L'autore può ritirare la propria richiesta finché è in attesa; una
      * volta esaminata resta solo allo staff.
      */

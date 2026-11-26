@@ -92,7 +92,7 @@ final class VenueModeration
             ->color('success')
             ->requiresConfirmation()
             ->authorize(fn (Venue $record): bool => self::canModerate($record))
-            ->visible(fn (Venue $record): bool => $record->status !== VenueStatus::Approved)
+            ->visible(fn (Venue $record): bool => ModerateVenueAction::canApprove($record))
             ->action(function (Venue $record): void {
                 /** @var User $moderator */
                 $moderator = auth()->user();
@@ -110,7 +110,7 @@ final class VenueModeration
             ->icon(Heroicon::OutlinedXCircle)
             ->color('danger')
             ->authorize(fn (Venue $record): bool => self::canModerate($record))
-            ->visible(fn (Venue $record): bool => $record->status !== VenueStatus::Rejected)
+            ->visible(fn (Venue $record): bool => ModerateVenueAction::canReject($record))
             ->schema([
                 Textarea::make('reason')
                     ->label(__('admin.fields.rejection_reason'))
@@ -136,7 +136,7 @@ final class VenueModeration
             ->requiresConfirmation()
             ->modalDescription(__('admin.confirmations.suspend'))
             ->authorize(fn (Venue $record): bool => self::canModerate($record))
-            ->visible(fn (Venue $record): bool => $record->status === VenueStatus::Approved)
+            ->visible(fn (Venue $record): bool => ModerateVenueAction::canSuspend($record))
             ->schema([
                 Textarea::make('reason')
                     /* Il campo sul database e' `rejection_reason` e serve a

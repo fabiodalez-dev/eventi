@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Support;
 
+use App\Actions\Users\SyncUserRoles;
 use App\Enums\UserRole;
 use App\Models\User;
-use App\Support\SecurityLog;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
@@ -63,33 +63,14 @@ final class RoleField
                     return;
                 }
 
-                $conferibili = Role::query()->whereIn('name', self::conferibili())->pluck('id')->all();
-
-                /* Ciò che il bersaglio ha già e chi modifica non potrebbe
-                   dargli: non è nostro da togliere. */
-                $intoccabili = $record->roles()->whereNotIn('roles.id', $conferibili)->pluck('roles.id')->all();
-
-                $richiesti = array_map('intval', array_filter((array) $state, static fn (mixed $v): bool => is_numeric($v)));
-
-                $prima = $record->roles()->pluck('roles.name')->sort()->values()->all();
-
-                $record->roles()->sync([
-                    ...array_values(array_intersect($richiesti, $conferibili)),
-                    ...$intoccabili,
-                ]);
-
-                $dopo = $record->roles()->pluck('roles.name')->sort()->values()->all();
-
-                /* «Chi ha dato l'amministrazione a chi» è la prima domanda di
-                   qualunque indagine su un pannello: si scrive solo quando
-                   qualcosa è cambiato davvero, per non riempire il registro a
-                   ogni salvataggio del profilo. */
-                if ($prima !== $dopo) {
-                    SecurityLog::scrivi('ruoli_cambiati', $record, [
-                        'prima' => $prima,
-                        'dopo' => $dopo,
-                    ], Auth::user() instanceof User ? Auth::user() : null);
-                }
+                /* Le regole (conferibili, intoccabili, registro) stanno in
+                   `SyncUserRoles`, che usa anche l'app della redazione. */
+                $attore = Auth::user();
+                app(SyncUserRoles::class)->syncIds(
+                    $attore instanceof User ? $attore : null,
+                    $record,
+                    array_values(array_map('intval', array_filter((array) $state, static fn (mixed $v): bool => is_numeric($v)))),
+                );
             });
     }
 
@@ -106,19 +87,7 @@ final class RoleField
     {
         $attore = Auth::user();
 
-        if ($attore instanceof User && $attore->hasRole(UserRole::SuperAdmin->value)) {
-            return array_map(static fn (UserRole $ruolo): string => $ruolo->value, UserRole::cases());
-        }
-
-        $senzaSuper = [];
-
-        foreach (UserRole::cases() as $ruolo) {
-            if ($ruolo !== UserRole::SuperAdmin) {
-                $senzaSuper[] = $ruolo->value;
-            }
-        }
-
-        return $senzaSuper;
+        return SyncUserRoles::assignable($attore instanceof User ? $attore : null);
     }
 
     /**

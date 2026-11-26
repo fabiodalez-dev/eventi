@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Venues\RelationManagers;
 
-use App\Actions\InviteVenueMemberAction;
 use App\Enums\VenueRole;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\SecurityLog;
+use App\Services\Editorial\EditorialVenueMembers;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
@@ -24,7 +23,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Referenti e collaboratori del locale (§9.2, «assegnazione owner ed editor»).
@@ -141,13 +139,11 @@ class MembersRelationManager extends RelationManager
                         // L'invito non declassa e non rimanda il messaggio a
                         // chi ha già quel ruolo: dirlo, invece di «Invito
                         // inviato» quando non parte niente.
-                        $pivot = $venue->membersIncludingInvited()->where('users.email', mb_strtolower(trim((string) $data['email'])))->first()?->getRelationValue('pivot');
-                        $pivot = $pivot instanceof Pivot ? $pivot : null;
-                        $current = $pivot?->getAttribute('role');
-                        if ($pivot !== null && ($current === VenueRole::Owner->value || $current === (string) $data['role'])) {
-                            $key = $pivot->getAttribute('accepted_at') === null ? 'admin.notifications.already_invited' : 'admin.notifications.already_member';
+                        $members = app(EditorialVenueMembers::class);
+                        $already = $members->alreadyThere($venue, (string) $data['email'], VenueRole::from((string) $data['role']));
+                        if ($already !== null) {
                             Notification::make()
-                                ->title(__($key, ['role' => mb_strtolower(VenueRole::from((string) $current)->label())]))
+                                ->title($already)
                                 ->warning()
                                 ->send();
 
@@ -159,7 +155,7 @@ class MembersRelationManager extends RelationManager
                            c'è «Aggiungi» qui accanto, o l'approvazione della
                            sua richiesta. */
 
-                        app(InviteVenueMemberAction::class)->execute(
+                        $members->invite(
                             $venue,
                             (string) $data['email'],
                             (string) $data['name'],
@@ -191,12 +187,7 @@ class MembersRelationManager extends RelationManager
                     /* Aggiungere qui un account confermato è la strada della
                        redazione per chi ha chiesto l'accesso: entra subito,
                        senza invito da accettare (D64). */
-                    ->mutateDataUsing(function (array $data): array {
-                        $data['invited_at'] = now();
-                        $data['accepted_at'] = now();
-
-                        return $data;
-                    })
+                    ->mutateDataUsing(fn (array $data): array => app(EditorialVenueMembers::class)->attachPivot($data))
                     ->after(fn (Model $record, array $data) => $this->logAccess('accesso_locale_concesso', $record, (string) ($data['role'] ?? '')))
                     ->authorize(fn (): bool => $this->canManage()),
             ])
@@ -206,10 +197,10 @@ class MembersRelationManager extends RelationManager
                         /* Un invito confermato a mano dalla redazione diventa
                            un'appartenenza vera: serve anche il ruolo globale,
                            che l'invito da accettare non assegna più. */
-                        if ($record instanceof User && filled($data['accepted_at'] ?? null) && filled($data['role'] ?? null)) {
-                            InviteVenueMemberAction::ensureGlobalRole($record, VenueRole::from((string) $data['role']));
+                        $venue = $this->getOwnerRecord();
+                        if ($record instanceof User && $venue instanceof Venue) {
+                            app(EditorialVenueMembers::class)->afterUpdate($venue, $record, isset($data['role']) ? (string) $data['role'] : null, $data['accepted_at'] ?? null, $this->actor());
                         }
-                        $this->logAccess('accesso_locale_modificato', $record, (string) ($data['role'] ?? ''));
                     }),
                 DetachAction::make()->authorize(fn (): bool => $this->canManage())
                     ->after(fn (Model $record) => $this->logAccess('accesso_locale_revocato', $record, null)),
@@ -217,19 +208,22 @@ class MembersRelationManager extends RelationManager
     }
 
     /**
-     * Chi entra in un locale, con quale ruolo, e chi lo ha deciso: senza
-     * questa riga un accesso dato e tolto dopo l'uso non lascerebbe traccia.
+     * Chi entra in un locale, con quale ruolo, e chi lo ha deciso: la riga
+     * del registro la scrive `EditorialVenueMembers`, come dall'app.
      */
     private function logAccess(string $evento, Model $record, ?string $ruolo): void
     {
-        if (! $record instanceof User) {
+        $venue = $this->getOwnerRecord();
+        if (! $record instanceof User || ! $venue instanceof Venue) {
             return;
         }
 
-        SecurityLog::scrivi($evento, $record, array_filter([
-            'venue_id' => $this->getOwnerRecord()->getKey(),
-            'ruolo' => $ruolo,
-        ], fn (mixed $valore): bool => filled($valore)), causa: auth()->user() instanceof User ? auth()->user() : null);
+        app(EditorialVenueMembers::class)->log($evento, $venue, $record, $ruolo, $this->actor());
+    }
+
+    private function actor(): ?User
+    {
+        return auth()->user() instanceof User ? auth()->user() : null;
     }
 
     private function canManage(): bool

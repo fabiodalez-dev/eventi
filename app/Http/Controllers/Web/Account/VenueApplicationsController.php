@@ -10,10 +10,10 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\VenueApplication;
 use App\Support\VenueApplications\ApplicationState;
+use App\Support\Venues\VenueApplicationImage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -72,22 +72,7 @@ final class VenueApplicationsController extends Controller
 
         abort_unless(Gate::allows('view', $richiesta), 404);
 
-        $path = $richiesta->image_path;
-        abort_unless(is_string($path) && $path !== '' && str_starts_with($path, 'venue-applications/') && Storage::disk('local')->exists($path), 404);
-
-        $mime = (string) Storage::disk('local')->mimeType($path);
-        abort_unless(in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true), 404);
-
-        return Storage::disk('local')->response($path, 'richiesta-'.$richiesta->getKey().'.'.match ($mime) {
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            default => 'jpg',
-        }, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Security-Policy' => "default-src 'none'",
-        ], 'inline');
+        return VenueApplicationImage::response($richiesta);
     }
 
     /**

@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Users\Pages;
 
 use App\Enums\Permission;
-use App\Enums\UserRole;
-use App\Enums\VenueRole;
-use App\Filament\Admin\Resources\Users\RegistrationState;
+use App\Enums\RegistrationState;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Resources\Venues\VenueResource;
 use App\Models\User;
+use App\Services\Users\UserDirectory;
 use App\Support\SecurityLog;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -40,13 +39,13 @@ class ListUsers extends ListRecords
                 ->icon(Heroicon::OutlinedEnvelope)
                 ->badge(fn (): ?int => ($count = RegistrationState::scopeIncomplete(User::query())->count()) > 0 ? $count : null)
                 ->badgeColor('warning')
-                ->modifyQueryUsing(fn (Builder $query): Builder => RegistrationState::scopeIncomplete($query)),
-            'admins' => Tab::make(__('users.admins'))->modifyQueryUsing(fn (Builder $query): Builder => $query->whereHas('roles', fn (Builder $roles): Builder => $roles->whereIn('name', [UserRole::Admin->value, UserRole::SuperAdmin->value]))),
-            'staff' => Tab::make(__('users.staff'))->modifyQueryUsing(fn (Builder $query): Builder => $query->whereHas('roles', fn (Builder $roles): Builder => $roles->where('name', UserRole::Moderator->value))),
-            'owners' => Tab::make(__('users.owners'))->modifyQueryUsing(fn (Builder $query): Builder => $query->whereHas('venues', fn (Builder $venues): Builder => $venues->where('venue_user.role', VenueRole::Owner->value))),
-            'editors' => Tab::make(__('users.editors'))->modifyQueryUsing(fn (Builder $query): Builder => $query->whereHas('venues', fn (Builder $venues): Builder => $venues->where('venue_user.role', VenueRole::Editor->value))),
-            'users' => Tab::make(__('users.users'))->modifyQueryUsing(fn (Builder $query): Builder => $query->whereDoesntHave('venues')->whereDoesntHave('roles', fn (Builder $roles): Builder => $roles->where('name', '!=', UserRole::User->value))),
-            'unlinked' => Tab::make(__('users.unlinked'))->modifyQueryUsing(fn (Builder $query): Builder => $query->whereDoesntHave('venues')->whereHas('roles', fn (Builder $roles): Builder => $roles->whereIn('name', [UserRole::VenueOwner->value, UserRole::VenueEditor->value]))),
+                ->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'pending')),
+            'admins' => Tab::make(__('users.admins'))->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'admins')),
+            'staff' => Tab::make(__('users.staff'))->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'staff')),
+            'owners' => Tab::make(__('users.owners'))->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'owners')),
+            'editors' => Tab::make(__('users.editors'))->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'editors')),
+            'users' => Tab::make(__('users.users'))->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'users')),
+            'unlinked' => Tab::make(__('users.unlinked'))->modifyQueryUsing(fn (Builder $query): Builder => UserDirectory::tab($query, 'unlinked')),
         ];
     }
 

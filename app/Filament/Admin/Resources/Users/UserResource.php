@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Users;
 
 use App\Enums\Permission;
+use App\Enums\RegistrationState;
 use App\Enums\UserRole;
 use App\Enums\VenueRole;
 use App\Filament\Admin\Resources\Users\Pages\CreateUser;
@@ -16,10 +17,10 @@ use App\Filament\Support\RoleField;
 use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
-use App\Models\WhatsappChallenge;
 use App\Services\Carpool\CommunitySafety;
 use App\Services\Community\CommunityModeration;
 use App\Services\Community\WhatsappVerification;
+use App\Services\Users\WhatsappHistory;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -329,7 +330,7 @@ class UserResource extends Resource
                         }),
                     Action::make('whatsapp_history')->label(__('community.verification_history'))
                         ->visible(fn (): bool => auth()->user()?->isEditorialStaff() === true)
-                        ->modalContent(fn (User $record) => view('filament.admin.pages.whatsapp-history', ['challenges' => WhatsappChallenge::query()->where('user_id', $record->id)->latest()->limit(30)->get()]))
+                        ->modalContent(fn (User $record) => view('filament.admin.pages.whatsapp-history', ['challenges' => WhatsappHistory::for($record)]))
                         ->modalSubmitAction(false)->modalCancelActionLabel(__('community.close')),
                 ])->label(__('users.more_actions'))->tooltip(__('users.more_actions')),
             ])

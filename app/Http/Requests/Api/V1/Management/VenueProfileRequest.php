@@ -10,6 +10,7 @@ use App\Enums\AgeGroup;
 use App\Enums\ContactMode;
 use App\Enums\MembershipRequirement;
 use App\Http\Resources\V1\Management\VenueProfileResource;
+use App\Models\City;
 use App\Models\Venue;
 use App\Rules\FactRows;
 use App\Rules\TransitRows;
@@ -48,8 +49,19 @@ final class VenueProfileRequest extends FormRequest
             return [];
         }
 
-        $venue = $this->venue();
+        return self::fieldRules($this->venue()->city);
+    }
 
+    /**
+     * Le regole dei campi della scheda, una per campo, per la città del
+     * locale (i comuni ammessi sono quelli della sua provincia). Le usa anche
+     * la scheda del locale della redazione (`E/venues/{venue}`), che scrive
+     * gli stessi campi con `UpdateVenueProfile`.
+     *
+     * @return array<string, mixed>
+     */
+    public static function fieldRules(?City $city): array
+    {
         return [
             'short_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'description' => ['sometimes', 'nullable', 'string', 'max:50000'],
@@ -57,7 +69,7 @@ final class VenueProfileRequest extends FormRequest
             'address' => ['sometimes', 'required', 'string', 'max:255'],
             'address_extra' => ['sometimes', 'nullable', 'string', 'max:255'],
             'postal_code' => ['sometimes', 'nullable', 'string', 'max:10'],
-            'municipality' => ['sometimes', 'required', 'string', Rule::in(VenueGeography::municipalities($venue->city))],
+            'municipality' => ['sometimes', 'required', 'string', Rule::in(VenueGeography::municipalities($city))],
             // Obbligatorio per Padova: lo controlla `after()`, anche quando la chiave manca.
             'zone' => ['sometimes', 'nullable', 'string', Rule::in(VenueGeography::districts())],
             'lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
@@ -136,6 +148,12 @@ final class VenueProfileRequest extends FormRequest
     /** I nomi dei campi come li legge chi compila, uguali alle etichette del pannello. */
     public function attributes(): array
     {
+        return self::fieldAttributes();
+    }
+
+    /** @return array<string, string> */
+    public static function fieldAttributes(): array
+    {
         return [
             'short_description' => __('manage.fields.short_description'),
             'description' => __('manage.fields.description'),
@@ -167,17 +185,29 @@ final class VenueProfileRequest extends FormRequest
             if (! $this->isMethod('patch')) {
                 return;
             }
-            // Il comune di Padova vuole il quartiere, come `VenueGeographyFields::district()`.
-            if ($this->has('municipality') && VenueGeography::hasDistricts($this->input('municipality')) && blank($this->input('zone'))) {
-                $validator->errors()->add('zone', __('validation.required', ['attribute' => __('tonight.district')]));
-            }
-            // Messaggi accesi senza un indirizzo che li riceva: come `ContactFields`, il recapito diventa obbligatorio.
-            $mode = $this->has('contact_mode') ? $this->input('contact_mode') : $this->venue()->contact_mode->value;
-            $email = $this->has('contact_email') ? $this->input('contact_email') : $this->venue()->contact_email;
-            if (in_array($mode, [ContactMode::Members->value, ContactMode::Everyone->value], true) && blank($email)) {
-                $validator->errors()->add('contact_email', __('validation.required', ['attribute' => __('contact.recipient')]));
-            }
+            self::checkTogether($validator, $this->all(), $this->venue());
         }];
+    }
+
+    /**
+     * I controlli che legano due campi, anche quando uno dei due non è nella
+     * richiesta: il quartiere per il comune di Padova, il recapito del modulo
+     * di contatto quando i messaggi sono accesi.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public static function checkTogether(Validator $validator, array $input, ?Venue $venue): void
+    {
+        // Il comune di Padova vuole il quartiere, come `VenueGeographyFields::district()`.
+        if (array_key_exists('municipality', $input) && VenueGeography::hasDistricts($input['municipality']) && blank($input['zone'] ?? null)) {
+            $validator->errors()->add('zone', __('validation.required', ['attribute' => __('tonight.district')]));
+        }
+        // Messaggi accesi senza un indirizzo che li riceva: come `ContactFields`, il recapito diventa obbligatorio.
+        $mode = array_key_exists('contact_mode', $input) ? $input['contact_mode'] : ($venue === null ? ContactMode::Disabled->value : $venue->contact_mode->value);
+        $email = array_key_exists('contact_email', $input) ? $input['contact_email'] : $venue?->contact_email;
+        if (in_array($mode, [ContactMode::Members->value, ContactMode::Everyone->value], true) && blank($email)) {
+            $validator->errors()->add('contact_email', __('validation.required', ['attribute' => __('contact.recipient')]));
+        }
     }
 
     /**
@@ -189,8 +219,19 @@ final class VenueProfileRequest extends FormRequest
      */
     public function profileState(): array
     {
+        return self::normalize($this->validated());
+    }
+
+    /**
+     * Dalla forma dell'app alla forma di `UpdateVenueProfile`.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    public static function normalize(array $validated): array
+    {
         /** @var array<string, mixed> $state */
-        $state = array_intersect_key($this->validated(), array_flip(UpdateVenueProfile::FIELDS));
+        $state = array_intersect_key($validated, array_flip(UpdateVenueProfile::FIELDS));
 
         if (array_key_exists('socials', $state)) {
             $map = [];
