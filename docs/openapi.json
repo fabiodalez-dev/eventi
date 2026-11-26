@@ -125514,6 +125514,2383 @@
                     }
                 }
             }
+        },
+        "/editorial/cache": {
+            "get": {
+                "operationId": "v1.editorial.settings.cache.show",
+                "tags": [
+                    "CacheSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "managed": {
+                                                    "type": "string"
+                                                },
+                                                "enabled": {
+                                                    "type": "string"
+                                                },
+                                                "store": {
+                                                    "type": "string"
+                                                },
+                                                "store_label": {
+                                                    "type": "string"
+                                                },
+                                                "ttl_minutes": {
+                                                    "type": "string"
+                                                },
+                                                "redis": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "host": {
+                                                            "type": "string"
+                                                        },
+                                                        "port": {
+                                                            "type": "string"
+                                                        },
+                                                        "database": {
+                                                            "type": "string"
+                                                        },
+                                                        "username": {
+                                                            "type": "string"
+                                                        },
+                                                        "tls": {
+                                                            "type": "string"
+                                                        },
+                                                        "has_password": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "host",
+                                                        "port",
+                                                        "database",
+                                                        "username",
+                                                        "tls",
+                                                        "has_password"
+                                                    ]
+                                                },
+                                                "environment": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "redis_extension": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "litespeed": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "server": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "redis_extension",
+                                                        "litespeed",
+                                                        "server"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "managed",
+                                                "enabled",
+                                                "store",
+                                                "store_label",
+                                                "ttl_minutes",
+                                                "redis",
+                                                "environment"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/cache/clear": {
+            "post": {
+                "operationId": "v1.editorial.settings.cache.clear",
+                "summary": "Invalida pagine pubbliche, calendari, sitemap e filtri e le viste compilate; non tocca sessioni, prenotazioni, lock",
+                "tags": [
+                    "CacheSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "cleared": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "cleared"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Cache del sito pulite. Sessioni e prenotazioni conservate."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/cache/verify": {
+            "post": {
+                "operationId": "v1.editorial.settings.cache.verify",
+                "summary": "Connessione, autenticazione, scrittura e lettura su Redis con i dati salvati, senza attivarlo",
+                "tags": [
+                    "CacheSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "ok": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "ok"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "cache_settings.redis_ok",
+                                                        "cache_settings.redis_failed"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/consent-scripts": {
+            "get": {
+                "operationId": "v1.editorial.settings.scripts.index",
+                "tags": [
+                    "ConsentScript"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {},
+                                                    "name": {},
+                                                    "category": {
+                                                        "type": "string"
+                                                    },
+                                                    "category_label": {
+                                                        "type": "string"
+                                                    },
+                                                    "enabled": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "sort_order": {
+                                                        "type": "integer"
+                                                    },
+                                                    "src": {},
+                                                    "has_code": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "abilities": {
+                                                        "type": "string",
+                                                        "description": "Modificare, accendere ed eliminare uno script si fa solo dal sito (decisione 5)."
+                                                    },
+                                                    "code": {}
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "category",
+                                                    "category_label",
+                                                    "enabled",
+                                                    "sort_order",
+                                                    "src",
+                                                    "has_code",
+                                                    "abilities",
+                                                    "code"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "tabs": {
+                                                    "type": "null"
+                                                },
+                                                "categories": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total",
+                                                "tabs",
+                                                "categories"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/consent-scripts/{script}": {
+            "get": {
+                "operationId": "v1.editorial.settings.scripts.show",
+                "summary": "Uno script con il suo codice, da leggere",
+                "tags": [
+                    "ConsentScript"
+                ],
+                "parameters": [
+                    {
+                        "name": "script",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {},
+                                                "name": {},
+                                                "category": {
+                                                    "type": "string"
+                                                },
+                                                "category_label": {
+                                                    "type": "string"
+                                                },
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "sort_order": {
+                                                    "type": "integer"
+                                                },
+                                                "src": {},
+                                                "has_code": {
+                                                    "type": "boolean"
+                                                },
+                                                "abilities": {
+                                                    "type": "string",
+                                                    "description": "Modificare, accendere ed eliminare uno script si fa solo dal sito (decisione 5)."
+                                                },
+                                                "code": {}
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "category",
+                                                "category_label",
+                                                "enabled",
+                                                "sort_order",
+                                                "src",
+                                                "has_code",
+                                                "abilities",
+                                                "code"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/cookies": {
+            "get": {
+                "operationId": "v1.editorial.settings.cookies.index",
+                "tags": [
+                    "CookieDeclaration"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "category": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "necessary",
+                                                            "statistics",
+                                                            "marketing"
+                                                        ]
+                                                    },
+                                                    "category_label": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "enums.consent_category.necessary",
+                                                            "enums.consent_category.statistics",
+                                                            "enums.consent_category.marketing"
+                                                        ]
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "provider": {
+                                                        "description": "Vuoto vuol dire \u00abquesto sito\u00bb, come la colonna del pannello."
+                                                    },
+                                                    "purpose": {
+                                                        "type": "string"
+                                                    },
+                                                    "duration": {},
+                                                    "sort_order": {
+                                                        "type": "integer"
+                                                    },
+                                                    "abilities": {
+                                                        "type": "object",
+                                                        "description": "Il pannello non ha \u00abModifica\u00bb n\u00e9 \u00abElimina\u00bb su questa tabella: si aggiunge e si riordina.",
+                                                        "properties": {
+                                                            "reorder": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "reorder"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "category",
+                                                    "category_label",
+                                                    "name",
+                                                    "provider",
+                                                    "purpose",
+                                                    "duration",
+                                                    "sort_order",
+                                                    "abilities"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "tabs": {
+                                                    "type": "string"
+                                                },
+                                                "tab": {
+                                                    "type": "string"
+                                                },
+                                                "categories": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total",
+                                                "tabs",
+                                                "tab",
+                                                "categories"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "v1.editorial.settings.cookies.store",
+                "summary": "\u00abAggiungi un cookie\u00bb: la finalit\u00e0 della scheda aperta arriva gi\u00e0 scelta dall'app",
+                "tags": [
+                    "CookieDeclaration"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreCookieRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "category": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "necessary",
+                                                        "statistics",
+                                                        "marketing"
+                                                    ]
+                                                },
+                                                "category_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.consent_category.necessary",
+                                                        "enums.consent_category.statistics",
+                                                        "enums.consent_category.marketing"
+                                                    ]
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "provider": {
+                                                    "description": "Vuoto vuol dire \u00abquesto sito\u00bb, come la colonna del pannello."
+                                                },
+                                                "purpose": {
+                                                    "type": "string"
+                                                },
+                                                "duration": {},
+                                                "sort_order": {
+                                                    "type": "integer"
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "description": "Il pannello non ha \u00abModifica\u00bb n\u00e9 \u00abElimina\u00bb su questa tabella: si aggiunge e si riordina.",
+                                                    "properties": {
+                                                        "reorder": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "reorder"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "category",
+                                                "category_label",
+                                                "name",
+                                                "provider",
+                                                "purpose",
+                                                "duration",
+                                                "sort_order",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Cookie aggiunto."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/cookies/order": {
+            "post": {
+                "operationId": "v1.editorial.settings.cookies.reorder",
+                "summary": "Il nuovo ordine di una scheda, come il trascinamento del pannello: la\nprima riga prende 1, la seconda 2, e cos\u00ec via",
+                "tags": [
+                    "CookieDeclaration"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReorderCookiesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Ordine salvato."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/mail": {
+            "get": {
+                "operationId": "v1.editorial.settings.mail.show",
+                "tags": [
+                    "MailSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "string"
+                                                },
+                                                "active": {
+                                                    "type": "string"
+                                                },
+                                                "host": {
+                                                    "type": "string"
+                                                },
+                                                "port": {
+                                                    "type": "string"
+                                                },
+                                                "encryption": {
+                                                    "type": "string"
+                                                },
+                                                "encryption_label": {
+                                                    "type": "string"
+                                                },
+                                                "username": {
+                                                    "type": "string"
+                                                },
+                                                "has_password": {
+                                                    "type": "boolean"
+                                                },
+                                                "from_address": {
+                                                    "type": "string"
+                                                },
+                                                "from_name": {
+                                                    "type": "string"
+                                                },
+                                                "verified": {
+                                                    "type": "string"
+                                                },
+                                                "verified_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "stale_check": {
+                                                    "type": "boolean",
+                                                    "description": "Una prova c'\u00e8 stata, ma riguardava una configurazione diversa da quella salvata."
+                                                },
+                                                "status": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "custom": {
+                                                            "type": "string"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "detail": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "custom",
+                                                        "title",
+                                                        "detail"
+                                                    ]
+                                                },
+                                                "recipient": {
+                                                    "type": "string",
+                                                    "description": "La prova va all'indirizzo di chi la chiede, come nel pannello."
+                                                }
+                                            },
+                                            "required": [
+                                                "enabled",
+                                                "active",
+                                                "host",
+                                                "port",
+                                                "encryption",
+                                                "encryption_label",
+                                                "username",
+                                                "has_password",
+                                                "from_address",
+                                                "from_name",
+                                                "verified",
+                                                "verified_at",
+                                                "stale_check",
+                                                "status",
+                                                "recipient"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/mail/test": {
+            "post": {
+                "operationId": "v1.editorial.settings.mail.test",
+                "summary": "Il messaggio di prova con la configurazione salvata, all'indirizzo di\nchi lo chiede. Se parte, la configurazione risulta provata (il sito\npermette di accenderla); se il server di posta rifiuta, la risposta\nporta il suo messaggio per esteso, come la notifica del pannello. In\ntutti e due i casi \u00e8 un 200: la prova \u00e8 andata, con un esito",
+                "tags": [
+                    "MailSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "result": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "sent": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "detail": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "sent",
+                                                        "title",
+                                                        "detail"
+                                                    ]
+                                                },
+                                                "mail": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "enabled": {
+                                                            "type": "string"
+                                                        },
+                                                        "active": {
+                                                            "type": "string"
+                                                        },
+                                                        "host": {
+                                                            "type": "string"
+                                                        },
+                                                        "port": {
+                                                            "type": "string"
+                                                        },
+                                                        "encryption": {
+                                                            "type": "string"
+                                                        },
+                                                        "encryption_label": {
+                                                            "type": "string"
+                                                        },
+                                                        "username": {
+                                                            "type": "string"
+                                                        },
+                                                        "has_password": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "from_address": {
+                                                            "type": "string"
+                                                        },
+                                                        "from_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "verified": {
+                                                            "type": "string"
+                                                        },
+                                                        "verified_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "stale_check": {
+                                                            "type": "boolean",
+                                                            "description": "Una prova c'\u00e8 stata, ma riguardava una configurazione diversa da quella salvata."
+                                                        },
+                                                        "status": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "custom": {
+                                                                    "type": "string"
+                                                                },
+                                                                "title": {
+                                                                    "type": "string"
+                                                                },
+                                                                "detail": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "custom",
+                                                                "title",
+                                                                "detail"
+                                                            ]
+                                                        },
+                                                        "recipient": {
+                                                            "type": "string",
+                                                            "description": "La prova va all'indirizzo di chi la chiede, come nel pannello."
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "enabled",
+                                                        "active",
+                                                        "host",
+                                                        "port",
+                                                        "encryption",
+                                                        "encryption_label",
+                                                        "username",
+                                                        "has_password",
+                                                        "from_address",
+                                                        "from_name",
+                                                        "verified",
+                                                        "verified_at",
+                                                        "stale_check",
+                                                        "status",
+                                                        "recipient"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "result",
+                                                "mail"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/newsletter": {
+            "get": {
+                "operationId": "v1.editorial.settings.newsletter.show",
+                "tags": [
+                    "NewsletterSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "weekday": {
+                                                    "type": "integer"
+                                                },
+                                                "time": {
+                                                    "type": "string"
+                                                },
+                                                "max_items": {
+                                                    "type": "integer"
+                                                },
+                                                "texts": {
+                                                    "type": "string"
+                                                },
+                                                "weekdays": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_items_min": {
+                                                            "type": "integer",
+                                                            "const": 1
+                                                        },
+                                                        "max_items_max": {
+                                                            "type": "integer",
+                                                            "const": 30
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_items_min",
+                                                        "max_items_max"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "enabled",
+                                                "weekday",
+                                                "time",
+                                                "max_items",
+                                                "texts",
+                                                "weekdays",
+                                                "limits"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "v1.editorial.settings.newsletter.update",
+                "tags": [
+                    "NewsletterSettings"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateNewsletterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "enabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "weekday": {
+                                                    "type": "integer"
+                                                },
+                                                "time": {
+                                                    "type": "string"
+                                                },
+                                                "max_items": {
+                                                    "type": "integer"
+                                                },
+                                                "texts": {
+                                                    "type": "string"
+                                                },
+                                                "weekdays": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "max_items_min": {
+                                                            "type": "integer",
+                                                            "const": 1
+                                                        },
+                                                        "max_items_max": {
+                                                            "type": "integer",
+                                                            "const": 30
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "max_items_min",
+                                                        "max_items_max"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "enabled",
+                                                "weekday",
+                                                "time",
+                                                "max_items",
+                                                "texts",
+                                                "weekdays",
+                                                "limits"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Impostazioni newsletter salvate"
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/notification-texts": {
+            "get": {
+                "operationId": "v1.editorial.settings.texts.index",
+                "tags": [
+                    "NotificationText"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "groups": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "texts": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "key": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "label": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "default": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "value": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "modified": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "variables": {
+                                                                            "type": "array",
+                                                                            "items": {}
+                                                                        },
+                                                                        "preview": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "rows": {
+                                                                            "type": "integer"
+                                                                        },
+                                                                        "revision": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "key",
+                                                                        "label",
+                                                                        "default",
+                                                                        "value",
+                                                                        "modified",
+                                                                        "variables",
+                                                                        "preview",
+                                                                        "rows",
+                                                                        "revision"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "key",
+                                                            "label",
+                                                            "texts"
+                                                        ]
+                                                    }
+                                                },
+                                                "newsletter_included": {
+                                                    "type": "boolean",
+                                                    "description": "Il super admin vede anche i testi della newsletter."
+                                                }
+                                            },
+                                            "required": [
+                                                "groups",
+                                                "newsletter_included"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/notification-texts/preview": {
+            "post": {
+                "operationId": "v1.editorial.settings.texts.preview",
+                "summary": "L'esempio con i dati dimostrativi di un testo non ancora salvato, e i segnaposti che non vanno",
+                "tags": [
+                    "NotificationText"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PreviewNotificationTextRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "preview": {
+                                                    "type": "string"
+                                                },
+                                                "unknown": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "preview",
+                                                "unknown"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/notification-texts/reset": {
+            "post": {
+                "operationId": "v1.editorial.settings.texts.reset",
+                "summary": "\u00abRiporta tutto all'originale\u00bb: le riscritture che la persona vede tornano ai testi di partenza",
+                "tags": [
+                    "NotificationText"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "groups": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "texts": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "key": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "label": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "default": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "value": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "modified": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "variables": {
+                                                                            "type": "array",
+                                                                            "items": {}
+                                                                        },
+                                                                        "preview": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "rows": {
+                                                                            "type": "integer"
+                                                                        },
+                                                                        "revision": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "key",
+                                                                        "label",
+                                                                        "default",
+                                                                        "value",
+                                                                        "modified",
+                                                                        "variables",
+                                                                        "preview",
+                                                                        "rows",
+                                                                        "revision"
+                                                                    ]
+                                                                }
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "key",
+                                                            "label",
+                                                            "texts"
+                                                        ]
+                                                    }
+                                                },
+                                                "newsletter_included": {
+                                                    "type": "boolean",
+                                                    "description": "Il super admin vede anche i testi della newsletter."
+                                                }
+                                            },
+                                            "required": [
+                                                "groups",
+                                                "newsletter_included"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Tutti i testi sono tornati come erano."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/notification-texts/{key}": {
+            "put": {
+                "operationId": "v1.editorial.settings.texts.update",
+                "tags": [
+                    "NotificationText"
+                ],
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateNotificationTextRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ],
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "label": {
+                                                    "type": "string"
+                                                },
+                                                "default": {
+                                                    "type": "string"
+                                                },
+                                                "value": {
+                                                    "type": "string"
+                                                },
+                                                "modified": {
+                                                    "type": "string"
+                                                },
+                                                "variables": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "preview": {
+                                                    "type": "string"
+                                                },
+                                                "rows": {
+                                                    "type": "integer"
+                                                },
+                                                "revision": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "label",
+                                                "default",
+                                                "value",
+                                                "modified",
+                                                "variables",
+                                                "preview",
+                                                "rows",
+                                                "revision"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/redirects": {
+            "get": {
+                "operationId": "v1.editorial.settings.redirects.index",
+                "tags": [
+                    "Redirect"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "from_path": {
+                                                        "type": "string"
+                                                    },
+                                                    "to_path": {
+                                                        "type": "string"
+                                                    },
+                                                    "city": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name"
+                                                        ]
+                                                    },
+                                                    "status": {
+                                                        "type": "integer"
+                                                    },
+                                                    "status_label": {
+                                                        "type": "string"
+                                                    },
+                                                    "is_wildcard": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "hits": {
+                                                        "type": "integer"
+                                                    },
+                                                    "last_hit_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "abilities": {
+                                                        "type": "string",
+                                                        "description": "Il pannello aggiunge soltanto: nessuna azione sulla riga."
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "from_path",
+                                                    "to_path",
+                                                    "city",
+                                                    "status",
+                                                    "status_label",
+                                                    "is_wildcard",
+                                                    "hits",
+                                                    "last_hit_at",
+                                                    "abilities"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "tabs": {
+                                                    "type": "null"
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "create": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "create"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total",
+                                                "tabs",
+                                                "abilities"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "v1.editorial.settings.redirects.store",
+                "tags": [
+                    "Redirect"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreRedirectRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "from_path": {
+                                                    "type": "string"
+                                                },
+                                                "to_path": {
+                                                    "type": "string"
+                                                },
+                                                "city": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "integer"
+                                                },
+                                                "status_label": {
+                                                    "type": "string"
+                                                },
+                                                "is_wildcard": {
+                                                    "type": "boolean"
+                                                },
+                                                "hits": {
+                                                    "type": "integer"
+                                                },
+                                                "last_hit_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "abilities": {
+                                                    "type": "string",
+                                                    "description": "Il pannello aggiunge soltanto: nessuna azione sulla riga."
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "from_path",
+                                                "to_path",
+                                                "city",
+                                                "status",
+                                                "status_label",
+                                                "is_wildcard",
+                                                "hits",
+                                                "last_hit_at",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Indirizzo aggiunto."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/redirects/options": {
+            "get": {
+                "operationId": "v1.editorial.settings.redirects.options",
+                "summary": "Le scelte del modulo: tutte le citt\u00e0 (anche non attive, come il pannello) e i due tipi di spostamento",
+                "tags": [
+                    "Redirect"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "cities": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "statuses": {
+                                                    "type": "array",
+                                                    "prefixItems": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "const": 301
+                                                                },
+                                                                "label": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "value",
+                                                                "label"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "value": {
+                                                                    "type": "integer",
+                                                                    "const": 302
+                                                                },
+                                                                "label": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "value",
+                                                                "label"
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "minItems": 2,
+                                                    "maxItems": 2
+                                                },
+                                                "default_status": {
+                                                    "type": "integer",
+                                                    "const": 301
+                                                }
+                                            },
+                                            "required": [
+                                                "cities",
+                                                "statuses",
+                                                "default_status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -130664,6 +133041,220 @@
                     "phone"
                 ],
                 "title": "WhatsappRequest"
+            },
+            "PreviewNotificationTextRequest": {
+                "type": "object",
+                "description": "L'esempio di un testo delle email mentre lo si scrive: la chiave e il testo.",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "maxLength": 191
+                    },
+                    "value": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 60000
+                    }
+                },
+                "required": [
+                    "key"
+                ],
+                "title": "PreviewNotificationTextRequest"
+            },
+            "ReorderCookiesRequest": {
+                "type": "object",
+                "description": "Il nuovo ordine di una scheda del registro dei cookie: gli id di quella finalit\u00e0, dal primo all'ultimo.",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "necessary",
+                            "statistics",
+                            "marketing"
+                        ]
+                    },
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "minItems": 1,
+                        "maxItems": 500,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "category",
+                    "ids"
+                ],
+                "title": "ReorderCookiesRequest"
+            },
+            "StoreCookieRequest": {
+                "type": "object",
+                "description": "Un cookie nuovo, con i campi e i tetti del modulo del pannello. Il nome \u00e8\nunico nella finalit\u00e0: il database lo impone, e qui diventa un 422 invece\ndi un errore.",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "necessary",
+                            "statistics",
+                            "marketing"
+                        ]
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "provider": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "purpose": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "duration": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 64
+                    }
+                },
+                "required": [
+                    "category",
+                    "name",
+                    "purpose"
+                ],
+                "title": "StoreCookieRequest"
+            },
+            "StoreRedirectRequest": {
+                "type": "object",
+                "description": "Un indirizzo cambiato, con i campi e le regole del modulo del pannello:\ndue percorsi fino a 191 caratteri, la destinazione interna\n(`InternalRedirectTarget`), la citt\u00e0 facoltativa, 301 o 302, il jolly. Un\nindirizzo gi\u00e0 scritto per la stessa citt\u00e0 lo rifiuta il database: qui\ndiventa un 422.",
+                "properties": {
+                    "from_path": {
+                        "type": "string",
+                        "maxLength": 191
+                    },
+                    "to_path": {
+                        "type": "string",
+                        "maxLength": 191
+                    },
+                    "city_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "integer",
+                        "enum": [
+                            "301",
+                            "302"
+                        ]
+                    },
+                    "is_wildcard": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "from_path",
+                    "to_path",
+                    "status"
+                ],
+                "title": "StoreRedirectRequest"
+            },
+            "UpdateNewsletterRequest": {
+                "type": "object",
+                "description": "Il modulo della newsletter, con le regole dei campi del pannello: giorno\nda 1 a 7, ora `HH:MM`, da 1 a 30 eventi, testi fino a 200, 200, 2000 e\n120 caratteri (vuoti tornano all'originale).",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "weekday": {
+                        "type": "integer",
+                        "enum": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6",
+                            "7"
+                        ]
+                    },
+                    "time": {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                    },
+                    "max_items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 30
+                    },
+                    "subject": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    },
+                    "heading": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    },
+                    "line": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    },
+                    "action": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    }
+                },
+                "required": [
+                    "enabled",
+                    "weekday",
+                    "time",
+                    "max_items"
+                ],
+                "title": "UpdateNewsletterRequest"
+            },
+            "UpdateNotificationTextRequest": {
+                "type": "object",
+                "description": "Un testo delle email: il testo (vuoto = torna all'originale, come nel\npannello) e la revisione letta all'apertura.",
+                "properties": {
+                    "value": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 60000
+                    },
+                    "revision": {
+                        "type": "string",
+                        "maxLength": 64
+                    }
+                },
+                "required": [
+                    "value",
+                    "revision"
+                ],
+                "title": "UpdateNotificationTextRequest"
             }
         },
         "responses": {

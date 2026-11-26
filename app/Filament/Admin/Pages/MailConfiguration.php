@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Pages;
 
-use App\Enums\UserRole;
-use App\Mail\MailConfigurationTest;
 use App\Models\User;
+use App\Services\Settings\MailConfigurationTester;
 use App\Settings\MailSettings;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -21,8 +20,6 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
@@ -66,17 +63,11 @@ class MailConfiguration extends Page implements HasSchemas
     /** @var array<string, mixed> */
     public array $data = [];
 
-    /**
-     * Il nome del trasporto usato solo dall'invio di prova: vive accanto agli
-     * altri e non ne sostituisce nessuno.
-     */
-    private const MAILER_DI_PROVA = 'configurazione-in-prova';
-
     public static function canAccess(): bool
     {
         $utente = Auth::user();
 
-        return $utente instanceof User && $utente->hasRole(UserRole::SuperAdmin->value);
+        return MailConfigurationTester::canManage($utente instanceof User ? $utente : null);
     }
 
     public static function getNavigationLabel(): string
@@ -210,13 +201,7 @@ class MailConfiguration extends Page implements HasSchemas
         /** @var array<string, mixed> $dati */
         $dati = $this->data;
 
-        return hash('sha256', implode('|', [
-            (string) ($dati['host'] ?? ''),
-            (string) ($dati['port'] ?? ''),
-            (string) ($dati['encryption'] ?? ''),
-            (string) ($dati['username'] ?? ''),
-            (string) ($dati['password'] ?? ''),
-        ]));
+        return MailConfigurationTester::fingerprint($dati);
     }
 
     /**
@@ -260,58 +245,12 @@ class MailConfiguration extends Page implements HasSchemas
         }
 
         /*
-         * **Un trasporto temporaneo accanto agli altri, non al posto loro.**
-         *
-         * La prima versione sovrascriveva `mail.default` e buttava via il
-         * gestore in cache per forzarlo a ricostruirsi. Funzionava, ma per un
-         * singolo invio metteva le mani sullo stato di tutta l'applicazione, e
-         * il ripristino dipendeva da un `finally` che qualcuno prima o poi
-         * avrebbe spostato. In prova distruggeva perfino `Mail::fake()`, e il
-         * test non riusciva piu' a vedere il messaggio che verificava.
-         *
-         * Registrare un mailer con un nome proprio e spedire con quello non
-         * tocca niente di cio' che usano gli altri.
+         * Il trasporto temporaneo, la spedizione e la registrazione
+         * dell'impronta stanno in `MailConfigurationTester`, che usa anche
+         * l'app della redazione (con le credenziali salvate).
          */
-        Config::set('mail.mailers.'.self::MAILER_DI_PROVA, array_filter([
-            'transport' => 'smtp',
-            'host' => $dati['host'] ?? null,
-            'port' => $dati['port'] ?? null,
-            'encryption' => $dati['encryption'] ?? null,
-            'username' => $dati['username'] ?? null,
-            'password' => $dati['password'] ?? null,
-            /* Un invio di prova che resta appeso mezzo minuto sembra un
-               blocco: meglio un errore netto in dieci secondi. */
-            'timeout' => 10,
-        ], static fn (mixed $v): bool => $v !== null && $v !== ''));
-
-        $mittente = [];
-
-        if (is_string($dati['from_address'] ?? null) && $dati['from_address'] !== '') {
-            $mittente['address'] = $dati['from_address'];
-        }
-
-        if (is_string($dati['from_name'] ?? null) && $dati['from_name'] !== '') {
-            $mittente['name'] = $dati['from_name'];
-        }
-
         try {
-            $messaggio = Mail::mailer(self::MAILER_DI_PROVA)->to($destinatario);
-
-            $prova = new MailConfigurationTest;
-
-            if ($mittente !== []) {
-                $prova->from(
-                    $mittente['address'] ?? config()->string('mail.from.address'),
-                    $mittente['name'] ?? null,
-                );
-            }
-
-            $messaggio->send($prova);
-
-            $impostazioni = app(MailSettings::class);
-            $impostazioni->verified_fingerprint = $this->impronataDelModulo();
-            $impostazioni->verified_at = now()->toDateTimeString();
-            $impostazioni->save();
+            MailConfigurationTester::send($dati, $destinatario);
 
             Notification::make()
                 ->success()

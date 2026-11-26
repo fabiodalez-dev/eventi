@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **453 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **472 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -895,3 +895,49 @@ L'elenco eventi di `/admin/events`, la scheda in sola lettura, le decisioni dell
 - `GET E/submissions/{submission}`: in più `contact_email`, `raw_text`, `raw_text_html`, `notes`, `reviewed_at`, `timezone`, `limits{title, raw_text, notes}` e, se in attesa, `form{title, raw_text, venue_id, category_id, starts_at_hint, ends_at, price_type (unknown), price_min}` e `choices{venues (approvati della città della proposta), categories (attive), price_types}`.
 - `POST E/submissions/{submission}/publish` con i campi del modulo: le date ISO 8601 con il fuso (o senza fuso nell'ora della città). Chiede `events.publish` e `EventPolicy::create` oltre a `update` (solo admin e super admin; il moderatore riceve 403, come il pulsante che nel pannello non vede). Errori 422 sui campi (`venue_id`, `ends_at`…); 409 su una proposta già rifiutata. Risposta 201 `{data{event_id, submission}, message}`.
 - `POST E/submissions/{submission}/reject` con `notes` obbligatorio fino a 2.000 caratteri (`update`). 409 se non è più in attesa.
+
+## Redazione: configurazione tecnica (R13, 26 novembre 2026)
+
+Le pagine di configurazione del pannello `/admin` (gruppo «Sistema», più la Newsletter) sotto `/v1/editorial/…`, con la porta e lo sblocco delle fondamenta. Diciannove operazioni nuove. Decisione 5 del piano: l'app legge tutto e fa le azioni operative (svuota e verifica la cache, messaggio di prova della posta); scrive testi delle email, newsletter, registro dei cookie e indirizzi cambiati; SMTP, script di consenso, impostazioni della cache e credenziali di Redis si scrivono solo dal sito. Le password (SMTP, Redis) non escono mai: al loro posto `has_password`. La città non filtra: sono impostazioni di tutto il sito. Nessuna rotta è pericolosa (il pannello non elimina niente in queste pagine). Le regole stanno in classi condivise con il pannello: `App\Services\Settings\NotificationTextEditor` (estratta da `NotificationTexts`), `NewsletterConfiguration` (da `Newsletter`), `MailConfigurationTester` (da `MailConfiguration::inviaProva`); le risposte in `App\Services\Editorial\EditorialSettings`.
+
+### Testi delle email (admin e super admin; i testi della newsletter solo il super admin)
+
+- `GET /v1/editorial/notification-texts`: `data{groups[{key, label, texts[{key, label, default, value, modified, variables[{name, label}], preview, rows, revision}]}], newsletter_included}`. `label` è il pezzo dell'email («Oggetto»), `preview` l'esempio con i dati dimostrativi del pannello.
+- `POST /v1/editorial/notification-texts/preview` `{key, value}`: `data{key, preview, unknown[]}` (i segnaposti che l'originale non ha). Non salva niente.
+- `PUT /v1/editorial/notification-texts/{key}` `{value, revision}`: un testo per volta, con la revisione letta (422 su `revision` se nel frattempo è cambiato). Vuoto o uguale all'originale cancella la riscrittura, come il pannello; un segnaposto sconosciuto dà 422 su `value`. Chiave che non esiste o riservata: 404. Risponde con il testo e `meta.message`.
+- `POST /v1/editorial/notification-texts/reset`: «Riporta tutto all'originale» per le chiavi che la persona vede (all'admin restano quelle della newsletter). Solo conferma, come il pannello.
+
+### Posta (solo super admin)
+
+- `GET /v1/editorial/mail`: `enabled, active, host, port, encryption, encryption_label, username, has_password, from_address, from_name, verified, verified_at, stale_check, status{custom, title, detail}, recipient`.
+- `POST /v1/editorial/mail/test`: il messaggio di prova all'indirizzo di chi lo chiede, con la configurazione **salvata** (il pannello prova quella scritta nel modulo). Se parte, l'impronta viene registrata e sul sito si può accendere la configurazione. 200 in tutti e due i casi: `data{result{sent, title, detail}, mail}`; `detail` porta il messaggio del server di posta per esteso. Account senza email: 422 su `recipient`. 5 al minuto.
+
+### Newsletter (solo super admin)
+
+- `GET /v1/editorial/newsletter`: `enabled, weekday, time, max_items, texts{subject|heading|line|action: {value, default, max, variables}}, weekdays[{value, label}], limits{max_items_min, max_items_max}`.
+- `PUT /v1/editorial/newsletter` `{enabled, weekday 1–7, time HH:MM, max_items 1–30, subject ≤200, heading ≤200, line ≤2000, action ≤120}`: le regole del modulo del pannello; i testi vuoti tornano all'originale, un segnaposto sconosciuto dà 422 sul campo.
+
+### Script di consenso (admin e super admin, sola lettura)
+
+- `GET /v1/editorial/consent-scripts` (`q` sul nome, ordine di esecuzione): riga `id, name, category, category_label, enabled, sort_order, src, has_code, abilities{}`; `meta.categories`.
+- `GET /v1/editorial/consent-scripts/{script}`: la riga con `code`. Creare, modificare, accendere ed eliminare: solo dal sito.
+
+### Cookie (admin e super admin)
+
+- `GET /v1/editorial/cookies` (`tab` = finalità, predefinita `necessary`; `q` su nome, fornitore e scopo; ordine `sort_order`): riga `id, category, category_label, name, provider|null («questo sito»), purpose, duration, sort_order, abilities{reorder}`; `meta.tabs{necessary, statistics, marketing}`, `meta.tab`, `meta.categories[{value, label, description}]`.
+- `POST /v1/editorial/cookies` `{category, name ≤255, provider?, purpose ≤255, duration? ≤64}`: 201. Nome già presente nella finalità: 422 su `name` (il vincolo unico del database).
+- `POST /v1/editorial/cookies/order` `{category, ids[]}`: il nuovo ordine della scheda (1, 2, …), come il trascinamento del pannello; un id di un'altra finalità: 422. Il pannello non modifica né elimina queste righe, e nemmeno l'app.
+
+### Indirizzi cambiati (`RedirectPolicy`: `pages.manage`)
+
+- `GET /v1/editorial/redirects` (`q` sui due indirizzi; `sort=hits|-hits|last_hit_at|-last_hit_at`, predefinito dal passaggio più recente): riga `id, from_path, to_path, city{id, name}|null, status, status_label, is_wildcard, hits, last_hit_at, abilities{}`; `meta.abilities.create`.
+- `GET /v1/editorial/redirects/options`: `cities[{id, name}]` (tutte, come il pannello), `statuses[{value, label}]`, `default_status`.
+- `POST /v1/editorial/redirects` `{from_path ≤191, to_path ≤191 (percorso interno, `InternalRedirectTarget`), city_id?, status 301|302, is_wildcard?}`: 201. Lo stesso indirizzo nella stessa città: 422 su `from_path`. Il pannello non modifica né elimina le righe (la policy lo permetterebbe), e nemmeno l'app.
+
+### Cache e prestazioni (admin e super admin)
+
+- `GET /v1/editorial/cache`: `managed, enabled, store, store_label, ttl_minutes, redis{host, port, database, username, tls, has_password}, environment{redis_extension, litespeed, server}`.
+- `POST /v1/editorial/cache/clear`: «Pulisci tutte le cache del sito» (`FrontendCacheConfiguration::clear`, non tocca sessioni, prenotazioni, lock). 10 al minuto.
+- `POST /v1/editorial/cache/verify`: verifica Redis con la configurazione salvata, senza attivarlo: `data{ok}` e `meta.message`.
+
+Limiti di frequenza per persona: letture 60/min, anteprima 120/min, scritture 20–30/min, ripristino dei testi 10/min. Errori: 404 a chi non è della redazione, 403 al ruolo che il pannello non fa entrare (moderatore ovunque; admin su posta e newsletter), 422 con `error.fields`, 423 per lo sblocco.

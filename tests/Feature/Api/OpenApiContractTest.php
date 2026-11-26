@@ -160,6 +160,29 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
         ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
+    // R13 della redazione (26/11/2026): la configurazione tecnica.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/notification-texts',
+        '/editorial/notification-texts/preview',
+        '/editorial/notification-texts/reset',
+        '/editorial/notification-texts/{key}',
+        '/editorial/mail',
+        '/editorial/mail/test',
+        '/editorial/newsletter',
+        '/editorial/consent-scripts',
+        '/editorial/consent-scripts/{script}',
+        '/editorial/cookies',
+        '/editorial/cookies/order',
+        '/editorial/redirects',
+        '/editorial/redirects/options',
+        '/editorial/cache',
+        '/editorial/cache/clear',
+        '/editorial/cache/verify',
+    ])
+        ->and($document['paths']['/editorial/newsletter'])->toHaveKeys(['get', 'put'])
+        ->and($document['paths']['/editorial/cookies'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/redirects'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/consent-scripts/{script}'])->not->toHaveKeys(['patch', 'put', 'delete']);
 
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
