@@ -181,7 +181,7 @@ private fun ChooseSection(state: SocialStudioUiState, venue: ManagementSubject, 
 /** «Dal» o «Al»: un pulsante con la data, che apre il calendario di sistema. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateButton(label: String, value: String, zone: ZoneId, modifier: Modifier, onPick: (String) -> Unit) {
+internal fun DateButton(label: String, value: String, zone: ZoneId, modifier: Modifier, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val date = runCatching { LocalDate.parse(value) }.getOrNull()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -206,7 +206,7 @@ private fun DateButton(label: String, value: String, zone: ZoneId, modifier: Mod
 
 /** Il piccolo calendario del mese: i giorni con serate si toccano, gli altri no (W-SO-02). */
 @Composable
-private fun CalendarGrid(calendar: SocialCalendar, selected: String, onShift: (Int) -> Unit, onPick: (String) -> Unit) {
+internal fun CalendarGrid(calendar: SocialCalendar, selected: String, onShift: (Int) -> Unit, onPick: (String) -> Unit) {
     val weekdays = stringArrayResource(R.array.social_weekdays)
     val calendarLabel = stringResource(R.string.social_calendar)
     Column(Modifier.fillMaxWidth().semantics { contentDescription = calendarLabel }, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -231,7 +231,7 @@ private fun CalendarGrid(calendar: SocialCalendar, selected: String, onShift: (I
 }
 
 @Composable
-private fun CalendarCell(day: SocialCalendarDay, picked: Boolean, onPick: (String) -> Unit, modifier: Modifier) {
+internal fun CalendarCell(day: SocialCalendarDay, picked: Boolean, onPick: (String) -> Unit, modifier: Modifier) {
     val label = runCatching { LocalDate.parse(day.date) }.getOrNull()?.let(::socialDayLabel) ?: day.date
     val spoken = if (day.count == 0) stringResource(R.string.social_day_none, label) else pluralStringResource(R.plurals.social_day_count, day.count, label, day.count)
     val colors = MaterialTheme.colorScheme
@@ -266,7 +266,7 @@ private fun CalendarCell(day: SocialCalendarDay, picked: Boolean, onPick: (Strin
 /** Una serata dell'elenco: locandina, titolo, quando, stato, dimostrativo; si tocca per sceglierla (W-SO-03). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CatalogCard(card: SocialCard, picked: Boolean, zone: ZoneId, onClick: () -> Unit) {
+internal fun CatalogCard(card: SocialCard, picked: Boolean, zone: ZoneId, onClick: () -> Unit) {
     val whenText = socialWhen(card, zone, stringResource(R.string.social_all_day))
     val spoken = stringResource(if (picked) R.string.social_remove_label else R.string.social_pick_label, card.title, whenText)
     OutlinedCard(
@@ -382,7 +382,7 @@ private fun OptionsForm(state: SocialStudioUiState, viewModel: SocialStudioViewM
 }
 
 @Composable
-private fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
+internal fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onSelect),
         verticalAlignment = Alignment.CenterVertically,
@@ -394,7 +394,7 @@ private fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
 }
 
 @Composable
-private fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically,
@@ -419,7 +419,7 @@ private fun RecentSection(state: SocialStudioUiState, viewModel: SocialStudioVie
 }
 
 @Composable
-private fun RecentRow(batch: SocialBatchSummary, zone: ZoneId, onOpen: () -> Unit) {
+internal fun RecentRow(batch: SocialBatchSummary, zone: ZoneId, onOpen: () -> Unit) {
     val day = runCatching { LocalDate.parse(batch.date) }.getOrNull()?.let(::socialDayLabel) ?: batch.date
     val format = stringResource(formatLabel(SocialFormatChoice.from(batch.format.value)))
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -507,7 +507,7 @@ private fun BatchContent(batch: SocialBatch, state: SocialBatchUiState, viewMode
 
 /** Un'immagine del pacchetto con «Salva nella galleria» (da Android 10) e «Condividi». */
 @Composable
-private fun BatchImage(item: SocialBatchItem, ratio: Float, busy: Boolean, downloading: Boolean, onSave: () -> Unit, onShare: () -> Unit) {
+internal fun BatchImage(item: SocialBatchItem, ratio: Float, busy: Boolean, downloading: Boolean, onSave: () -> Unit, onShare: () -> Unit) {
     Column(Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         AsyncImage(
             model = item.url,
@@ -555,13 +555,13 @@ internal fun SocialPreviewDialog(file: java.io.File, title: String, onDismiss: (
 // ---------------------------------------------------------------- pezzi comuni
 
 @Composable
-private fun SectionTitle(text: String) {
+internal fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
 }
 
 /** Un'immagine dell'API di gestione, che vuole il token (le anteprime delle grafiche). */
 @Composable
-private fun AuthorizedImage(url: String, token: String, description: String, modifier: Modifier) {
+internal fun AuthorizedImage(url: String, token: String, description: String, modifier: Modifier) {
     val context = LocalContext.current
     val request = remember(url, token) {
         ImageRequest.Builder(context)
@@ -574,20 +574,20 @@ private fun AuthorizedImage(url: String, token: String, description: String, mod
     }
 }
 
-private fun copyCaption(context: Context, caption: String): Boolean {
+internal fun copyCaption(context: Context, caption: String): Boolean {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return false
     clipboard.setPrimaryClip(ClipData.newPlainText("didascalia", caption))
     return true
 }
 
-private val PERIOD_LABELS = listOf(
+internal val PERIOD_LABELS = listOf(
     "today" to R.string.social_period_today,
     "week" to R.string.social_period_week,
     "next30" to R.string.social_period_next30,
     "custom" to R.string.social_period_custom,
 )
 
-private fun formatLabel(format: SocialFormatChoice): Int = when (format) {
+internal fun formatLabel(format: SocialFormatChoice): Int = when (format) {
     SocialFormatChoice.Portrait -> R.string.social_format_portrait
     SocialFormatChoice.Square -> R.string.social_format_square
     SocialFormatChoice.Story -> R.string.social_format_story

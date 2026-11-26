@@ -73,7 +73,8 @@ class EditorialFoundationsTest {
 
     @Test fun theNativeAreasOfTheFirstWaveOpenTheirOwnScreens() {
         val native = EditorialArea.entries.filter { it.native }
-        assertEquals(listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation), native)
+        /* Le aree delle ondate successive si aggiungono (R9: Social): quelle della prima restano native. */
+        assertTrue(native.toString(), native.containsAll(listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation)))
         assertEquals(it.fabiodalez.incitta.ui.editorial.dashboard.DashboardRoute, EditorialArea.Dashboard.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.events.EventsRoute, EditorialArea.Events.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.venues.VenuesRoute, EditorialArea.Venues.entry)

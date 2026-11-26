@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R9 — il Social della redazione. Lo studio riusa i testi dello studio del locale (management_social.xml, social_*); qui ci sono quelli in più: pubblicazione, storico, impostazioni, «Social di oggi». -->
+<resources>
+    <string name="editorial_social_lead">Scegli le serate, decidi formato e stile, scarica le grafiche già in ordine. Da qui si pubblicano anche sui canali della città.</string>
+    <string name="editorial_social_today_card">Le grafiche degli eventi di oggi</string>
+    <string name="editorial_social_today_card_help">Le serate di oggi in un pacchetto verticale, pronto da scaricare</string>
+    <string name="editorial_social_history">Storico pubblicazioni</string>
+    <string name="editorial_social_history_help">Programmate, in coda, pubblicate e non riuscite</string>
+    <string name="editorial_social_settings">Collega account e programma</string>
+    <string name="editorial_social_settings_help">Meta, Telegram, pubblicazione automatica e testo dei post</string>
+    <string name="editorial_social_city_hint">Le grafiche sono della città scelta.</string>
+
+    <!-- Un pacchetto: testo automatico e pubblicazione -->
+    <string name="editorial_social_caption_preview">Anteprima del testo automatico</string>
+    <string name="editorial_social_caption_part">Parte %1$d di %2$d</string>
+    <string name="editorial_social_publication">Pubblica o programma</string>
+    <string name="editorial_social_schedule_lead">Prepara e controlla l’anteprima, poi scegli quando inviarla. Orari nel fuso %1$s. L’elaborazione di Meta può richiedere qualche minuto in più.</string>
+    <string name="editorial_social_schedule_when">Data e ora</string>
+    <string name="editorial_social_schedule_note">Se un evento cambia o viene annullato prima dell’invio, il post viene fermato: prepara di nuovo le grafiche. Le storie restano da scaricare a mano.</string>
+    <string name="editorial_social_publish">Pubblica sui canali collegati</string>
+    <string name="editorial_social_publish_confirm_title">Pubblicare adesso?</string>
+    <string name="editorial_social_publish_confirm">Confermi la pubblicazione delle grafiche preparate sui canali attivi? Il post sarà visibile al pubblico.</string>
+    <string name="editorial_social_schedule">Programma</string>
+    <string name="editorial_social_in_history">Questo pacchetto è già nello storico: la programmazione si cambia da lì.</string>
+    <string name="editorial_social_open_history">Apri lo storico</string>
+
+    <!-- Storico -->
+    <string name="editorial_social_history_empty">Nessuna pubblicazione ancora.</string>
+    <string name="editorial_social_row_title">%1$s · parte %2$d</string>
+    <string name="editorial_social_row_created">Creata %1$s</string>
+    <string name="editorial_social_row_expected">Prevista per %1$s</string>
+    <string name="editorial_social_batch_gone">Le grafiche di questa pubblicazione non ci sono più: il pacchetto è stato tolto dalla pulizia dei pacchetti vecchi.</string>
+    <string name="editorial_social_reschedule">Usa una nuova data e ora</string>
+    <string name="editorial_social_reschedule_title">Nuova data e ora</string>
+    <string name="editorial_social_cancel_schedule">Annulla programmazione</string>
+    <string name="editorial_social_retry">Riprova dopo aver controllato</string>
+    <string name="editorial_social_retry_title">Riprovare la pubblicazione?</string>
+    <string name="editorial_social_retry_confirm">Hai verificato sul social che il post NON sia già presente e corretto eventuali problemi del collegamento? Confermando avvii un nuovo tentativo.</string>
+    <string name="editorial_social_open_batch">Apri le grafiche</string>
+    <string name="editorial_social_filter_status">Stato</string>
+    <string name="editorial_social_status_scheduled">Programmata</string>
+    <string name="editorial_social_status_cancelled">Programmazione annullata</string>
+    <string name="editorial_social_status_queued">In coda</string>
+    <string name="editorial_social_status_processing">In preparazione</string>
+    <string name="editorial_social_status_published">Pubblicato</string>
+    <string name="editorial_social_status_failed">Non pubblicato</string>
+    <string name="editorial_social_status_uncertain">Da verificare sul social</string>
+    <string name="editorial_social_uncertain_help">Il social non ha confermato l’esito. Controlla la Pagina o il profilo prima di riprovare: una ripetizione potrebbe creare un doppione.</string>
+
+    <!-- Impostazioni -->
+    <string name="editorial_social_settings_title">Account e pubblicazione social</string>
+    <string name="editorial_social_settings_lead">Questa configurazione serve solo per pubblicare senza uscire dall’app. Per scaricare le grafiche non devi compilare nulla.</string>
+    <string name="editorial_social_secrets_web">App Secret, token della Pagina e token del bot Telegram si scrivono solo dalla pagina del sito: qui vedi solo se sono salvati.</string>
+    <string name="editorial_social_open_settings_web">Apri le impostazioni sul sito</string>
+    <string name="editorial_social_meta_heading">Meta: Facebook e Instagram</string>
+    <string name="editorial_social_meta_intro">Instagram e Facebook condividono l’app Meta. Con App ID e App Secret salvati, «Collega con Meta» apre il sito nel browser: autorizza le Pagine che ti servono, scegli quale collegare, poi torna qui.</string>
+    <string name="editorial_social_meta_status">App Secret: %1$s. Token: %2$s. Collegamento: %3$s.</string>
+    <string name="editorial_social_saved">salvato</string>
+    <string name="editorial_social_missing">mancante</string>
+    <string name="editorial_social_verified">verificato</string>
+    <string name="editorial_social_to_verify">da verificare</string>
+    <string name="editorial_social_telegram_heading">Telegram</string>
+    <string name="editorial_social_telegram_status">Token bot: %1$s. Canale: %2$s. Verifica: %3$s.</string>
+    <string name="editorial_social_telegram_no_chat">non configurato</string>
+    <string name="editorial_social_telegram_done">completata</string>
+    <string name="editorial_social_telegram_todo">da eseguire</string>
+    <string name="editorial_social_telegram_help">Le didascalie con immagini hanno un limite di 1024 caratteri. La verifica controlla bot, canale e permesso di pubblicare senza inviare messaggi.</string>
+    <string name="editorial_social_field_app_id">Meta App ID</string>
+    <string name="editorial_social_field_city">Città</string>
+    <string name="editorial_social_field_page_id">ID della Pagina Facebook</string>
+    <string name="editorial_social_field_instagram_id">ID dell’account professionale Instagram</string>
+    <string name="editorial_social_field_graph_version">Versione API Meta</string>
+    <string name="editorial_social_field_facebook">Pubblica su Facebook</string>
+    <string name="editorial_social_field_instagram">Pubblica su Instagram</string>
+    <string name="editorial_social_field_telegram_chat">Canale: @username oppure ID numerico</string>
+    <string name="editorial_social_field_telegram">Pubblica su Telegram</string>
+    <string name="editorial_social_automatic_heading">Pubblica automaticamente ogni giorno</string>
+    <string name="editorial_social_automatic_help">L’automatismo usa il formato verticale e lo stile qui sotto. Pubblica gli eventi del giorno, senza ripetere una pubblicazione già avviata. Un giorno senza eventi viene saltato.</string>
+    <string name="editorial_social_field_automatic">Pubblica automaticamente ogni giorno</string>
+    <string name="editorial_social_field_publish_time">Ora di pubblicazione (fuso della città)</string>
+    <string name="editorial_social_field_caption">Testo dei post automatici</string>
+    <string name="editorial_social_caption_help">Tocca un segnaposto per aggiungerlo al testo. Nei caroselli lunghi ogni post contiene al massimo 10 immagini. La didascalia Instagram non può superare 2.200 caratteri.</string>
+    <string name="editorial_social_caption_counter">%1$d / %2$d</string>
+    <string name="editorial_social_save">Salva impostazioni</string>
+    <string name="editorial_social_verify">Verifica collegamento</string>
+    <string name="editorial_social_verify_telegram">Verifica Telegram</string>
+    <string name="editorial_social_connect_meta">Collega con Meta</string>
+    <string name="editorial_social_disconnect_meta">Scollega Meta</string>
+    <string name="editorial_social_disconnect_title">Scollegare Meta?</string>
+    <string name="editorial_social_disconnect_confirm">Rimuovere il token salvato e disattivare la pubblicazione automatica?</string>
+    <string name="editorial_social_unsaved">Ci sono modifiche non salvate.</string>
+    <string name="editorial_social_time_invalid">Scrivi l’ora come 09:00.</string>
+
+    <!-- Social di oggi -->
+    <string name="editorial_social_today_title">Social di oggi</string>
+    <string name="editorial_social_today_empty">Oggi non ci sono serate da preparare.</string>
+    <string name="editorial_social_today_download">Prepara e scarica le grafiche di oggi</string>
+    <string name="editorial_social_today_preparing">Preparazione delle immagini…</string>
+    <string name="editorial_social_today_open_studio">Apri lo studio</string>
+</resources>
