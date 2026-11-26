@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\NotificationType;
+use App\Models\Organizer;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\Notifications\ChannelSelector;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -56,13 +58,44 @@ final class AppPush extends Notification implements ShouldQueue
      * Al momento della consegna si guarda di nuovo la persona: un account
      * chiuso, una casella diventata non recapitabile o un interruttore spento
      * nel frattempo (il rapporto mensile ne ha uno) fermano la push.
+     *
+     * E si guarda di nuovo il soggetto: una push spostata dalle ore di
+     * silenzio parte ore dopo, e porta il nome del locale e i suoi numeri.
+     * Chi nel frattempo è stato tolto dal locale o dall'organizzazione non la
+     * riceve (`canAccessTenant`, lo stesso controllo del bersaglio); un
+     * bersaglio dell'account vale solo per quella persona.
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
         $user = $notifiable instanceof User ? User::query()->find($notifiable->getKey()) : null;
         $type = NotificationType::tryFrom($this->payload['type']);
 
-        return $user instanceof User && $user->canReceiveNotifications() && $type !== null && $type->isEnabledFor($user);
+        return $user instanceof User && $user->canReceiveNotifications() && $type !== null && $type->isEnabledFor($user)
+            && $this->stillReaches($user);
+    }
+
+    private function stillReaches(User $user): bool
+    {
+        $target = $this->payload['management'];
+        if ($target === null) {
+            return true;
+        }
+
+        $subject = match ($target['subject_type']) {
+            'venue' => Venue::query()->find($target['subject_id']),
+            'organizer' => Organizer::query()->find($target['subject_id']),
+            'account' => null,
+            default => false,
+        };
+        if ($subject === false) {
+            return false;
+        }
+        if ($subject === null) {
+            return $target['subject_type'] === 'account' && $target['subject_id'] === (int) $user->getKey();
+        }
+        $user->forgetVenueMemberships();
+
+        return $user->canAccessTenant($subject);
     }
 
     public function toWebPush(object $notifiable): WebPushMessage

@@ -207,6 +207,23 @@ class LocalStore(private val context: Context) {
         prefs.edit { if (value == null) remove(KEY_APPLICATION_DRAFTS) else putString(KEY_APPLICATION_DRAFTS, encrypt(value)) }
     }
 
+    /*
+     * Il segreto delle notifiche: un valore casuale di questa installazione,
+     * cifrato come la sessione, che le notifiche dell'app mettono nel loro
+     * intent (`NotificationLinkProof`). Un'altra app installata può mandare a
+     * `MainActivity` (esportata per gli App Link) un intent con un indirizzo
+     * interno della gestione e un id utente indovinato, ma non conosce questo
+     * valore. Non segue la sessione: una notifica arrivata prima dell'uscita
+     * la ferma già il controllo sull'utente.
+     */
+    @Synchronized internal fun notificationLinkSecret(): String {
+        prefs.getString(KEY_NOTIFICATION_SECRET, null)?.let { stored -> runCatching { decrypt(stored) }.getOrNull()?.let { return it } }
+        val bytes = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        val secret = Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
+        prefs.edit(commit = true) { putString(KEY_NOTIFICATION_SECRET, encrypt(secret)) }
+        return secret
+    }
+
     private fun encrypt(value: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey())
@@ -263,6 +280,7 @@ class LocalStore(private val context: Context) {
         const val KEY_SESSION = "session"
         const val KEY_GUEST_SAVED = "guest_saved"
         const val KEY_APPLICATION_DRAFTS = "application_drafts"
+        const val KEY_NOTIFICATION_SECRET = "notification_link_secret"
         const val KEY_OCCURRENCES = "occurrences"
         const val KEY_PRIVACY_CONSENT = "privacy_consent"
         const val KEY_BOOKINGS = "bookings_offline"

@@ -225,12 +225,14 @@ internal abstract class ApplicationFormViewModel<D : Any>(
         val next = change(state.value.draft)
         state.update { it.copy(draft = next, required = it.required - changedKeys) }
         saved[DRAFT_KEY] = draftJson.encodeToString(serializer, next)
+        contentChanged()
         persist(next, state.value.email)
     }
 
     fun setEmail(value: String) {
         state.update { it.copy(email = value.take(255), required = it.required - EMAIL_FIELD) }
         saved[EMAIL_KEY] = state.value.email
+        contentChanged()
         persist(state.value.draft, state.value.email)
     }
 
@@ -302,7 +304,8 @@ internal abstract class ApplicationFormViewModel<D : Any>(
         loadMine()
     }
 
-    protected abstract suspend fun send(source: ManagementApplicationsSource, draft: D): ApplicationSent
+    /** L'invio, con la chiave `Idempotency-Key` di questo contenuto (`sendKey`). */
+    protected abstract suspend fun send(source: ManagementApplicationsSource, draft: D, key: String): ApplicationSent
     protected open fun canSubmit(): Boolean = true
     /** Per l'invio automatico: aspetta che il modulo sia pronto (la rivendicazione, il locale). */
     protected open suspend fun awaitReady(): Boolean = true
@@ -314,6 +317,20 @@ internal abstract class ApplicationFormViewModel<D : Any>(
 
     protected fun draftScope(): String = scope
 
+    /* Il contenuto è cambiato: il prossimo invio è un'altra richiesta e vuole un'altra chiave. Quella della bozza la cambia `ApplicationDrafts.save`. */
+    protected fun contentChanged() { saved.remove<String>(SEND_KEY) }
+
+    /**
+     * La chiave dell'invio: quella della bozza del telefono, che resta la
+     * stessa finché il contenuto non cambia e sopravvive alla chiusura
+     * dell'app; senza bozza, una tenuta nella voce di navigazione. Un invio
+     * ripetuto (l'invio automatico la cui risposta si è persa, poi «Invia» a
+     * mano) riceve dal server la risposta del primo, senza un doppione.
+     */
+    private fun sendKey(): String = drafts?.sendKey(scope)
+        ?: saved.get<String>(SEND_KEY)
+        ?: java.util.UUID.randomUUID().toString().also { saved[SEND_KEY] = it }
+
     private fun send(auto: Boolean) {
         val source = api ?: return
         if (state.value.busy || (!auto && !canSubmit())) return
@@ -321,8 +338,10 @@ internal abstract class ApplicationFormViewModel<D : Any>(
         viewModelScope.launch {
             try {
                 if (auto && !awaitReady()) return@launch
-                val sent = send(source, state.value.draft)
+                persist(state.value.draft, state.value.email)
+                val sent = send(source, state.value.draft, sendKey())
                 saved.remove<String>(DRAFT_KEY)
+                saved.remove<String>(SEND_KEY)
                 drafts?.remove(scope)
                 onSent()
                 state.update { it.copy(sent = sent, landOnApplications = auto) }
@@ -396,6 +415,7 @@ internal abstract class ApplicationFormViewModel<D : Any>(
     private companion object {
         const val DRAFT_KEY = "draft"
         const val EMAIL_KEY = "guest_email"
+        const val SEND_KEY = "send_key"
         val draftJson = Json { ignoreUnknownKeys = true }
         /* Un campo corretto perde il suo avviso: quelli del modulo si tolgono tutti a ogni modifica, li ricontrolla l'invio. */
         val changedKeys = setOf("venue_name", "address", "contact_name", "message")
@@ -498,6 +518,7 @@ internal class RegisterVenueViewModel(
             else -> null
         }
         imageState.value = if (error == null) ApplicationImageUi(prepared) else ApplicationImageUi(error = error)
+        contentChanged()
         drafts?.saveImage(draftScope(), imageState.value.image)
     }
 
@@ -505,6 +526,7 @@ internal class RegisterVenueViewModel(
 
     fun removeImage() {
         imageState.value = ApplicationImageUi()
+        contentChanged()
         drafts?.saveImage(draftScope(), null)
     }
 
@@ -516,8 +538,8 @@ internal class RegisterVenueViewModel(
         if (uiState.value.draft.municipality.isBlank()) update { it.copy(municipality = municipality) }
     }
 
-    override suspend fun send(source: ManagementApplicationsSource, draft: VenueApplicationDraft): ApplicationSent =
-        source.submitVenue(draft, imageState.value.image)
+    override suspend fun send(source: ManagementApplicationsSource, draft: VenueApplicationDraft, key: String): ApplicationSent =
+        source.submitVenue(draft, imageState.value.image, key)
 
     override fun onSent() { imageState.value = ApplicationImageUi() }
 
@@ -569,7 +591,7 @@ internal class ClaimVenueViewModel(
 
     override suspend fun awaitReady(): Boolean = targetState.first { it !is Loadable.Loading } is Loadable.Ready
 
-    override suspend fun send(source: ManagementApplicationsSource, draft: ClaimDraft): ApplicationSent = source.claim(slug, draft)
+    override suspend fun send(source: ManagementApplicationsSource, draft: ClaimDraft, key: String): ApplicationSent = source.claim(slug, draft, key)
 
     override fun contactName(draft: ClaimDraft): String = draft.contactName
 
@@ -594,7 +616,7 @@ internal class RegisterOrganizerViewModel(
 
     init { start() }
 
-    override suspend fun send(source: ManagementApplicationsSource, draft: OrganizerApplicationDraft): ApplicationSent = source.submitOrganizer(draft)
+    override suspend fun send(source: ManagementApplicationsSource, draft: OrganizerApplicationDraft, key: String): ApplicationSent = source.submitOrganizer(draft, key)
 
     override fun contactName(draft: OrganizerApplicationDraft): String = draft.contactName
 

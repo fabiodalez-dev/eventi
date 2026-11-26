@@ -6,6 +6,7 @@ namespace App\Notifications\Concerns;
 
 use App\DTOs\NotificationMessage;
 use App\Models\User;
+use App\Notifications\Channels\AppArchiveChannel;
 use App\Notifications\Channels\AppPushChannel;
 
 /**
@@ -15,10 +16,12 @@ use App\Notifications\Channels\AppPushChannel;
  * manda come prima (stessi destinatari, stesso momento). Accanto, solo per
  * chi ha un account, partono altri due canali:
  *
- * - l'archivio (`database`), con la stessa forma degli avvisi di
- *   `ScheduledMessage` — `type`, `title`, `body`, `url`, … più `management`,
- *   la schermata da aprire nell'app — così la casella dell'account, quella
- *   della gestione e la campanella del sito lo leggono senza saperne niente;
+ * - l'archivio (`AppArchiveChannel`, la tabella `notifications` del canale
+ *   `database`), con la stessa forma degli avvisi di `ScheduledMessage` —
+ *   `type`, `title`, `body`, `url`, … più `management`, la schermata da
+ *   aprire nell'app — così la casella dell'account, quella della gestione e
+ *   la campanella del sito lo leggono senza saperne niente. Si scrive dopo il
+ *   commit e un suo guasto non fa fallire l'email già partita;
  * - la push (`AppPushChannel`), che si accoda a parte e decide lei se e
  *   dove consegnare.
  *
@@ -46,13 +49,14 @@ trait AlsoInTheApp
     /**
      * L'email prima di tutto: se la posta fallisce, chi manda (per esempio
      * il rapporto mensile) riprova più tardi, e non deve trovare una riga in
-     * archivio già scritta.
+     * archivio già scritta. I due canali dopo non fanno mai fallire l'email:
+     * registrano il guasto e lo tengono per sé.
      *
      * @return list<string>
      */
     protected function channelsWithApp(object $notifiable): array
     {
-        return $notifiable instanceof User ? ['mail', 'database', AppPushChannel::class] : ['mail'];
+        return $notifiable instanceof User ? ['mail', AppArchiveChannel::class, AppPushChannel::class] : ['mail'];
     }
 
     /** Il tipo di dominio, come per `ScheduledMessage`: è ciò su cui l'app e l'area «Notifiche» filtrano. */

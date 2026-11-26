@@ -54,9 +54,9 @@ class GuestRegistrationUiTest {
         override suspend fun options(): ApplicationOptions = ApplicationOptions(municipality = "Padova")
         override suspend fun lookup(query: String): List<CatalogueVenue> = emptyList()
         override suspend fun claimTarget(slug: String): ClaimTarget = ClaimTarget(1, slug, "Osteria")
-        override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?): ApplicationSent { calls += "venue"; return ApplicationSent() }
-        override suspend fun claim(slug: String, draft: ClaimDraft): ApplicationSent { calls += "claim"; return ApplicationSent() }
-        override suspend fun submitOrganizer(draft: OrganizerApplicationDraft): ApplicationSent { calls += "organizer"; return ApplicationSent() }
+        override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?, idempotencyKey: String?): ApplicationSent { calls += "venue"; return ApplicationSent() }
+        override suspend fun claim(slug: String, draft: ClaimDraft, idempotencyKey: String?): ApplicationSent { calls += "claim"; return ApplicationSent() }
+        override suspend fun submitOrganizer(draft: OrganizerApplicationDraft, idempotencyKey: String?): ApplicationSent { calls += "organizer"; return ApplicationSent() }
         override suspend fun confirm(id: Long): String = ""
         override suspend fun discard(id: Long): String = ""
     }

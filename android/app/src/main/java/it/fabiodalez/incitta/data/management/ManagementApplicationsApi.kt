@@ -4,6 +4,8 @@ import it.fabiodalez.incitta.data.ApiClient
 import it.fabiodalez.incitta.data.ApiEnvelope
 import it.fabiodalez.incitta.data.ApiPayloadException
 import java.net.URLEncoder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -199,9 +201,10 @@ internal interface ManagementApplicationsSource {
     suspend fun options(): ApplicationOptions
     suspend fun lookup(query: String): List<CatalogueVenue>
     suspend fun claimTarget(slug: String): ClaimTarget
-    suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?): ApplicationSent
-    suspend fun claim(slug: String, draft: ClaimDraft): ApplicationSent
-    suspend fun submitOrganizer(draft: OrganizerApplicationDraft): ApplicationSent
+    /* `idempotencyKey`: la chiave della bozza (`ApplicationDrafts.sendKey`); lo stesso invio ripetuto non crea un doppione. */
+    suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?, idempotencyKey: String? = null): ApplicationSent
+    suspend fun claim(slug: String, draft: ClaimDraft, idempotencyKey: String? = null): ApplicationSent
+    suspend fun submitOrganizer(draft: OrganizerApplicationDraft, idempotencyKey: String? = null): ApplicationSent
     suspend fun confirm(id: Long): String
     suspend fun discard(id: Long): String
 }
@@ -223,9 +226,9 @@ internal class ManagementApplicationsApi(private val api: ApiClient, private val
         api.get<ApiEnvelope<ClaimTarget>>("venues/${encodeSlug(slug)}/claim", token).data
 
     /* Con l'immagine il modulo parte in multipart, come dal sito; senza, in JSON. */
-    override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?): ApplicationSent {
-        if (image == null) return api.post<ApiEnvelope<ApplicationSent>, JsonObject>("me/venue-applications", applicationBody(draft.fields()), token).data
-        val payload = api.upload("me/venue-applications", signedIn(), IMAGE_FIELD, image.bytes, image.mime, image.fileName, draft.fields())
+    override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?, idempotencyKey: String?): ApplicationSent {
+        if (image == null) return sendForm("me/venue-applications", applicationBody(draft.fields()), idempotencyKey)
+        val payload = api.upload("me/venue-applications", signedIn(), IMAGE_FIELD, image.bytes, image.mime, image.fileName, draft.fields(), idempotencyKey)
         return try {
             api.json.decodeFromJsonElement(ApiEnvelope.serializer(ApplicationSent.serializer()), payload).data
         } catch (error: SerializationException) {
@@ -235,11 +238,26 @@ internal class ManagementApplicationsApi(private val api: ApiClient, private val
         }
     }
 
-    override suspend fun claim(slug: String, draft: ClaimDraft): ApplicationSent =
-        api.post<ApiEnvelope<ApplicationSent>, JsonObject>("venues/${encodeSlug(slug)}/claim", applicationBody(draft.fields()), token).data
+    override suspend fun claim(slug: String, draft: ClaimDraft, idempotencyKey: String?): ApplicationSent =
+        sendForm("venues/${encodeSlug(slug)}/claim", applicationBody(draft.fields()), idempotencyKey)
 
-    override suspend fun submitOrganizer(draft: OrganizerApplicationDraft): ApplicationSent =
-        api.post<ApiEnvelope<ApplicationSent>, JsonObject>("me/organizer-applications", applicationBody(draft.fields()), token).data
+    override suspend fun submitOrganizer(draft: OrganizerApplicationDraft, idempotencyKey: String?): ApplicationSent =
+        sendForm("me/organizer-applications", applicationBody(draft.fields()), idempotencyKey)
+
+    /* Un modulo in JSON, con la chiave dell'invio se c'è: senza, la richiesta è quella di prima. */
+    private suspend fun sendForm(path: String, body: JsonObject, idempotencyKey: String?): ApplicationSent = withContext(Dispatchers.IO) {
+        val payload = api.call(formRequest(path, body, idempotencyKey))
+        try {
+            api.json.decodeFromString(ApiEnvelope.serializer(ApplicationSent.serializer()), payload).data
+        } catch (error: SerializationException) {
+            throw ApiPayloadException(error)
+        }
+    }
+
+    internal fun formRequest(path: String, body: JsonObject, idempotencyKey: String?): okhttp3.Request {
+        val request = api.request(path, "POST", api.json.encodeToString(JsonObject.serializer(), body), token, false)
+        return if (idempotencyKey == null) request else request.newBuilder().header(IDEMPOTENCY_HEADER, idempotencyKey).build()
+    }
 
     override suspend fun confirm(id: Long): String =
         api.post<ApiEnvelope<ApplicationNotice>, JsonObject>("me/venue-applications/$id/confirm", buildJsonObject {}, token).data.message
@@ -254,5 +272,6 @@ internal class ManagementApplicationsApi(private val api: ApiClient, private val
 
     companion object {
         const val IMAGE_FIELD = "image"
+        const val IDEMPOTENCY_HEADER = "Idempotency-Key"
     }
 }
