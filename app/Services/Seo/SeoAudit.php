@@ -8,9 +8,55 @@ use App\Enums\PriceType;
 use App\Models\Event;
 use App\Support\Poster;
 use App\Support\Seo\PageTitle;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final class SeoAudit
 {
+    /** Le righe per pagina del controllo, nel pannello e nell'app. */
+    public const PER_PAGE = 20;
+
+    /** Le due schede del controllo: `issues` (predefinita, solo gli eventi da sistemare) e `all`. */
+    public const FILTERS = ['issues', 'all'];
+
+    /**
+     * Gli strumenti esterni della pagina, nell'ordine in cui la pagina li
+     * mostra: si aprono fuori, la validazione vera la fanno loro.
+     *
+     * @return array<string, string>
+     */
+    public static function tools(): array
+    {
+        return [
+            'sitemap' => route('sitemap.index'),
+            'search_console' => 'https://search.google.com/search-console',
+            'rich_results' => 'https://search.google.com/test/rich-results',
+            'schema' => 'https://validator.schema.org/',
+            'pagespeed' => 'https://pagespeed.web.dev/',
+        ];
+    }
+
+    /**
+     * Il controllo come lo legge la pagina «SEO e qualità del catalogo»: una
+     * pagina della scheda scelta e i conteggi delle due schede. Un valore di
+     * scheda che non c'è vale «Da sistemare», come nel pannello.
+     *
+     * @return array{rows: LengthAwarePaginator<int, array{title: string, url: string, issues: list<string>}>, counts: array{issues: int, all: int}, filter: string}
+     */
+    public function overview(string $filter, int $page, int $perPage = self::PER_PAGE): array
+    {
+        $filter = in_array($filter, self::FILTERS, true) ? $filter : 'issues';
+        $report = collect($this->report());
+        $withIssues = $report->filter(fn (array $row): bool => $row['issues'] !== [])->values();
+        $rows = $filter === 'all' ? $report : $withIssues;
+        $page = max(1, $page);
+
+        return [
+            'rows' => new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page),
+            'counts' => ['issues' => $withIssues->count(), 'all' => $report->count()],
+            'filter' => $filter,
+        ];
+    }
+
     /** @return list<array{title: string, url: string, issues: list<string>}> */
     public function report(): array
     {
