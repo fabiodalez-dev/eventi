@@ -12,6 +12,7 @@ use App\Enums\OccurrenceStatus;
 use App\Enums\TicketTierStatus;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\RequireRecentPassword;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Services\Events\EditorialEventDates;
@@ -35,7 +36,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class EventDatesController extends Controller
 {
-    public function __construct(private readonly EditorialEventDates $dates) {}
+    public function __construct(
+        private readonly EditorialEventDates $dates,
+        private readonly RequireRecentPassword $recentPassword,
+    ) {}
 
     /** Le date in ordine di inizio, cinquanta per pagina. */
     public function index(Request $request, int $event): JsonResponse
@@ -78,12 +82,22 @@ final class EventDatesController extends Controller
         return response()->json(['data' => $this->dates->row($date, $desk->user), 'message' => 'Salvato'], 201);
     }
 
-    /** «Modifica»: le chiavi assenti restano come sono. */
+    /**
+     * «Modifica»: le chiavi assenti restano come sono. Portare a «Annullata»
+     * una data con prenotazioni attive le annulla tutte e scrive a chi aveva
+     * prenotato: password recente, come «Annulla la data».
+     */
     public function update(Request $request, int $event, int $occurrence): JsonResponse
     {
         $desk = EditorialDesk::require();
         $record = EventController::findActive($event);
-        $date = $this->dates->save($record, $this->date($record, $occurrence), $request->all(), $desk->user);
+        $current = $this->date($record, $occurrence);
+        Gate::authorize('update', $current);
+        if ($request->input('status') === OccurrenceStatus::Cancelled->value && $current->status !== OccurrenceStatus::Cancelled
+            && $this->dates->hasActiveBookings($current)) {
+            $this->recentPassword->ensure($request);
+        }
+        $date = $this->dates->save($record, $current, $request->all(), $desk->user);
         $date->setRelation('event', $record);
 
         return response()->json(['data' => $this->dates->row($date, $desk->user), 'message' => 'Salvato']);
@@ -112,6 +126,11 @@ final class EventDatesController extends Controller
      * Lo stato della data dalla riga: `cancel` («Annulla la data», con
      * `status_note` e `scope`) oppure `sold_out` («Tutto esaurito», o
      * «Rimetti in programma» se lo è già; sempre la sola data).
+     *
+     * Annullare è pericoloso come eliminare la data (decisione 4) quando
+     * tocca la serie da qui in avanti o una data con prenotazioni attive:
+     * prenotazioni e biglietti si annullano e partono le mail. In quei casi
+     * serve la password scritta negli ultimi 15 minuti.
      */
     public function status(Request $request, int $event, int $occurrence): JsonResponse
     {
@@ -127,6 +146,9 @@ final class EventDatesController extends Controller
         if ($data['action'] === 'cancel') {
             if ($date->status === OccurrenceStatus::Cancelled) {
                 throw ValidationException::withMessages(['action' => 'Questa data è già annullata.']);
+            }
+            if (self::scope($data) === OccurrenceScope::Series || $this->dates->hasActiveBookings($date)) {
+                $this->recentPassword->ensure($request);
             }
             $changed = $this->dates->cancel($date, filled($data['status_note'] ?? null) ? (string) $data['status_note'] : null, self::scope($data));
         } else {

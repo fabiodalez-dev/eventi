@@ -43,6 +43,12 @@ final class EditorialSponsorships
     /** @var list<string> */
     public const SORTS = ['starts_at', 'ends_at', 'impressions', 'clicks'];
 
+    /** L'importo massimo in euro, lo stesso della procedura guidata e del listino. */
+    public const AMOUNT_MAX = 1_000_000;
+
+    /** Il tetto massimo di visualizzazioni o clic: ben dentro le colonne, mai un numero che il cast a intero storpia. */
+    public const CAP_MAX = 1_000_000_000;
+
     /** Una sola istanza per elenco: previsioni e unità già calcolate restano in memoria fra le righe. */
     private ?SponsorshipProgress $progress = null;
 
@@ -204,7 +210,26 @@ final class EditorialSponsorships
         $placement = $input['placement'] ?? $campaign->placement->value;
         $keep = (int) $campaign->event_id;
 
-        $validated = Validator::make([...$input, 'placement' => $placement, 'starts_at' => $input['starts_at'] ?? $campaign->starts_at->toIso8601String()], [
+        /*
+         * Le regole che legano due campi (la fine dopo l'inizio, l'obiettivo
+         * vietato nelle collocazioni «solo a periodo») si controllano sui
+         * valori uniti a quelli salvati: il pannello manda sempre il modulo
+         * intero, un `PATCH` con una chiave sola no. Senza, un inizio dopo
+         * la fine o un obiettivo vecchio rimasto su una collocazione a
+         * periodo passerebbero. Chi passa a una collocazione a periodo manda
+         * `impressions_goal: null`, come chi svuota il campo nel pannello.
+         */
+        $state = [
+            ...$input,
+            'placement' => $placement,
+            'starts_at' => $input['starts_at'] ?? $campaign->starts_at->toIso8601String(),
+            'ends_at' => $input['ends_at'] ?? $campaign->ends_at->toIso8601String(),
+        ];
+        if (! $onGrant && ! array_key_exists('impressions_goal', $input)) {
+            $state['impressions_goal'] = $campaign->impressions_goal;
+        }
+
+        $validated = Validator::make($state, [
             'event_id' => ['sometimes', 'required', 'integer', function (string $attribute, mixed $value, \Closure $fail) use ($keep): void {
                 if (! is_numeric($value) || ! SponsorableEventChoices::sponsorable(Event::query(), $keep)->whereKey((int) $value)->exists()) {
                     $fail(__('sponsorships.wizard.validation.event_not_sponsorable'));
@@ -213,17 +238,17 @@ final class EditorialSponsorships
             'placement' => ['required', Rule::enum(SponsorshipPlacement::class)],
             'status' => ['sometimes', 'required', Rule::enum(SponsorshipStatus::class)],
             'starts_at' => ['required', 'date'],
-            'ends_at' => ['sometimes', 'required', 'date', 'after:starts_at'],
+            'ends_at' => ['required', 'date', 'after:starts_at'],
             'priority' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:1000'],
             'weight' => ['sometimes', 'nullable', 'numeric', 'min:1', 'max:100'],
-            'impressions_cap' => ['sometimes', 'nullable', 'numeric', 'min:1'],
-            'clicks_cap' => ['sometimes', 'nullable', 'numeric', 'min:1'],
+            'impressions_cap' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.self::CAP_MAX],
+            'clicks_cap' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.self::CAP_MAX],
             'impressions_goal' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:10000000', Rule::prohibitedIf(in_array($placement, SponsorshipPlacement::periodOnlyValues(), true))],
             'pacing' => ['sometimes', 'required', Rule::enum(SponsorshipPacing::class)],
             'advertiser_name' => ['sometimes', 'required', 'string', 'max:255'],
             'advertiser_email' => ['sometimes', 'nullable', 'string', 'email', 'max:255'],
             'advertiser_url' => ['sometimes', 'nullable', 'string', 'url', 'max:255'],
-            'amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'amount' => ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::AMOUNT_MAX],
             'currency' => ['sometimes', 'nullable', 'string', 'max:3'],
             'invoice_reference' => ['sometimes', 'nullable', 'string', 'max:255'],
             'notes' => ['sometimes', 'nullable', 'string'],

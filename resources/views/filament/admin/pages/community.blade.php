@@ -1,6 +1,7 @@
 @php
     use App\Models\CommunityPost;
     use App\Models\CommunityProfile;
+    use App\Services\Community\CommunityModeration;
     use Illuminate\Support\Carbon;
 
     $sections = collect(\App\Filament\Admin\Pages\Community::SECTIONS);
@@ -60,7 +61,10 @@
                             </div>
                             <div class="flex flex-wrap gap-3">
                                 {{ ($this->featureProfileAction)(['id' => $item->id, 'enabled' => ! $item->featured]) }}
-                                {{ ($this->suspendUserAction)(['id' => $item->user_id, 'enabled' => (bool) $item->user?->community_suspended_at]) }}
+                                {{-- Sospendere e togliere la sospensione: la regola unica di CommunityModeration::canSuspendGlobally. --}}
+                                @if ($item->user && CommunityModeration::canSuspendGlobally(auth()->user(), $item->user))
+                                    {{ ($this->suspendUserAction)(['id' => $item->user_id, 'enabled' => (bool) $item->user->community_suspended_at]) }}
+                                @endif
                             </div>
                         @else
                             @php $published = $item->status->value === 'published'; @endphp

@@ -59,11 +59,8 @@
     <string name="editorial_catalog_row_order">ordine %1$d</string>
 
     <string name="editorial_catalog_action_merge">Unisci al duplicato</string>
-    <string name="editorial_catalog_action_delete">Elimina</string>
-    <string name="editorial_catalog_delete_title">Eliminare «%1$s»?</string>
-    <string name="editorial_catalog_delete_text">Non si torna indietro. Se è ancora usato da eventi, locali o altre voci non si elimina: il server lo dice.</string>
-    <string name="editorial_catalog_delete_page_text">Non si torna indietro, e chi ha il suo indirizzo trova una pagina che non esiste più. Di solito basta spegnere «Pubblicata».</string>
-    <string name="editorial_catalog_deleted">Eliminato.</string>
+    <string name="editorial_catalog_action_delete_web">Elimina sul sito</string>
+    <string name="editorial_catalog_delete_web_help">Eliminare è definitivo e porta via quello che usa questa voce: si fa dal pannello sul sito, che si apre nel browser. Per nasconderla di solito basta spegnerla.</string>
     <string name="editorial_catalog_merge_title">Unisci un doppione a «%1$s»</string>
     <string name="editorial_catalog_merge_help">Scegli il tag doppione: i suoi eventi passano a questo, il suo nome diventa un sinonimo e il doppione sparisce.</string>
     <string name="editorial_catalog_merge_search">Cerca il doppione</string>

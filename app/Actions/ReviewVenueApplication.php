@@ -37,7 +37,7 @@ final class ReviewVenueApplication
      * Accoglie la richiesta: crea il locale (o l'organizzatore, o consegna le
      * chiavi del locale rivendicato) con `ApproveVenueApplication`.
      *
-     * @throws ValidationException su `status` se la richiesta non è in coda (email da confermare) o è già approvata
+     * @throws ValidationException su `status` se la richiesta non è in coda (email da confermare), è già approvata o l'ha mandata `$moderator`
      */
     public function approve(VenueApplication $application, User $moderator): Venue|Organizer
     {
@@ -49,6 +49,10 @@ final class ReviewVenueApplication
             }
             if ($locked->status === ApplicationStatus::Approved) {
                 throw ValidationException::withMessages(['status' => __('venue_applications.admin.already_approved')]);
+            }
+            /* Anche qui e non solo nella policy: una regola sola per pannello e app. */
+            if ($locked->sentBy($moderator)) {
+                throw ValidationException::withMessages(['status' => __('venue_applications.admin.own_application')]);
             }
 
             return $this->approve->handle($locked, $moderator);

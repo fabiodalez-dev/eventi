@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Resources\Cities\Pages;
 
 use App\Filament\Admin\Resources\Cities\CityResource;
+use App\Models\City;
+use App\Support\Catalog\CatalogAudit;
 use App\Support\CitySettings;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -33,6 +35,15 @@ class EditCity extends EditRecord
         $data['settings'] = CitySettings::toMap($data['settings'] ?? null);
 
         return $data;
+    }
+
+    /** La modifica nel registro di sicurezza, con il valore di prima e quello nuovo, come dall'app. */
+    protected function afterSave(): void
+    {
+        $record = $this->getRecord();
+        if ($record instanceof City) {
+            CatalogAudit::cityChanged($record);
+        }
     }
 
     /**

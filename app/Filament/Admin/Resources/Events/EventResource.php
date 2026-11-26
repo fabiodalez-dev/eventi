@@ -35,7 +35,9 @@ use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Rules\RecurrenceRuleText;
 use App\Services\Editorial\EditorialEvents;
+use App\Services\Management\ManagementOptions;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\VideoEmbed;
@@ -80,6 +82,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * §9.2 — l'evento: la scheda editoriale, non una data.
@@ -234,6 +237,8 @@ class EventResource extends Resource
                                             ->label(__('admin.fields.gallery'))
                                             ->collection('gallery')
                                             ->multiple()
+                                            // Lo stesso tetto della gestione e dell'app (`EditorialEventMedia::addToGallery`).
+                                            ->maxFiles(ManagementOptions::GALLERY_MAX)
                                             ->reorderable(),
 
                                         TextInput::make('video_url')
@@ -302,6 +307,8 @@ class EventResource extends Resource
                                                     ->helperText(__('admin.hints.rrule'))
                                                     ->required()
                                                     ->maxLength(500)
+                                                    // La stessa regola dell'app e di «Genera date»: al più una volta al giorno, con un tetto di date.
+                                                    ->rule(new RecurrenceRuleText)
                                                     ->columnSpanFull(),
 
                                                 DateTimePicker::make('until')
@@ -804,6 +811,10 @@ class EventResource extends Resource
             ])
             ->action(function (Event $record, array $data): void {
                 $absorbed = Event::query()->where('city_id', $record->city_id)->findOrFail($data['absorbed']);
+                /* L'assorbito finisce nel cestino e i suoi salvataggi e prenotazioni
+                   passano all'altro: serve il permesso di eliminarlo, non solo quello
+                   sull'evento che resta. */
+                Gate::authorize('delete', $absorbed);
                 $report = app(MergeEventsAction::class)->execute($record, $absorbed, auth()->user());
 
                 Notification::make()

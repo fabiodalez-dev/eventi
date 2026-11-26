@@ -441,6 +441,11 @@ return [
         'no_series' => 'Questa data non appartiene a una ricorrenza: la modifica riguarda solo lei.',
     ],
 
+    'validation' => [
+        'rrule_invalid' => 'La regola di ricorrenza non si legge: scrivila in sintassi iCalendar, per esempio FREQ=WEEKLY;BYDAY=TH.',
+        'rrule_too_frequent' => 'Un evento può ripetersi al più una volta al giorno: usa FREQ=DAILY, WEEKLY, MONTHLY o YEARLY.',
+        'rrule_too_many' => 'La regola produce più di :max date in un anno: riducila (meno orari al giorno o un intervallo più ampio).',
+    ],
     'notifications' => [
         'published' => 'Evento pubblicato.',
         'unpublished' => 'Evento riportato in bozza.',
@@ -458,6 +463,7 @@ return [
         'occurrences_updated' => 'Date aggiornate: :count.',
         'merged' => 'Tag uniti: :count eventi spostati.',
         'merge_forbidden' => 'Non puoi eliminare il tag doppione: i tag non sono stati uniti.',
+        'merge_gone' => 'Uno dei due tag non esiste più (forse è appena stato unito o eliminato): i tag non sono stati uniti.',
         'invitation_sent' => 'Invito inviato',
         'already_member' => 'Questa persona è già nel locale come :role: non è partito nessun invito. Il ruolo si cambia con «Modifica» sulla sua riga.',
         'already_invited' => 'Questa persona ha già un invito da accettare come :role: non è partito un secondo messaggio. Per entrare deve accettarlo dal collegamento che ha ricevuto.',
@@ -551,6 +557,7 @@ return [
         'is_nightlife' => 'Se acceso, una data che comincia dopo la mezzanotte viene attribuita alla sera precedente, secondo l\'ora di chiusura impostata sulla città.',
         'auto_publish' => 'Gli eventi di questo locale escono online senza passare dalla redazione.',
         'is_verified' => 'Il locale ha confermato di persona i propri dati.',
+        'venue_status_actions' => 'Lo stato si cambia con «Approva», «Rifiuta» e «Sospendi», in cima alla pagina: così resta scritto chi l\'ha fatto e chi gestisce il locale viene avvisato.',
         'source_ref' => 'Identificativo dell\'evento nella sorgente di origine: è ciò che rende l\'import ripetibile senza doppioni.',
         'credentials' => 'Salvate cifrate. Restano nascoste anche a chi apre questa scheda.',
         'occurrences' => 'Ogni riga è una data in cartellone. La giornata evento e la fine effettiva vengono calcolate al salvataggio.',

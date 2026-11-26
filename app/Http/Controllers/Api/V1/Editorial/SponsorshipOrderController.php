@@ -17,6 +17,7 @@ use App\Support\Editorial\EditorialDesk;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 
 /**
  * Gli ordini di sponsorizzazione (R-SP-07…10): elenco con il filtro di
@@ -59,7 +60,7 @@ final class SponsorshipOrderController extends Controller
         if (! in_array($record->status, [SponsorshipOrderStatus::Paid, SponsorshipOrderStatus::Requested], true)) {
             throw new ApiException(ApiErrorCode::Conflict, __('promotions.orders.status.'.$record->status->value));
         }
-        $this->orders->approve($record, $user, $request->all());
+        $this->decide($record, fn () => $this->orders->approve($record, $user, $request->all()));
 
         return response()->json(['data' => $this->orders->row($record->refresh(), $user), 'message' => __('promotions.orders.approved')]);
     }
@@ -81,9 +82,29 @@ final class SponsorshipOrderController extends Controller
         if ($record->refundsOnReject()) {
             $this->recentPassword->ensure($request);
         }
-        $this->orders->reject($record, $user, $request->all());
+        $this->decide($record, fn () => $this->orders->reject($record, $user, $request->all()));
 
         return response()->json(['data' => $this->orders->row($record->refresh(), $user), 'message' => __('promotions.orders.rejected')]);
+    }
+
+    /**
+     * Una decisione presa mentre un'altra persona decideva lo stesso ordine:
+     * il servizio rilegge la riga bloccata e `transitionTo` rifiuta il
+     * passaggio. È un conflitto (409 con lo stato di adesso), non un errore
+     * del server.
+     *
+     * @param  \Closure(): void  $decision
+     */
+    private function decide(SponsorshipOrder $order, \Closure $decision): void
+    {
+        try {
+            $decision();
+        } catch (InvalidArgumentException) {
+            $status = SponsorshipOrder::query()->whereKey($order->getKey())->value('status');
+            $status = $status instanceof SponsorshipOrderStatus ? $status : SponsorshipOrderStatus::tryFrom((string) $status);
+
+            throw new ApiException(ApiErrorCode::Conflict, $status === null ? null : __('promotions.orders.decided_meanwhile', ['status' => $status->label()]));
+        }
     }
 
     private function user(Request $request): User

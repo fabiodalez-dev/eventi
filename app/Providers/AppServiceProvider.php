@@ -21,6 +21,7 @@ use App\Models\CookieDeclaration;
 use App\Models\Event;
 use App\Models\EventCollection;
 use App\Models\EventComment;
+use App\Models\EventFeature;
 use App\Models\EventOccurrence;
 use App\Models\Follow;
 use App\Models\ImportSource;
@@ -41,6 +42,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueApplication;
 use App\Models\VenueNotice;
+use App\Observers\CatalogDeletionObserver;
 use App\Observers\CategoryObserver;
 use App\Observers\CityObserver;
 use App\Observers\ConfigurationAuditObserver;
@@ -647,6 +649,16 @@ class AppServiceProvider extends ServiceProvider
         ImportSource::observe(ConfigurationAuditObserver::class);
         Redirect::observe(ConfigurationAuditObserver::class);
         CookieDeclaration::observe(ConfigurationAuditObserver::class);
+
+        /*
+         * Le cinque voci del catalogo non hanno il cestino: eliminarle è
+         * definitivo e porta via in cascata quello che le usa. Ogni
+         * eliminazione, anche in gruppo dalla tabella, va nel registro di
+         * sicurezza (`CatalogAudit`).
+         */
+        foreach ([Category::class, Tag::class, EventFeature::class, City::class, Page::class] as $catalogModel) {
+            $catalogModel::observe(CatalogDeletionObserver::class);
+        }
 
         /*
          * La documentazione OpenAPI (`/docs/api`) prende titolo e descrizione

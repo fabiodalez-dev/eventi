@@ -111,6 +111,13 @@ internal data class EditorDateRef(
     @SerialName("ticketing_path") val ticketingPath: String? = null,
 )
 
+/** Il tetto di `date_refs`: il server manda solo le date non finite, al massimo `limit`. */
+@Serializable
+internal data class EditorDateRefsMeta(
+    val truncated: Boolean = false,
+    val limit: Int = 0,
+)
+
 /** Le azioni della testata della pagina «Modifica». */
 @Serializable
 internal data class EditorAbilities(
@@ -158,6 +165,7 @@ internal data class EditorEventValues(
     val poster: Poster? = null,
     val gallery: List<EditorGalleryItem> = emptyList(),
     @SerialName("date_refs") val dateRefs: List<EditorDateRef> = emptyList(),
+    @SerialName("date_refs_meta") val dateRefsMeta: EditorDateRefsMeta = EditorDateRefsMeta(),
     @SerialName("ticketing_enabled") val ticketingEnabled: Boolean = false,
     val abilities: EditorAbilities = EditorAbilities(),
 )

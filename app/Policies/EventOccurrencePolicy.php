@@ -48,7 +48,7 @@ class EventOccurrencePolicy
     public function create(User $user, ?Event $event = null): bool
     {
         if ($event === null) {
-            return $this->isGlobalStaff($user) && $user->can(Permission::CreateEvents->value);
+            return $this->staffCan($user, Permission::CreateEvents->value);
         }
 
         return $this->canActOnEventVenue($user, $event, Permission::CreateEvents);
@@ -75,7 +75,7 @@ class EventOccurrencePolicy
             return true;
         }
         if ($event->venue_id === null) {
-            return $this->isGlobalStaff($user) && $user->can($permission->value);
+            return $this->staffCan($user, $permission->value);
         }
 
         return $this->canActOnVenue($user, $event->venue_id, $permission->value);

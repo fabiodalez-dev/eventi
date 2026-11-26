@@ -32,7 +32,12 @@ class LoginFeedbackTest {
         }
     }
 
-    private fun submit() = compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()
+    /* Con la tastiera aperta il tocco simulato sul pulsante coperto finirebbe sulla tastiera: prima la si chiude. */
+    private fun submit() {
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.waitForIdle()
+        compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()
+    }
 
     @Test fun missingEmailIsVisibleAndClearsWhenEditing() {
         loginScreen()

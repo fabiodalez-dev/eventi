@@ -46,6 +46,15 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 final class EditorialEventForm
 {
+    /**
+     * Le date di `date_refs`: solo quelle non ancora finite, e al massimo
+     * queste. Ognuna porta un controllo `Gate`, e una serie lunga ne avrebbe
+     * centinaia a ogni apertura del modulo; oltre il tetto
+     * `date_refs_meta.truncated` è vero e le altre si vedono nella sezione
+     * «Date».
+     */
+    public const DATE_REFS_MAX = 100;
+
     public function __construct(
         private readonly EditorialEventEditor $editor,
         private readonly ManagementOptions $catalog,
@@ -125,7 +134,11 @@ final class EditorialEventForm
         $event->loadMissing(['city', 'venue', 'category', 'organizer', 'organizers', 'tags', 'media', 'recurrences']);
         $timezone = $event->city->timezone;
         $tiers = $event->ticketTiers()->whereNull('occurrence_id')->get();
-        $dates = $event->occurrences()->orderBy('starts_at')->get()->each(fn (EventOccurrence $date) => $date->setRelation('event', $event));
+        $dates = $event->occurrences()->whereRaw('COALESCE(effective_ends_at, ends_at, starts_at) >= ?', [now()])
+            ->orderBy('starts_at')->orderBy('id')->limit(self::DATE_REFS_MAX + 1)->get()
+            ->each(fn (EventOccurrence $date) => $date->setRelation('event', $event));
+        $truncated = $dates->count() > self::DATE_REFS_MAX;
+        $dates = $dates->take(self::DATE_REFS_MAX);
         $gate = Gate::forUser($actor);
         $update = $gate->allows('update', $event);
         $seo = is_array($event->getAttribute('seo')) ? $event->getAttribute('seo') : [];
@@ -202,12 +215,13 @@ final class EditorialEventForm
             ])->values()->all(),
             'poster' => PosterResource::toArray($event),
             'gallery' => $event->getMedia('gallery')->map(fn (Media $media): array => ['id' => (int) $media->getKey(), ...PosterResource::media($media)])->values()->all(),
-            // Le date per il programma («Data collegata») e i collegamenti «Gestisci biglietti» della scheda Biglietti.
+            // Le date non ancora finite per il programma («Data collegata») e i collegamenti «Gestisci biglietti» della scheda Biglietti.
             'date_refs' => $dates->map(fn (EventOccurrence $date): array => [
                 'id' => (int) $date->getKey(),
                 'starts_at' => $date->starts_at->copy()->utc()->toIso8601String(),
                 'ticketing_path' => $gate->allows('manage', [Booking::class, $date]) ? 'gestione-biglietti/'.$date->getKey() : null,
             ])->values()->all(),
+            'date_refs_meta' => ['truncated' => $truncated, 'limit' => self::DATE_REFS_MAX],
             'ticketing_enabled' => (bool) $event->venue?->ticketing_enabled,
             'abilities' => [
                 'update' => $update,

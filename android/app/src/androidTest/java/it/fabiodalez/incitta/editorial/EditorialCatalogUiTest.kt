@@ -75,14 +75,18 @@ class EditorialCatalogUiTest {
         val api = CatalogUiFake()
         val vm = compose.runOnIdle { CatalogListViewModel(repository(), api, SavedStateHandle(), CatalogKind.Tags) }
         val opened = CopyOnWriteArrayList<Long>()
-        show { CatalogListScreen(vm, PaddingValues(), canCreate = true, onBack = {}, onOpen = { opened += it.id }, onCreate = {}) }
+        val web = CopyOnWriteArrayList<String>()
+        show { CatalogListScreen(vm, PaddingValues(), canCreate = true, onBack = {}, onOpen = { opened += it.id }, onCreate = {}, onOpenWeb = { web += it }) }
         compose.waitUntil(5000) { compose.onAllNodesWithText("Musica dal vivo").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(text(R.string.editorial_catalog_new_tag)).assertExists()
         // «Blues» non permette niente: niente menu.
         compose.onNodeWithContentDescription(text(R.string.editorial_actions_for, "Blues")).assertDoesNotExist()
 
         compose.onNodeWithContentDescription(text(R.string.editorial_actions_for, "Musica dal vivo")).performClick()
-        compose.onNodeWithText(text(R.string.editorial_catalog_action_delete)).assertExists()
+        // Eliminare resta sul sito (decisione 4): la voce del menu apre la pagina del pannello.
+        compose.onNodeWithText(text(R.string.editorial_catalog_action_delete_web)).performClick()
+        compose.runOnIdle { assertEquals(listOf("admin/tags/musica-dal-vivo/edit"), web) }
+        compose.onNodeWithContentDescription(text(R.string.editorial_actions_for, "Musica dal vivo")).performClick()
         compose.onNodeWithText(text(R.string.editorial_catalog_action_merge)).performClick()
         compose.onNodeWithText(text(R.string.editorial_catalog_merge_title, "Musica dal vivo")).assertExists()
         compose.waitUntil(5000) { compose.onAllNodesWithText("Live music").fetchSemanticsNodes().size > 1 }
@@ -155,14 +159,14 @@ private class CatalogUiFake : EditorialCatalogSource {
     override suspend fun list(kind: CatalogKind, params: List<Pair<String, String>>): EditorialPage<CatalogRecord> {
         calls += "list:${kind.path}"
         val rows = listOf(
-            CatalogRecord(id = 1, name = "Musica dal vivo", eventsCount = 4, usageCount = 4, isApproved = true, abilities = uiAbilities("update", "destroy", "merge")),
-            CatalogRecord(id = 2, name = "Live music", eventsCount = 2, abilities = uiAbilities("update", "destroy", "merge")),
+            CatalogRecord(id = 1, name = "Musica dal vivo", eventsCount = 4, usageCount = 4, isApproved = true, webPath = "admin/tags/musica-dal-vivo/edit", abilities = uiAbilities("update", "delete_on_web", "merge")),
+            CatalogRecord(id = 2, name = "Live music", eventsCount = 2, abilities = uiAbilities("update", "delete_on_web", "merge")),
             CatalogRecord(id = 3, name = "Blues"),
         )
         return EditorialPage(rows, PageMeta(currentPage = 1, lastPage = 1, total = rows.size))
     }
     override suspend fun show(kind: CatalogKind, id: Long) =
-        CatalogRecord(id = id, title = "Privacy", slug = "privacy", body = "# Informativa", revision = "r1", isPublished = true, abilities = uiAbilities("update", "destroy"))
+        CatalogRecord(id = id, title = "Privacy", slug = "privacy", body = "# Informativa", revision = "r1", isPublished = true, abilities = uiAbilities("update", "delete_on_web"))
     override suspend fun create(kind: CatalogKind, body: JsonObject): CatalogChange {
         calls += "create:${kind.path}"
         throw ApiException(422, ApiProblem(message = "Dati non validi", fields = mapOf("slug" to listOf("L’indirizzo è già usato."))))
@@ -172,10 +176,9 @@ private class CatalogUiFake : EditorialCatalogSource {
         lastBody = body
         throw ApiException(409, ApiProblem(message = "Nel frattempo qualcuno ha modificato questa pagina", code = "CONFLICT"))
     }
-    override suspend fun destroy(kind: CatalogKind, id: Long): String? { calls += "destroy:$id"; return "Eliminato." }
     override suspend fun mergeTag(keepId: Long, absorbedId: Long): CatalogChange {
         calls += "merge:$keepId:$absorbedId"
-        return CatalogChange(CatalogRecord(id = keepId, name = "Musica dal vivo", synonyms = listOf("Live music"), abilities = uiAbilities("update", "destroy", "merge")), "Tag uniti: 2 eventi spostati.")
+        return CatalogChange(CatalogRecord(id = keepId, name = "Musica dal vivo", synonyms = listOf("Live music"), abilities = uiAbilities("update", "delete_on_web", "merge")), "Tag uniti: 2 eventi spostati.")
     }
     override suspend fun previewPage(body: String) = "<h1>Informativa</h1><p>Testo dell’anteprima</p>"
 }

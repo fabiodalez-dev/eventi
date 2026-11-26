@@ -91,6 +91,7 @@ class EditorialEventEditorTest {
         "is_featured":true,"featured_until":"2026-12-24T22:59:00+00:00","rejection_reason":null,
         "recurrences":[{"id":6,"rrule":"FREQ=WEEKLY","until":"2027-01-31T22:59:00+00:00","exdates":["2026-12-26"]}],
         "date_refs":[{"id":70,"starts_at":"2026-12-05T20:00:00+00:00","ticketing_path":"gestione-biglietti/70"}],
+        "date_refs_meta":{"truncated":true,"limit":100},
         "abilities":{"update":true,"feature":true,"admin":true,"schedule":true,"generate":true,"dates":true}}"""
 
     @Test
@@ -107,6 +108,9 @@ class EditorialEventEditorTest {
         assertEquals(LocalDateTime.of(2026, 12, 24, 23, 59), draft.featuredUntil)
         assertEquals("2026-12-26", draft.recurrences.single().exdates)
         assertEquals("gestione-biglietti/70", values.dateRefs.single().ticketingPath)
+        // Il server manda solo le date non finite, al massimo cento: l'app dice che le altre sono in «Date».
+        assertTrue(values.dateRefsMeta.truncated)
+        assertEquals(100, values.dateRefsMeta.limit)
         assertTrue(values.abilities.generate)
     }
 

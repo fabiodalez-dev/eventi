@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Pages;
 
+use App\Actions\Sponsorship\SaveSponsorshipBanners;
+use App\Models\User;
 use App\Settings\SponsorshipBannerSettings;
 use BackedEnum;
 use Filament\Forms\Components\Toggle;
@@ -57,7 +59,8 @@ class SponsorshipBanners extends Page
     public function save(): void
     {
         abort_unless(static::canAccess(), 403);
-        app(SponsorshipBannerSettings::class)->fill($this->getSchema('form')->getState())->save();
+        $user = auth()->user();
+        app(SaveSponsorshipBanners::class)($this->getSchema('form')->getState(), $user instanceof User ? $user : null);
         Notification::make()->title('Impostazioni salvate')->success()->send();
     }
 }

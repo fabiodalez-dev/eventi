@@ -23,6 +23,7 @@ use App\Notifications\SponsorshipStrayRefundFailed;
 use App\Services\Sponsorship\Payment\PaymentGateway;
 use App\Services\Sponsorship\Payment\PaymentGatewayException;
 use App\Services\Sponsorship\Payment\PaymentSessionMissing;
+use App\Support\SecurityLog;
 use App\Support\Sponsorship\SponsorableEvents;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -312,6 +313,13 @@ final class SponsorshipOrders
 
         $this->campaigns->sync($grant);
         $order->refresh();
+        SecurityLog::scrivi('ordine_sponsorizzazione_approvato', $order->user, [
+            'ordine_id' => (int) $order->getKey(),
+            'abilitazione_id' => (int) $grant->getKey(),
+            'importo_centesimi' => $grant->amount_cents,
+            'gratuito' => (bool) $grant->complimentary,
+            'rimborso' => false,
+        ], causa: $admin);
         $this->attachChosenEvent($order, $grant);
         $this->notifyBuyer($order);
 
@@ -345,7 +353,13 @@ final class SponsorshipOrders
             $order->forceFill(['decided_at' => CarbonImmutable::now('UTC'), 'decided_by' => $admin->getKey(), 'decision_note' => $note])->save();
         });
 
-        $this->notifyBuyer($order->refresh());
+        $order->refresh();
+        SecurityLog::scrivi('ordine_sponsorizzazione_rifiutato', $order->user, [
+            'ordine_id' => (int) $order->getKey(),
+            'importo_centesimi' => (int) $order->amount_cents,
+            'rimborso' => $order->payment_intent_id !== null,
+        ], causa: $admin);
+        $this->notifyBuyer($order);
     }
 
     /**

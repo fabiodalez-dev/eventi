@@ -25,6 +25,12 @@ use Spatie\Sluggable\SlugOptions;
  */
 class Page extends Model
 {
+    /** Il tetto del corpo, in caratteri: il modulo del pannello, l'app e l'anteprima. */
+    public const BODY_MAX = 200000;
+
+    /** Quanti blocchi uno dentro l'altro rende il Markdown del corpo. */
+    public const MAX_NESTING = 50;
+
     use HasEditorialContent;
 
     /** @use HasFactory<PageFactory> */
@@ -66,12 +72,16 @@ class Page extends Model
      * filtrata, e non c'è whitelist da mantenere aggiornata (§16). `unsafe
      * links` disattivato scarta `javascript:` negli indirizzi, che è l'altro
      * modo per far eseguire qualcosa da un documento che sembra solo testo.
+     * `max_nesting_level` ferma gli annidamenti oltre `MAX_NESTING` (citazioni
+     * o elenchi uno dentro l'altro a migliaia), che altrimenti fanno lavorare
+     * il convertitore per niente: oltre quel livello il testo resta testo.
      */
     public function renderedBody(): HtmlString
     {
         return new HtmlString(Str::markdown($this->body, [
             'html_input' => 'strip',
             'allow_unsafe_links' => false,
+            'max_nesting_level' => self::MAX_NESTING,
         ]));
     }
 

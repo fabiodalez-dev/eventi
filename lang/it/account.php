@@ -379,6 +379,13 @@ return [
             'action' => 'Conferma ed entra',
             'ignore' => 'Se non ti sei registrato tu, ignora questo messaggio: senza questo collegamento nessuno può usare l\'account.',
         ],
+        'email_changed' => [
+            'subject' => 'L\'email del tuo account su :product è cambiata',
+            'intro' => 'L\'indirizzo del tuo account su :product è stato cambiato in :email.',
+            'intro_staff' => 'La redazione di :product ha cambiato l\'indirizzo del tuo account in :email.',
+            'confirm' => 'Da adesso i messaggi dell\'account, compresa la reimpostazione della password, arrivano al nuovo indirizzo, che va confermato con il collegamento appena spedito lì.',
+            'not_you' => 'Se non l\'hai chiesto tu, scrivi subito a :address: qualcuno potrebbe aver preso il tuo account.',
+        ],
         'already_registered' => [
             'subject' => 'Hai già un account su :product',
             'intro' => 'Qualcuno ha provato a registrarsi con questo indirizzo, ma hai già un account: entra con questo collegamento.',

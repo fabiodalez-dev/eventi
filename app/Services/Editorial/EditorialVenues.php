@@ -286,14 +286,15 @@ final class EditorialVenues
     /**
      * Le righe del foglio da esportare: le colonne dell'elenco, con i filtri e
      * la ricerca di chi esporta (come l'esportazione del pannello, che esporta
-     * quello che si sta guardando).
+     * quello che si sta guardando). Al massimo `EditorialEventsExport::MAX_ROWS`
+     * righe, come per gli eventi: un file non diventa una copia della tabella.
      *
      * @param  array<string, string>  $filters
      * @return Collection<int, array{string, string, string, int, string}>
      */
     public function exportRows(string $tab, array $filters, string $search, string $sort): Collection
     {
-        return $this->sorted($this->query($tab, $filters, $search), $sort)->get()
+        return $this->sorted($this->query($tab, $filters, $search), $sort)->limit(EditorialEventsExport::MAX_ROWS)->get()
             ->map(fn (Venue $venue): array => [
                 (string) $venue->name,
                 collect([$venue->municipality, $venue->type->label()])->filter()->join(' · '),

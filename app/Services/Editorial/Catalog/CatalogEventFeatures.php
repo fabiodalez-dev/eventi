@@ -59,6 +59,7 @@ final class CatalogEventFeatures extends CatalogSection
             'sort_order' => (int) $record->sort_order,
             'is_active' => (bool) $record->is_active,
             'is_system' => (bool) $record->is_system,
+            'web_path' => $this->webPath($record),
             'abilities' => $this->abilities($record, $user),
         ];
     }

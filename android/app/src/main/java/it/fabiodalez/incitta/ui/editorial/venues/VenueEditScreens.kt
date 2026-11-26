@@ -222,7 +222,10 @@ internal fun EditorialSectionFields(
             FormTextField(draft.provinceCode, { v -> onEdit { it.copy(provinceCode = v.take(4)) } }, stringResource(R.string.editorial_venue_province_code), errors, "province_code", singleLine = true)
         }
         EditorialVenueSection.Moderation -> {
-            ChoiceField(stringResource(R.string.editorial_venue_status), choices.statuses, draft.status, { v -> onEdit { it.copy(status = v) } }, errors.field("status"))
+            /* Lo stato si legge e basta: lo cambiano le azioni di moderazione della scheda, come nel pannello. */
+            Text(stringResource(R.string.editorial_venue_status), style = MaterialTheme.typography.labelLarge)
+            Text(choices.statuses.firstOrNull { it.value == draft.status }?.label ?: draft.status)
+            Text(stringResource(R.string.editorial_venue_status_actions), color = Muted, style = MaterialTheme.typography.bodySmall)
             SwitchRow(stringResource(R.string.editorial_venue_verified), stringResource(R.string.editorial_venue_verified_help), draft.isVerified) { v -> onEdit { it.copy(isVerified = v) } }
             SwitchRow(stringResource(R.string.editorial_venue_auto_publish), stringResource(R.string.editorial_venue_auto_publish_help), draft.autoPublish) { v -> onEdit { it.copy(autoPublish = v) } }
             SwitchRow(stringResource(R.string.editorial_venue_nonprofit), null, draft.isNonprofit) { v -> onEdit { it.copy(isNonprofit = v) } }

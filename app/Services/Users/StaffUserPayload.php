@@ -39,8 +39,8 @@ final class StaffUserPayload
      *   ruoli sta nel modulo);
      * - `credentials`: email e password, dall'app solo le proprie (decisione 4);
      * - `destroy`, `restore`: `UserPolicy::delete` e `restore`;
-     * - `suspend`, `unsuspend`: «Sospendi»/«Riattiva» della community
-     *   (sospendere solo chi sta sotto, `CommunityModeration::outranks`);
+     * - `suspend`, `unsuspend`: «Sospendi»/«Riattiva» della community, con
+     *   la regola unica `CommunityModeration::canSuspendGlobally`;
      * - `handle`: «Cambia nome utente» (`community.manage` e rango più alto);
      * - `whatsapp_revoke`: admin e super admin, se c'è una verifica;
      * - `whatsapp_history`: tutta la redazione.
@@ -62,8 +62,8 @@ final class StaffUserPayload
             'credentials' => $update && $staff->is($user),
             'destroy' => ! $trashed && $gate->allows('delete', $user),
             'restore' => $trashed && $gate->allows('restore', $user),
-            'suspend' => ! $trashed && ! $suspended && $community && $outranks,
-            'unsuspend' => ! $trashed && $suspended && $community,
+            'suspend' => ! $trashed && ! $suspended && CommunityModeration::canSuspendGlobally($staff, $user),
+            'unsuspend' => ! $trashed && $suspended && CommunityModeration::canSuspendGlobally($staff, $user),
             'handle' => ! $trashed && $user->communityProfile !== null && $community && $outranks,
             'whatsapp_revoke' => $user->whatsapp_verified_at !== null && $staff->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]),
             'whatsapp_history' => $staff->isEditorialStaff(),

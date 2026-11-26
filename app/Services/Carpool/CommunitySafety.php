@@ -21,6 +21,7 @@ use App\Models\RideRequest;
 use App\Models\RideReview;
 use App\Models\User;
 use App\Services\Community\CommunityModeration;
+use App\Support\SecurityLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -165,6 +166,14 @@ final class CommunitySafety
         $chat = $case->ride_request_id ? RideConversation::where('ride_request_id', $case->ride_request_id)->first() : null;
         $messages = $chat && ! $chat->purged_at && (app(CarpoolRetention::class)->readable($chat) || $case->hold_until?->isFuture()) ? Message::where('conversation_id', $chat->conversation_id)->orderBy('id')->get()->map(fn ($m) => ['id' => $m->id, 'body' => $m->body, 'at' => $m->created_at->toIso8601String()])->all() : [];
         $this->audit->record($admin, $export ? 'evidence_export' : 'evidence_view', $case, ['reason' => $reason]);
+        // Anche nel registro di sicurezza, dal sito e dall'app (lì con `canale: app`): chi ha letto quale caso.
+        SecurityLog::scrivi($export ? 'evidenze_passaggio_esportate' : 'evidenze_passaggio_lette', null, [
+            'caso_id' => $case->id,
+            'richiesta_id' => $case->ride_request_id,
+            'passaggio_id' => $case->ride_offer_id,
+            'messaggi' => count($messages),
+            'motivo' => $reason,
+        ], causa: $admin);
         $result = ['review' => $case->review_snapshot, 'case_id' => $case->id, 'request_id' => $case->ride_request_id, 'messages' => $messages,
             'generated_at' => now()->toIso8601String(), 'operator_id' => $admin->id];
         if ($this->staff($admin, Permission::ReadCommunitySecurity, true)) {
@@ -180,19 +189,27 @@ final class CommunitySafety
 
     public function restrict(User $admin, User $user, string $scope, bool $suspend, string $reason): void
     {
-        $this->requireStaff($admin, $scope === 'social' ? Permission::ManageCommunity : Permission::ManageCarpool);
-        abort_if(mb_strlen(trim($reason)) < 5, 422, __('carpool.admin.reason'));
-        if ($scope === 'global') {
-            $this->requireStaff($admin, Permission::ManageUsers);
+        // La sospensione da tutta la community ha la regola unica di
+        // `CommunityModeration::requireGlobalSuspension` (anche per toglierla);
+        // gli altri due ambiti il permesso della loro pagina.
+        if ($scope !== 'global') {
+            $this->requireStaff($admin, $scope === 'social' ? Permission::ManageCommunity : Permission::ManageCarpool);
+        } else {
+            CommunityModeration::requireGlobalSuspension($admin, $user);
         }
+        abort_if(mb_strlen(trim($reason)) < 5, 422, __('carpool.admin.reason'));
         $field = match ($scope) {
             'social' => 'social_suspended_at', 'carpool' => 'carpool_suspended_at', 'global' => 'community_suspended_at', default => abort(422)
         };
         DB::transaction(function () use ($admin, $user, $field, $scope, $suspend, $reason): void {
             $target = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
-            // Come in CommunityModeration::apply: si sospende solo chi nello
-            // staff sta sotto, in ogni ambito. Togliere la sospensione resta libero.
+            // Si sospende solo chi nello staff sta sotto, in ogni ambito.
+            // Togliere la sospensione da passaggi o social resta libero; da
+            // tutta la community no (regola unica, ricontrollata sulla riga bloccata).
             abort_if($suspend && ! CommunityModeration::outranks($admin, $target), 403);
+            if ($scope === 'global') {
+                CommunityModeration::requireGlobalSuspension($admin, $target);
+            }
             $target->forceFill([$field => $suspend ? now() : null])->save();
             $this->audit->record($admin, $suspend ? 'user_restricted' : 'user_restored', $target, ['scope' => $scope, 'reason' => $reason]);
             app(CommunityNotices::class)->send($target, 'carpool', 'moderation', 'profile', $target->id, 'moderation:'.(string) Str::uuid());

@@ -123,8 +123,9 @@ final class CommunityDesk
             'suspended' => $suspended,
             'abilities' => [
                 'feature' => true,
-                'suspend' => $person !== null && ! $suspended && CommunityModeration::outranks($staff, $person),
-                'unsuspend' => $suspended,
+                // Data e tolta con la regola unica (`users.manage` e rango più alto).
+                'suspend' => $person !== null && ! $suspended && CommunityModeration::canSuspendGlobally($staff, $person),
+                'unsuspend' => $person !== null && $suspended && CommunityModeration::canSuspendGlobally($staff, $person),
             ],
         ];
     }

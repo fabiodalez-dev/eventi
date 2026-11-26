@@ -21,6 +21,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
+use App\Services\Editorial\Promotion\EditorialSponsorships;
 use App\Services\Sponsorship\Delivery\PacingState;
 use App\Services\Sponsorship\Editorial\ProgressDetail;
 use App\Services\Sponsorship\Editorial\SponsorshipProgress;
@@ -230,14 +231,16 @@ class SponsorshipResource extends Resource
                              */
                                     TextInput::make('impressions_cap')
                                         ->label(__('sponsorships.admin.fields.impressions_cap'))
-                                        ->numeric()
+                                        ->integer()
                                         ->minValue(1)
+                                        ->maxValue(EditorialSponsorships::CAP_MAX)
                                         ->helperText(__('sponsorships.admin.help.impressions_cap')),
 
                                     TextInput::make('clicks_cap')
                                         ->label(__('sponsorships.admin.fields.clicks_cap'))
-                                        ->numeric()
+                                        ->integer()
                                         ->minValue(1)
+                                        ->maxValue(EditorialSponsorships::CAP_MAX)
                                         ->helperText(__('sponsorships.admin.help.clicks_cap')),
                                 ]),
                         ]),
@@ -299,7 +302,10 @@ class SponsorshipResource extends Resource
                                     TextInput::make('amount_cents')
                                         ->label(__('sponsorships.admin.fields.amount'))
                                         ->numeric()
+                                        ->step(0.01)
+                                        ->rules(['decimal:0,2'])
                                         ->minValue(0)
+                                        ->maxValue(EditorialSponsorships::AMOUNT_MAX)
                                         /* In centesimi nel database, in euro nel modulo: i
                                    decimali in virgola mobile sommati mille volte non
                                    tornano, e chi compila un modulo non scrive

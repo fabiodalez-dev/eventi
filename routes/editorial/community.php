@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Editorial\CarpoolController;
 use App\Http\Controllers\Api\V1\Editorial\CommunityController;
+use App\Http\Middleware\CarpoolPrivacy;
 use App\Http\Middleware\RequireRecentPassword;
 use App\Services\Editorial\CarpoolDesk;
 use App\Services\Editorial\CommunityDesk;
@@ -49,28 +50,31 @@ Route::delete('/community/restrictions/{restriction}', [CommunityController::cla
     ->middleware('throttle:30,1,editorial-community-restrictions-remove')->name('community.restrictions.remove');
 
 // Passaggi in auto (R-CP-01…10, 12): `community_cases.manage`, più `carpool.manage` dove il pannello lo chiede
-Route::get('/carpool/cases/{case}', [CarpoolController::class, 'show'])->whereNumber('case')
-    ->middleware('throttle:60,1,editorial-carpool-cases-show')->name('carpool.cases.show');
-Route::get('/carpool/{section}', [CarpoolController::class, 'index'])->whereIn('section', CarpoolDesk::SECTIONS)
-    ->middleware('throttle:60,1,editorial-carpool')->name('carpool.index');
-Route::post('/carpool/cases/{case}/manage', [CarpoolController::class, 'manage'])->whereNumber('case')
-    ->middleware('throttle:30,1,editorial-carpool-cases-manage')->name('carpool.cases.manage');
-Route::post('/carpool/cases/{case}/reply', [CarpoolController::class, 'reply'])->whereNumber('case')
-    ->middleware('throttle:20,1,editorial-carpool-cases-reply')->name('carpool.cases.reply');
-Route::post('/carpool/cases/{case}/hold', [CarpoolController::class, 'hold'])->whereNumber('case')
-    ->middleware([RequireRecentPassword::class, 'throttle:10,1,editorial-carpool-cases-hold'])->name('carpool.cases.hold');
-Route::post('/carpool/cases/{case}/freeze', [CarpoolController::class, 'freeze'])->whereNumber('case')
-    ->middleware('throttle:20,1,editorial-carpool-cases-freeze')->name('carpool.cases.freeze');
-// La lettura delle evidenze consuma anche il secchio del sito (`carpool-evidence`, 20 l'ora per persona).
-Route::post('/carpool/cases/{case}/evidence', [CarpoolController::class, 'evidence'])->whereNumber('case')
-    ->middleware([RequireRecentPassword::class, 'throttle:carpool-evidence', 'throttle:20,60,editorial-carpool-cases-evidence'])->name('carpool.cases.evidence');
-Route::post('/carpool/rides/{offer}/cancel', [CarpoolController::class, 'cancelRide'])->whereNumber('offer')
-    ->middleware('throttle:20,1,editorial-carpool-rides-cancel')->name('carpool.rides.cancel');
-Route::post('/carpool/reviews/{review}/moderate', [CarpoolController::class, 'moderateReview'])->whereNumber('review')
-    ->middleware('throttle:30,1,editorial-carpool-reviews-moderate')->name('carpool.reviews.moderate');
-Route::post('/carpool/users/{user}/suspend', [CarpoolController::class, 'suspendUser'])->whereNumber('user')
-    ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-carpool-users-suspend'])->name('carpool.users.suspend');
-Route::post('/carpool/users/{user}/restore', [CarpoolController::class, 'restoreUser'])->whereNumber('user')
-    ->middleware('throttle:20,1,editorial-carpool-users-restore')->name('carpool.users.restore');
-Route::post('/carpool/deliveries/{delivery}/retry', [CarpoolController::class, 'retryDelivery'])->whereNumber('delivery')
-    ->middleware('throttle:20,1,editorial-carpool-deliveries-retry')->name('carpool.deliveries.retry');
+// Funzione spenta (`carpool.enabled` falso): 404 su tutte, come le pagine del sito (`CarpoolPrivacy`).
+Route::middleware(CarpoolPrivacy::class)->group(function (): void {
+    Route::get('/carpool/cases/{case}', [CarpoolController::class, 'show'])->whereNumber('case')
+        ->middleware('throttle:60,1,editorial-carpool-cases-show')->name('carpool.cases.show');
+    Route::get('/carpool/{section}', [CarpoolController::class, 'index'])->whereIn('section', CarpoolDesk::SECTIONS)
+        ->middleware('throttle:60,1,editorial-carpool')->name('carpool.index');
+    Route::post('/carpool/cases/{case}/manage', [CarpoolController::class, 'manage'])->whereNumber('case')
+        ->middleware('throttle:30,1,editorial-carpool-cases-manage')->name('carpool.cases.manage');
+    Route::post('/carpool/cases/{case}/reply', [CarpoolController::class, 'reply'])->whereNumber('case')
+        ->middleware('throttle:20,1,editorial-carpool-cases-reply')->name('carpool.cases.reply');
+    Route::post('/carpool/cases/{case}/hold', [CarpoolController::class, 'hold'])->whereNumber('case')
+        ->middleware([RequireRecentPassword::class, 'throttle:10,1,editorial-carpool-cases-hold'])->name('carpool.cases.hold');
+    Route::post('/carpool/cases/{case}/freeze', [CarpoolController::class, 'freeze'])->whereNumber('case')
+        ->middleware('throttle:20,1,editorial-carpool-cases-freeze')->name('carpool.cases.freeze');
+    // La lettura delle evidenze consuma anche il secchio del sito (`carpool-evidence`, 20 l'ora per persona).
+    Route::post('/carpool/cases/{case}/evidence', [CarpoolController::class, 'evidence'])->whereNumber('case')
+        ->middleware([RequireRecentPassword::class, 'throttle:carpool-evidence', 'throttle:20,60,editorial-carpool-cases-evidence'])->name('carpool.cases.evidence');
+    Route::post('/carpool/rides/{offer}/cancel', [CarpoolController::class, 'cancelRide'])->whereNumber('offer')
+        ->middleware('throttle:20,1,editorial-carpool-rides-cancel')->name('carpool.rides.cancel');
+    Route::post('/carpool/reviews/{review}/moderate', [CarpoolController::class, 'moderateReview'])->whereNumber('review')
+        ->middleware('throttle:30,1,editorial-carpool-reviews-moderate')->name('carpool.reviews.moderate');
+    Route::post('/carpool/users/{user}/suspend', [CarpoolController::class, 'suspendUser'])->whereNumber('user')
+        ->middleware([RequireRecentPassword::class, 'throttle:20,1,editorial-carpool-users-suspend'])->name('carpool.users.suspend');
+    Route::post('/carpool/users/{user}/restore', [CarpoolController::class, 'restoreUser'])->whereNumber('user')
+        ->middleware('throttle:20,1,editorial-carpool-users-restore')->name('carpool.users.restore');
+    Route::post('/carpool/deliveries/{delivery}/retry', [CarpoolController::class, 'retryDelivery'])->whereNumber('delivery')
+        ->middleware('throttle:20,1,editorial-carpool-deliveries-retry')->name('carpool.deliveries.retry');
+});

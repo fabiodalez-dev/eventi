@@ -29,6 +29,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 /**
  * §9.2 — i tag, con l'unione dei doppioni. Il lavoro vero lo fa
@@ -167,7 +168,14 @@ class TagResource extends Resource
                     return;
                 }
 
-                $moved = app(MergeTagsAction::class)->execute($record, $absorbed);
+                try {
+                    $moved = app(MergeTagsAction::class)->execute($record, $absorbed);
+                } catch (ValidationException) {
+                    /* Un'altra unione o un'eliminazione è arrivata prima: uno dei due tag non c'è più. */
+                    Notification::make()->title(__('admin.notifications.merge_gone'))->danger()->send();
+
+                    return;
+                }
 
                 Notification::make()
                     ->title(__('admin.notifications.merged', ['count' => $moved]))

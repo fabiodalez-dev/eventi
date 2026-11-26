@@ -19,8 +19,9 @@ import kotlinx.coroutines.sync.withLock
  *   intercetta i due 423 di qualunque chiamata, chiede la password, sblocca
  *   e ripete la chiamata.
  * - Sul telefono: dopo 15 minuti in secondo piano o senza tocchi l'area si
- *   chiude e si riapre con il blocco del telefono. `EditorialLocalLock` tiene
- *   il conto con l'orologio che non salta (`elapsedRealtime`).
+ *   chiude e si riapre con il blocco del telefono; si chiude anche uscendo
+ *   dall'area. `EditorialLocalLock` tiene il conto con l'orologio che non
+ *   salta (`elapsedRealtime`).
  */
 
 /** Perché il server ha fermato la chiamata. */
@@ -154,8 +155,22 @@ internal class EditorialLocalLock(
 
     fun lock() { lockedState.value = true }
 
-    /** Un tocco o un'azione: rimanda il blocco per inattività. */
-    fun touch() { if (!lockedState.value) lastActivity = clock() }
+    /**
+     * Un tocco o un'azione: rimanda il blocco per inattività. Prima guarda se
+     * il limite è già passato: un tocco dopo 15 minuti fermi chiude l'area,
+     * non la tiene aperta per altri 15.
+     */
+    fun touch() { if (!checkIdle()) lastActivity = clock() }
+
+    /**
+     * Si entra nell'area: se è rimasta aperta (il repository vive finché il
+     * token è lo stesso) e l'inattività ha già passato il limite, si chiude
+     * subito, prima di mostrare qualcosa. Vero se adesso è chiusa.
+     */
+    fun enter(): Boolean = checkIdle()
+
+    /** Si esce dall'area (Home, Profilo…): si chiude, e rientrando si riapre con il blocco del telefono. */
+    fun leave() = lock()
 
     fun onBackground() { backgroundSince = clock() }
 

@@ -28,6 +28,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -57,7 +58,7 @@ class CatalogViewModelsTest {
 
     private inner class FakeCatalog : EditorialCatalogSource {
         val calls = mutableListOf<String>()
-        var rows = listOf(tag(1, "Jazz", "update", "destroy", "merge"), tag(2, "Swing", "update", "destroy", "merge"), tag(3, "Blues"))
+        var rows = listOf(tag(1, "Jazz", "update", "delete_on_web", "merge"), tag(2, "Swing", "update", "delete_on_web", "merge"), tag(3, "Blues"))
         var failure: Exception? = null
         var lastBody: JsonObject? = null
         override suspend fun overview() = CatalogOverview(listOf(
@@ -74,10 +75,10 @@ class CatalogViewModelsTest {
             calls += "show:${kind.path}:$id"
             failure?.let { throw it }
             return when (kind) {
-                CatalogKind.Pages -> CatalogRecord(id = id, title = "Privacy", slug = "privacy", body = "# Titolo", revision = "r1", abilities = abilities("update", "destroy"))
+                CatalogKind.Pages -> CatalogRecord(id = id, title = "Privacy", slug = "privacy", body = "# Titolo", revision = "r1", abilities = abilities("update", "delete_on_web"))
                 CatalogKind.Cities -> CatalogRecord(id = id, name = "Padova", centerLat = 45.4064, centerLng = 11.8768, nightCutoffTime = "06:00", timezone = "Europe/Rome",
                     provinceCode = "PD", provinceName = "Padova", region = "Veneto", settings = listOf(CatalogFlag("community", true)), abilities = abilities("update"))
-                else -> CatalogRecord(id = id, name = "Musica", sortOrder = 2, abilities = abilities("update", "destroy"),
+                else -> CatalogRecord(id = id, name = "Musica", sortOrder = 2, abilities = abilities("update", "delete_on_web"),
                     contentDetails = CatalogContentDetails(introduction = "<p><strong>Ciao</strong></p>", faqs = listOf(CatalogFaq("Quando?", "<p>Sempre</p>"))),
                     seo = CatalogSeo(title = "Musica dal vivo", indexing = "excluded"))
             }
@@ -87,7 +88,6 @@ class CatalogViewModelsTest {
             calls += "update:${kind.path}:$id"; lastBody = body; failure?.let { throw it }
             return CatalogChange(CatalogRecord(id = id, title = "Privacy", body = (body["body"] as? JsonPrimitive)?.content ?: "", revision = "r2", abilities = abilities("update")), "Modifiche salvate.")
         }
-        override suspend fun destroy(kind: CatalogKind, id: Long): String? { calls += "destroy:${kind.path}:$id"; failure?.let { throw it }; return "Eliminato." }
         override suspend fun mergeTag(keepId: Long, absorbedId: Long): CatalogChange { calls += "merge:$keepId:$absorbedId"; return CatalogChange(tag(keepId, "Jazz", "update").copy(synonyms = listOf("Swing")), "Tag uniti: 3 eventi spostati.") }
         override suspend fun previewPage(body: String): String { calls += "preview"; return "<h1>Titolo</h1>" }
     }
@@ -118,21 +118,14 @@ class CatalogViewModelsTest {
         assertEquals(listOf("is_approved" to R.string.editorial_catalog_field_approved), catalogFilters(CatalogKind.Tags))
     }
 
-    @Test fun deleteAndMergeRunOnlyWhenTheRowAllowsThem() {
+    @Test fun mergeRunsOnlyWhenTheRowAllowsItAndNothingIsDeletedFromTheApp() {
         val api = FakeCatalog()
         val vm = CatalogListViewModel(repository(), api, SavedStateHandle(), CatalogKind.Tags)
         val blues = vm.rows.value.items.first { it.id == 3L }
-        vm.requestDelete(blues)
         vm.requestMerge(blues)
-        assertNull(vm.actions.value.pendingDelete)
         assertNull(vm.actions.value.merge)
-
-        val jazz = vm.rows.value.items.first { it.id == 1L }
-        vm.requestDelete(jazz)
-        vm.confirmDelete()
-        assertTrue("destroy:tags:1" in api.calls)
-        assertFalse(vm.rows.value.items.any { it.id == 1L })
-        assertEquals(UiText.Raw("Eliminato."), vm.actions.value.message)
+        /* Eliminare resta sul sito (decisione 4): l'app non ha la chiamata. */
+        assertTrue(EditorialCatalogSource::class.java.methods.none { it.name == "destroy" })
 
         val swing = vm.rows.value.items.first { it.id == 2L }
         api.rows = listOf(tag(2, "Swing", "merge"), tag(3, "Blues"))
@@ -209,16 +202,12 @@ class CatalogViewModelsTest {
         assertEquals(Loadable.Ready("<h1>Titolo</h1>"), vm.state.value.preview)
     }
 
-    @Test fun deletingFromTheFormGoesBackToTheList() {
-        val api = FakeCatalog()
-        val vm = CatalogFormViewModel(repository(), api, SavedStateHandle(), CatalogKind.Tags, 4)
-        vm.requestDelete()
-        assertTrue(vm.state.value.confirmDelete)
-        vm.confirmDelete()
-        assertTrue("destroy:tags:4" in api.calls)
-        assertEquals(CatalogDone.Deleted, vm.state.value.done)
-        vm.consumeDone()
-        assertNull(vm.state.value.done)
+    @Test fun theRowCarriesThePanelPageWhereDeletingHappens() {
+        val record = Json { ignoreUnknownKeys = true }.decodeFromString(CatalogRecord.serializer(),
+            """{"id":4,"name":"Jazz","web_path":"admin/tags/jazz/edit","abilities":{"update":true,"delete_on_web":true}}""")
+        assertEquals("admin/tags/jazz/edit", record.webPath)
+        assertTrue(record.allows("delete_on_web"))
+        assertFalse(record.allows("destroy"))
     }
 
     @Test fun theCityBodyHasTheFieldsOfThePanelForm() {

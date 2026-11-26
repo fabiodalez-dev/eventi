@@ -286,6 +286,9 @@ internal fun TicketsTab(state: EventEditorUiState, options: EditorEventOptions, 
                         Text(stringResource(R.string.editorial_ee_ticketing_manage, date.startsAt?.let { formatEventDate(it, state.zone) }.orEmpty()))
                     }
                 }
+                if (values.dateRefsMeta.truncated) {
+                    Text(stringResource(R.string.editorial_ee_date_refs_truncated, values.dateRefsMeta.limit), color = Muted)
+                }
             }
         }
         if (draft.hasAmount) {

@@ -529,12 +529,20 @@ class VenueResource extends Resource
                                 Section::make(__('admin.sections.moderation'))
                                     ->columns(['default' => 1, 'lg' => 2])
                                     ->schema([
+                                        /* Nella modifica lo stato si legge e basta: approvare,
+                                           rifiutare e sospendere sono le azioni di moderazione
+                                           (`ModerateVenueAction`), che scrivono chi e quando e
+                                           avvisano chi gestisce il locale. Salvato dal modulo,
+                                           «sospeso» passava senza niente di tutto questo. */
                                         ToggleButtons::make('status')
                                             ->label(__('admin.fields.status'))
                                             ->options(VenueStatus::options())
                                             ->inline()
                                             ->required()
                                             ->default(VenueStatus::Draft->value)
+                                            ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                            ->dehydrated(fn (string $operation): bool => $operation !== 'edit')
+                                            ->helperText(fn (string $operation): ?string => $operation === 'edit' ? __('admin.hints.venue_status_actions') : null)
                                             ->columnSpanFull(),
 
                                         Toggle::make('is_verified')

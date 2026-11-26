@@ -335,15 +335,18 @@ it('non lascia al moderatore sospendere dalla community chi gli sta sopra', func
         expect($target->fresh()->community_suspended_at)->toBeNull();
     }
 
-    // Verso il basso continua a funzionare.
-    $moderation->apply($this->scenario->moderator, 'user', $this->scenario->plainUser->id, false);
+    // Da tutta la community serve anche `users.manage` (la regola unica): il moderatore non sospende nemmeno verso il basso.
+    expect(fn () => $moderation->apply($this->scenario->moderator, 'user', $this->scenario->plainUser->id, false))->toThrow(HttpException::class);
+    expect($this->scenario->plainUser->fresh()->community_suspended_at)->toBeNull();
+    // L'admin sì, verso il basso.
+    $moderation->apply($this->scenario->admin, 'user', $this->scenario->plainUser->id, false);
     expect($this->scenario->plainUser->fresh()->community_suspended_at)->not->toBeNull();
 
     $this->actingAs($this->scenario->moderator)->get(ListUsers::getUrl(panel: 'admin'))->assertOk();
     Filament::setCurrentPanel('admin');
     Livewire::test(ListUsers::class)
         ->assertTableActionHidden('community_suspend', $this->scenario->admin)
-        ->assertTableActionVisible('community_suspend', $this->scenario->plainUser);
+        ->assertTableActionHidden('community_suspend', $this->scenario->plainUser);
 });
 
 it('scrive nel registro la password e l’email cambiate dallo staff e chiude le sessioni dell’app', function (): void {

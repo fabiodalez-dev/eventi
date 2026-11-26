@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Rules\ExternalLinks;
 use App\Rules\FactRows;
+use App\Rules\RecurrenceRuleText;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\EditorContent;
@@ -125,8 +126,8 @@ final class EditorialEventEditor
             'language' => ['sometimes', 'nullable', 'string', 'max:5'],
             'video_url' => ['sometimes', 'nullable', 'string', 'url', 'max:2048', self::videoRule()],
             'city_id' => [$presence, 'required', 'integer', Rule::exists('cities', 'id')],
-            // Il campo «Locale» del pannello elenca i locali della città scelta.
-            'venue_id' => ['sometimes', 'nullable', 'integer', Rule::exists('venues', 'id')->where('city_id', is_numeric($cityId) ? (int) $cityId : 0)],
+            // Il campo «Locale» del pannello elenca i locali della città scelta, fuori dal cestino.
+            'venue_id' => ['sometimes', 'nullable', 'integer', Rule::exists('venues', 'id')->where('city_id', is_numeric($cityId) ? (int) $cityId : 0)->withoutTrashed()],
             'custom_location' => ['sometimes', 'nullable', 'array:name,address,lat,lng'],
             'custom_location.name' => ['nullable', 'string', 'max:255'],
             'custom_location.address' => ['nullable', 'string', 'max:255'],
@@ -165,7 +166,7 @@ final class EditorialEventEditor
             'recurrences' => ['sometimes', 'nullable', 'array', 'max:20'],
             'recurrences.*' => ['array:id,rrule,until,exdates'],
             'recurrences.*.id' => ['nullable', 'integer'],
-            'recurrences.*.rrule' => ['required', 'string', 'max:500'],
+            'recurrences.*.rrule' => ['required', 'string', 'max:500', new RecurrenceRuleText],
             'recurrences.*.until' => ['nullable', 'date'],
             'recurrences.*.exdates' => ['nullable', 'array', 'max:366'],
             'recurrences.*.exdates.*' => ['string', 'max:64'],

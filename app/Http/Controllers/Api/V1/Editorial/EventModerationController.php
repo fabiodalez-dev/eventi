@@ -150,7 +150,8 @@ final class EventModerationController extends Controller
     /**
      * «Unisci con un doppione»: questo evento resta, `absorbed` (della
      * stessa città) viene assorbito e cestinato, il suo indirizzo diventa un
-     * redirect. Pericolosa: chiede la password recente.
+     * redirect. Chiede `delete` su tutti e due (403 se manca sull'assorbito).
+     * Pericolosa: chiede la password recente.
      */
     public function merge(Request $request, int $event, MergeEventsAction $action): JsonResponse
     {
@@ -161,6 +162,8 @@ final class EventModerationController extends Controller
         if (! $absorbed instanceof Event) {
             throw ValidationException::withMessages(['absorbed' => __('validation.exists', ['attribute' => __('admin.events.merge_target')])]);
         }
+        // L'assorbito finisce nel cestino: serve il permesso di eliminarlo, non solo quello sull'evento che resta.
+        Gate::authorize('delete', $absorbed);
         $report = $action->execute($record, $absorbed, EditorialDesk::require()->user);
 
         return response()->json([

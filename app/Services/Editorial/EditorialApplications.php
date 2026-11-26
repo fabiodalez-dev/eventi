@@ -165,7 +165,8 @@ final class EditorialApplications
         }
         $search = trim($search);
         if ($search !== '') {
-            $like = '%'.$search.'%';
+            // `%` e `_` sono lettere da cercare, non jolly.
+            $like = '%'.addcslashes($search, '%_\\').'%';
             $query->where(fn (Builder $where): Builder => $where->where('venue_applications.venue_name', 'like', $like)
                 ->orWhere('venue_applications.contact_name', 'like', $like)
                 ->orWhere('venue_applications.contact_email', 'like', $like));
@@ -232,7 +233,7 @@ final class EditorialApplications
         $review = $gate->allows('update', $application);
 
         return [
-            'approve' => $review && $application->status !== ApplicationStatus::Approved,
+            'approve' => $gate->allows('approve', $application) && $application->status !== ApplicationStatus::Approved,
             'reject' => $review && $application->status === ApplicationStatus::Pending,
             'notes' => $review,
             'destroy' => $gate->allows('delete', $application),

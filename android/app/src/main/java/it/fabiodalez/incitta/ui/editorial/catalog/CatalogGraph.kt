@@ -66,6 +66,7 @@ internal fun NavGraphBuilder.catalogGraph(context: EditorialGraphContext) {
             onBack = context::back,
             onOpen = { record -> context.navController.navigate(CatalogFormRoute(kind.key, record.id)) },
             onCreate = { context.navController.navigate(CatalogFormRoute(kind.key)) },
+            onOpenWeb = context::openWeb,
         )
     }
     composable<CatalogFormRoute> { entry ->
@@ -87,11 +88,6 @@ internal fun NavGraphBuilder.catalogGraph(context: EditorialGraphContext) {
                         markChanged()
                         context.navController.navigate(CatalogFormRoute(kind.key, done.id)) { popUpTo<CatalogFormRoute> { inclusive = true } }
                     }
-                }
-                CatalogDone.Deleted -> {
-                    viewModel.consumeDone()
-                    markChanged()
-                    context.back()
                 }
                 null -> Unit
             }

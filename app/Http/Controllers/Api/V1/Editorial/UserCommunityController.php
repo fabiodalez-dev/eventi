@@ -39,7 +39,7 @@ final class UserCommunityController extends Controller
         return $this->detail($staff, $user, $payload, __('users.app.suspended'));
     }
 
-    /** Riattiva: chiunque abbia `community.manage`, anche verso chi sta sopra (come il pannello). */
+    /** Riattiva: con la stessa regola della sospensione (`users.manage` e rango più alto, `CommunityModeration::canSuspendGlobally`). */
     public function unsuspend(Request $request, User $user, CommunityModeration $moderation, StaffUserPayload $payload): JsonResponse
     {
         $staff = $this->staff($request);

@@ -16,6 +16,7 @@ use App\Models\RideReview;
 use App\Models\User;
 use App\Services\Carpool\CommunitySafety;
 use App\Services\Community\CommunityModeration;
+use App\Support\PhoneMask;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
@@ -84,7 +85,7 @@ final class CarpoolDesk
             'reviews' => RideReview::with(['user', 'driver', 'rideRequest'])->when($search !== '', fn ($q) => $q->where('body', 'like', $needle)),
             'feedback' => RideFeedback::with(['user', 'rideRequest.offer'])->where('kind', 'like', $needle),
             'rides' => RideOffer::with(['driver.communityProfile', 'occurrence.event'])->withCount('requests')->where(fn ($q) => $q->where('zone', 'like', $needle)->orWhereHas('driver', fn ($q) => $q->where('name', 'like', $needle))),
-            'users' => User::with('communityProfile')->where(fn ($q) => $q->where('name', 'like', $needle)->orWhere('email', 'like', $needle)),
+            'users' => $this->users($search, $needle),
             'audit' => CarpoolAudit::with('actor')->where('action', 'like', $needle),
             'deliveries' => DB::table('community_delivery_outbox')->select(['id', 'user_id', 'notification_id', 'attempts', 'available_at', 'delivered_at', 'last_error'])->whereNull('delivered_at')->where('attempts', '>=', 1),
             default => CarpoolCase::with(['reporter', 'assignee'])->when($status !== '', fn ($q) => $q->where('status', $status)),
@@ -94,6 +95,26 @@ final class CarpoolDesk
         }
 
         return $query->orderByDesc('id');
+    }
+
+    /**
+     * Le persone della sezione «Persone»: chi ha un profilo dei passaggi o
+     * della community, o una sospensione. La ricerca va sul nome; un'email
+     * vale solo scritta intera (con la `@`) e non per pezzi. Così la pagina
+     * non dice se un indirizzo è registrato: un'email che non esiste e una
+     * di chi non usa passaggi e community danno lo stesso elenco vuoto, e
+     * non si possono indovinare indirizzi una lettera alla volta.
+     *
+     * @return Builder<User>
+     */
+    private function users(string $search, string $needle): Builder
+    {
+        $email = str_contains($search, '@') ? mb_strtolower(trim(mb_substr($search, 0, 255))) : null;
+
+        return User::with('communityProfile')
+            ->where(fn ($q) => $q->whereHas('carpoolProfile')->orWhereHas('communityProfile')
+                ->orWhereNotNull('community_suspended_at')->orWhereNotNull('social_suspended_at')->orWhereNotNull('carpool_suspended_at'))
+            ->when($search !== '', fn ($q) => $email !== null ? $q->where('email', $email) : $q->where('name', 'like', $needle));
     }
 
     /** Il caso aperto, con la conversazione e le persone coinvolte. */
@@ -273,7 +294,8 @@ final class CarpoolDesk
      * Una persona con i requisiti (email e WhatsApp verificati) e le tre
      * sospensioni. Per ogni ambito il pannello mostra «Sospendi» a chi sta
      * sotto nello staff e «Ripristina» se l'ambito è sospeso; «tutta la
-     * community» solo a chi ha `users.manage`. L'email non esce: il pannello
+     * community», in tutte e due le direzioni, con la regola unica di
+     * `CommunityModeration::canSuspendGlobally`. L'email non esce: il pannello
      * la usa per cercare, non la mostra.
      *
      * @return array<string, mixed>
@@ -283,9 +305,16 @@ final class CarpoolDesk
         $safety = app(CommunitySafety::class);
         $abilities = [];
         foreach (self::RESTRICTION_SCOPES as $scope => $field) {
-            $allowed = ($scope !== 'global' || $staff->hasPermissionTo(Permission::ManageUsers->value))
-                && $safety->staff($staff, $scope === 'social' ? Permission::ManageCommunity : Permission::ManageCarpool);
             $suspended = $person->{$field} !== null;
+            if ($scope === 'global') {
+                // La regola unica della sospensione da tutta la community, data e tolta.
+                $global = CommunityModeration::canSuspendGlobally($staff, $person);
+                $abilities['suspend_global'] = $global && ! $suspended;
+                $abilities['restore_global'] = $global && $suspended;
+
+                continue;
+            }
+            $allowed = $safety->staff($staff, $scope === 'social' ? Permission::ManageCommunity : Permission::ManageCarpool);
             $abilities['suspend_'.$scope] = $allowed && ! $suspended && CommunityModeration::outranks($staff, $person);
             $abilities['restore_'.$scope] = $allowed && $suspended;
         }
@@ -328,7 +357,8 @@ final class CarpoolDesk
             'id' => (int) $delivery->id,
             'user_id' => (int) $delivery->user_id,
             'attempts' => $attempts,
-            'last_error' => $delivery->last_error !== null ? (string) $delivery->last_error : null,
+            // Il servizio d'invio scrive spesso il numero del destinatario nell'errore: coperto (`PhoneMask`), come nel pannello.
+            'last_error' => $delivery->last_error !== null ? PhoneMask::mask((string) $delivery->last_error) : null,
             'available_at' => $delivery->available_at !== null ? Carbon::parse((string) $delivery->available_at, 'UTC')->toIso8601String() : null,
             'abilities' => [
                 'retry' => $attempts >= self::RETRY_AFTER_ATTEMPTS && app(CommunitySafety::class)->staff($staff, Permission::ManageCarpool),

@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Enums\OccurrenceStatus;
+use App\Exceptions\InvalidRecurrenceRule;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\EventRecurrence;
+use App\Support\RecurrenceRule;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use RRule\RRule;
 
 /**
  * Materializza in `event_occurrences` le date di una ricorrenza RFC 5545 (§7.8).
@@ -30,7 +31,13 @@ use RRule\RRule;
  * - **niente passato**: si materializza da `max(DTSTART, oggi)`. Una serie
  *   «ogni giorno» che comincia anni fa non riempie il calendario di serate già
  *   avvenute (con DTSTART nel 2016 erano più di quattromila righe in una
- *   richiesta); le date passate già salvate restano come sono.
+ *   richiesta); le date passate già salvate restano come sono;
+ * - **tetto**: una regola che ripete più spesso di una volta al giorno, che
+ *   non si legge o che produce più di `RecurrenceRule::MAX_DATES_PER_YEAR`
+ *   date per anno di orizzonte non si espande: `InvalidRecurrenceRule`, con
+ *   il messaggio per chi l'ha scritta (prima `FREQ=MINUTELY` espandeva più di
+ *   mezzo milione di date dentro la richiesta, e una regola illeggibile dava
+ *   un 500).
  *
  * Le date si generano nel fuso della città e si salvano in UTC: un
  * appuntamento settimanale alle 21:00 resta alle 21:00 anche dopo il cambio
@@ -45,6 +52,8 @@ final class GenerateOccurrencesAction
 
     /**
      * @return int numero di occorrenze create
+     *
+     * @throws InvalidRecurrenceRule
      */
     public function __invoke(EventRecurrence $recurrence, ?CarbonImmutable $horizon = null): int
     {
@@ -158,7 +167,9 @@ final class GenerateOccurrencesAction
 
         $template = $this->template($recurrence, $event);
         $from = $fromToday ? CarbonImmutable::now($timezone)->startOfDay() : null;
-        $dates = $this->dates($recurrence, $template, $timezone, $from, $end);
+        // Il tetto vale per la materializzazione: tante date per ogni anno di orizzonte.
+        $limit = $from === null ? null : RecurrenceRule::MAX_DATES_PER_YEAR * max(1, (int) ceil($from->diffInMonths($end) / 12));
+        $dates = $this->dates($recurrence, $template, $timezone, $from, $end, $limit);
 
         if ($dates === null) {
             return null;
@@ -215,9 +226,14 @@ final class GenerateOccurrencesAction
      * nel fuso della città. `$from` taglia le date precedenti (`null`: da
      * `DTSTART`); `COUNT` resta contato da `DTSTART`.
      *
+     * Con `$limit` l'espansione si ferma una data dopo il tetto: oltre, la
+     * regola è troppo fitta e non si materializza niente.
+     *
      * @return list<DateTimeInterface>|null `null` se la ricorrenza non ha una regola utilizzabile
+     *
+     * @throws InvalidRecurrenceRule
      */
-    private function dates(EventRecurrence $recurrence, ?EventOccurrence $template, string $timezone, ?CarbonImmutable $from, CarbonImmutable $end): ?array
+    private function dates(EventRecurrence $recurrence, ?EventOccurrence $template, string $timezone, ?CarbonImmutable $from, CarbonImmutable $end, ?int $limit = null): ?array
     {
         $rrule = trim($recurrence->rrule);
 
@@ -225,24 +241,24 @@ final class GenerateOccurrencesAction
             return null;
         }
 
-        if (str_contains(strtoupper($rrule), 'DTSTART')) {
-            $rule = new RRule($rrule);
-        } else {
-            $starts = $template?->starts_at;
+        $starts = $template?->starts_at;
 
-            if ($starts === null) {
-                return null;
-            }
-
-            $rule = new RRule($rrule, CarbonImmutable::instance($starts)->setTimezone($timezone)->toDateTime());
+        if ($starts === null && ! str_contains(strtoupper($rrule), 'DTSTART')) {
+            return null;
         }
+
+        $rule = RecurrenceRule::expand($rrule, $starts === null ? null : CarbonImmutable::instance($starts)->setTimezone($timezone)->toDateTime());
 
         $dates = [];
 
-        foreach ($rule->getOccurrencesBetween($from, $end) as $date) {
+        foreach ($rule->getOccurrencesBetween($from, $end, $limit === null ? null : $limit + 1) as $date) {
             if ($date instanceof DateTimeInterface) {
                 $dates[] = $date;
             }
+        }
+
+        if ($limit !== null && count($dates) > $limit) {
+            throw new InvalidRecurrenceRule((string) __('admin.validation.rrule_too_many', ['max' => RecurrenceRule::MAX_DATES_PER_YEAR]));
         }
 
         return $dates;

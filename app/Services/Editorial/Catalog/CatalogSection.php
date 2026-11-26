@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Editorial\Catalog;
 
-use App\Enums\ApiErrorCode;
-use App\Exceptions\ApiException;
+use App\Models\Category;
+use App\Models\City;
+use App\Models\EventFeature;
+use App\Models\Page;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -19,8 +21,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Una risorsa del gruppo «Contenuti» del pannello (categorie, tag,
  * caratteristiche, città, pagine) per l'app della redazione: elenco con
- * ricerca, filtri sì/no e ordinamento come la tabella di Filament, modulo,
- * salvataggio ed eliminazione.
+ * ricerca, filtri sì/no e ordinamento come la tabella di Filament, modulo e
+ * salvataggio. L'eliminazione resta solo nel pannello (decisione 4).
  *
  * Le colonne, i filtri, l'ordinamento predefinito e le regole dei campi sono
  * quelli della risorsa del pannello, scritti una volta per sezione nelle
@@ -30,6 +32,15 @@ use Illuminate\Validation\ValidationException;
  */
 abstract class CatalogSection
 {
+    /** Il percorso delle risorse del pannello per modello (lo slug predefinito di Filament). */
+    private const PANEL_PATHS = [
+        Category::class => 'categories',
+        Tag::class => 'tags',
+        EventFeature::class => 'event-features',
+        City::class => 'cities',
+        Page::class => 'pages',
+    ];
+
     /** @return class-string<Model> */
     abstract public function model(): string;
 
@@ -155,36 +166,36 @@ abstract class CatalogSection
         return DB::transaction(function () use ($record, $state, $actor): Model {
             $this->fill($record, $state, $actor);
             $record->save();
+            $this->updated($record, $actor);
 
             return $record->refresh();
         });
     }
 
+    /** Dopo il salvataggio di una modifica, prima di rileggere la voce (le città scrivono il registro). */
+    protected function updated(Model $record, User $actor): void {}
+
     /**
-     * Elimina come `DeleteAction` del pannello. Una voce ancora usata (eventi
-     * di una categoria, locali di una città: chiavi esterne «restrict») nel
-     * pannello finisce in un errore del database; qui diventa un 409 con la
-     * frase che lo spiega.
+     * Le azioni della riga. Eliminare resta solo sul sito (decisione 4:
+     * l'eliminazione definitiva non c'è nell'app): `delete_on_web` dice se la
+     * persona può farlo dal pannello, e `web_path` della riga apre la voce lì.
+     *
+     * @return array{update: bool, delete_on_web: bool}
      */
-    public function destroy(Model $record): void
-    {
-        try {
-            DB::transaction(fn () => $record->delete());
-        } catch (QueryException $exception) {
-            if ((string) $exception->getCode() !== '23000') {
-                throw $exception;
-            }
-
-            throw new ApiException(ApiErrorCode::Conflict, (string) __('editorial-catalog.in_use'));
-        }
-    }
-
-    /** @return array{update: bool, destroy: bool} */
     protected function abilities(Model $record, User $user): array
     {
         $gate = Gate::forUser($user);
 
-        return ['update' => $gate->allows('update', $record), 'destroy' => $gate->allows('delete', $record)];
+        return ['update' => $gate->allows('update', $record), 'delete_on_web' => $gate->allows('delete', $record)];
+    }
+
+    /** La pagina di modifica della voce nel pannello (`/admin/<risorsa>/<chiave>/edit`), dove sta «Elimina». */
+    protected function webPath(Model $record): string
+    {
+        $resource = self::PANEL_PATHS[$this->model()] ?? '';
+        $key = $record->getRouteKey();
+
+        return 'admin/'.$resource.'/'.rawurlencode(is_scalar($key) ? (string) $key : '').'/edit';
     }
 
     /**

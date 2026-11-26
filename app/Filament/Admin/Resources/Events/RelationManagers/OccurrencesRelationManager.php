@@ -65,7 +65,8 @@ class OccurrencesRelationManager extends RelationManager
         return $schema->columns(1)
             ->components([
                 ...OccurrenceDecisionFields::make(),
-                Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->placeholder('Usa il locale principale'),
+                // Un locale approvato della città dell'evento, la stessa regola di `EditorialEventDates::rules` per l'app.
+                Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved()->where('city_id', $this->getOwnerRecord()->getAttribute('city_id')))->searchable()->placeholder('Usa il locale principale'),
                 DateTimePicker::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
                     ->seconds(false)

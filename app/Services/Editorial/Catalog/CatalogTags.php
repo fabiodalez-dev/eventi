@@ -67,6 +67,7 @@ final class CatalogTags extends CatalogSection
             'events_count' => (int) ($record->events_count ?? 0),
             'usage_count' => (int) $record->usage_count,
             'is_approved' => (bool) $record->is_approved,
+            'web_path' => $this->webPath($record),
             'abilities' => [
                 ...$this->abilities($record, $user),
                 'merge' => Gate::forUser($user)->allows('delete', $record),
