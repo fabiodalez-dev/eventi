@@ -17,6 +17,7 @@ use App\Models\RideFeedback;
 use App\Models\RideReview;
 use App\Models\SavedEvent;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
@@ -52,7 +53,7 @@ beforeEach(function (): void {
 
 afterEach(function (): void {
     Carbon::setTestNow();
-    Carbon\CarbonImmutable::setTestNow();
+    CarbonImmutable::setTestNow();
 });
 
 /** Una persona della community con il suo profilo pubblico. */
@@ -208,7 +209,7 @@ it('mette e toglie un profilo dall\'evidenza con il motivo e lo scrive nei regis
     $audit = CarpoolAudit::query()->where('action', 'social_moderation')->latest('id')->firstOrFail();
     expect($audit->actor_id)->toBe($this->moderator->id)->and($audit->metadata)->toMatchArray(['kind' => 'profile', 'enabled' => true, 'reason' => 'Profilo molto attivo']);
     $activity = Activity::query()->where('log_name', 'community')->where('event', 'moderation')->latest('id')->firstOrFail();
-    expect($activity->getExtraProperty('canale'))->toBe('app');
+    expect($activity->getProperty('canale'))->toBe('app');
 
     r7As($this, $this->admin)->postJson($url, ['enabled' => false, 'reason' => 'Tolto dalla selezione'])->assertOk()->assertJsonPath('data.featured', false);
     expect($profile->fresh()->featured)->toBeFalse();
