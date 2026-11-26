@@ -53,6 +53,8 @@ internal fun EventsQueueScreen(
     onOpen: (Long) -> Unit,
     onMerge: (Long) -> Unit,
     onSubmissions: () -> Unit,
+    /* «Nuovo evento» (R3): `null` per chi non crea eventi. */
+    onCreate: (() -> Unit)? = null,
 ) {
     val state by viewModel.rows.collectAsStateWithLifecycle()
     val filters by viewModel.filters.collectAsStateWithLifecycle()
@@ -105,6 +107,7 @@ internal fun EventsQueueScreen(
         onClearSelection = viewModel::clearSelection,
         onDismissMessage = viewModel::consumeMessage,
         onSubmissions = onSubmissions,
+        onCreate = onCreate,
     )
     pending?.let { (row, key) ->
         val zone = row.city?.zone ?: ZoneId.of("Europe/Rome")
@@ -205,6 +208,7 @@ internal fun EventsQueueContent(
     onClearSelection: () -> Unit,
     onDismissMessage: () -> Unit,
     onSubmissions: () -> Unit,
+    onCreate: (() -> Unit)? = null,
 ) {
     val tabs = listOf(
         ListTab(null, stringResource(R.string.editorial_events_tab_all)),
@@ -229,6 +233,9 @@ internal fun EventsQueueContent(
         searchLabel = stringResource(R.string.editorial_events_search),
         emptyText = stringResource(R.string.editorial_events_empty),
         header = {
+            onCreate?.let { create ->
+                Button(onClick = create, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.editorial_ee_new_event)) }
+            }
             if (showSubmissions) {
                 OutlinedButton(onClick = onSubmissions, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Icon(Icons.Outlined.Inbox, contentDescription = null)

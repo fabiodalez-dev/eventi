@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
@@ -44,6 +46,9 @@ internal fun EventRecordScreen(
     onPreview: (Long) -> Unit,
     onActivity: (Long) -> Unit,
     onOpenWeb: (String) -> Unit,
+    /* «Modifica» e «Gestisci le date» nell'app (R3); `null`: sul sito, come prima. */
+    onEdit: ((Long) -> Unit)? = null,
+    onDates: ((Long) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val action by viewModel.action.collectAsStateWithLifecycle()
@@ -69,6 +74,8 @@ internal fun EventRecordScreen(
                 onPreview = { onPreview(event.id) },
                 onActivity = { onActivity(event.id) },
                 onOpenWeb = onOpenWeb,
+                onEdit = onEdit?.let { edit -> { edit(event.id) } },
+                onDates = onDates?.let { dates -> { dates(event.id) } },
             )
         }
     }
@@ -104,6 +111,8 @@ internal fun EventRecordContent(
     onPreview: () -> Unit,
     onActivity: () -> Unit,
     onOpenWeb: (String) -> Unit,
+    onEdit: (() -> Unit)? = null,
+    onDates: (() -> Unit)? = null,
 ) {
     val zone = event.city.zone
     val can = event.can
@@ -154,7 +163,10 @@ internal fun EventRecordContent(
             event.links.statistics?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_statistics), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
             event.links.social?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_social), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
             event.links.sponsor?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_sponsor), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
-            if (can["edit"] == true) {
+            if (can["edit"] == true && onEdit != null) {
+                LinkButton(stringResource(R.string.editorial_ee_edit), Icons.Outlined.Edit, onEdit)
+                onDates?.let { LinkButton(stringResource(R.string.editorial_ee_open_dates), Icons.Outlined.CalendarMonth, it) }
+            } else if (can["edit"] == true) {
                 LinkButton(stringResource(R.string.editorial_event_edit_web), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb("admin/events/${event.id}/edit") }
                 Text(stringResource(R.string.editorial_event_edit_hint), color = Muted, style = MaterialTheme.typography.bodySmall)
             }
