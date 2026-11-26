@@ -39,14 +39,28 @@ private const val STYLE_DARK = "https://tiles.openfreemap.org/styles/dark"
 /* Il centro di Padova, come il segnaposto del pannello quando il locale non ha ancora coordinate. */
 private val FALLBACK = LatLng(45.4064, 11.8768)
 
+/**
+ * `title`, `help`, `missing` e `pickedZoom` li cambia chi sceglie un punto
+ * che non è la porta di un locale (il centro di una città nella redazione,
+ * R11); senza, il selettore è quello del locale.
+ */
 @Composable
-internal fun VenueLocationPicker(lat: Double?, lng: Double?, address: String, onPick: (Double, Double) -> Unit) {
+internal fun VenueLocationPicker(
+    lat: Double?,
+    lng: Double?,
+    address: String,
+    title: String? = null,
+    help: String? = null,
+    missing: String? = null,
+    pickedZoom: Double = 17.0,
+    onPick: (Double, Double) -> Unit,
+) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val light = isLightTheme
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     val start = remember { if (lat != null && lng != null) LatLng(lat, lng) else FALLBACK }
-    val zoom = if (lat != null && lng != null) 17.0 else 13.0
+    val zoom = if (lat != null && lng != null) pickedZoom else 13.0
     val mapView = remember(light) {
         MapLibre.getInstance(context)
         MapView(context).apply {
@@ -87,8 +101,8 @@ internal fun VenueLocationPicker(lat: Double?, lng: Double?, address: String, on
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.profile_map), style = MaterialTheme.typography.titleMedium)
-        Text(stringResource(R.string.profile_map_help), color = Muted)
+        Text(title ?: stringResource(R.string.profile_map), style = MaterialTheme.typography.titleMedium)
+        Text(help ?: stringResource(R.string.profile_map_help), color = Muted)
         Box(Modifier.fillMaxWidth().height(260.dp).background(Ink)) {
             AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
             /* La punta del segnaposto sul centro della mappa. */
@@ -106,7 +120,7 @@ internal fun VenueLocationPicker(lat: Double?, lng: Double?, address: String, on
         ) { Text(stringResource(R.string.profile_map_set)) }
         Text(
             when {
-                lat == null || lng == null -> stringResource(R.string.profile_map_missing)
+                lat == null || lng == null -> missing ?: stringResource(R.string.profile_map_missing)
                 address.isNotBlank() -> stringResource(R.string.profile_map_saved, address)
                 else -> stringResource(R.string.profile_map_saved_no_address)
             },

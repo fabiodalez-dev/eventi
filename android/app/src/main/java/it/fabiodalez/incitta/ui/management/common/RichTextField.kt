@@ -101,8 +101,9 @@ private fun MarkButton(icon: ImageVector, label: Int, enabled: Boolean, onClick:
     IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) { Icon(icon, contentDescription = stringResource(label)) }
 }
 
+/** La finestra «Aggiungi un link»; la usa anche il campo Markdown delle pagine della redazione (R11). */
 @Composable
-private fun LinkDialog(initialText: String, onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+internal fun LinkDialog(initialText: String, onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
     var text by remember { mutableStateOf(initialText) }
     var url by remember { mutableStateOf("https://") }
     val valid = RichTextEdits.validUrl(url)
