@@ -97,12 +97,14 @@ final class EditorialVenueMembers
     public function candidates(Venue $venue, string $search = ''): Collection
     {
         $search = trim($search);
+        // `%` e `_` sono lettere da cercare, non jolly: «_» non deve elencare tutti gli account.
+        $like = '%'.addcslashes($search, '%_\\').'%';
 
         return User::query()
             ->whereNotNull('email_verified_at')
             ->whereNotIn('users.id', $venue->membersIncludingInvited()->select('users.id'))
             ->when($search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $where): Builder => $where
-                ->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%')))
+                ->where('name', 'like', $like)->orWhere('email', 'like', $like)))
             ->orderBy('name')
             ->limit(self::CANDIDATES_LIMIT)
             ->get(['id', 'name', 'email']);

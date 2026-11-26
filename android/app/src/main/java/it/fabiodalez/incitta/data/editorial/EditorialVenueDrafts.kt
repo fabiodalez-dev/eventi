@@ -18,7 +18,8 @@ import kotlinx.serialization.json.put
 /** Le sezioni del modulo del locale che scrive solo la redazione, come le schede del pannello. */
 internal enum class EditorialVenueSection(val keys: List<String>) {
     Identity(listOf("name", "slug", "city_id", "type", "province_code")),
-    Moderation(listOf("status", "is_verified", "auto_publish", "is_nonprofit", "plan", "rejection_reason")),
+    /* Lo stato non c'è: si cambia con «Approva», «Rifiuta» e «Sospendi», che chiedono la password e avvisano il locale. */
+    Moderation(listOf("is_verified", "auto_publish", "is_nonprofit", "plan", "rejection_reason")),
     Ticketing(listOf("ticketing_enabled")),
     Visibility(listOf("seo_indexing", "is_demo"));
 
@@ -55,7 +56,6 @@ internal data class VenueEditorialDraft(
                 put("province_code", provinceCode.trim())
             }
             EditorialVenueSection.Moderation -> {
-                put("status", status)
                 put("is_verified", isVerified)
                 put("auto_publish", autoPublish)
                 put("is_nonprofit", isNonprofit)

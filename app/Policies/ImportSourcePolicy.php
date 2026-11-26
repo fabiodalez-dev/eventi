@@ -40,7 +40,7 @@ class ImportSourcePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->isGlobalStaff($user) && $user->can(Permission::ManageImportSources->value);
+        return $this->staffCan($user, Permission::ManageImportSources->value);
     }
 
     public function view(User $user, ImportSource $importSource): bool
@@ -57,7 +57,7 @@ class ImportSourcePolicy
     public function create(User $user, ?Venue $venue = null): bool
     {
         if ($venue === null) {
-            return $this->isGlobalStaff($user) && $user->can(Permission::ManageImportSources->value);
+            return $this->staffCan($user, Permission::ManageImportSources->value);
         }
 
         return $this->canActOnVenue($user, $venue->id, Permission::ManageImportSources->value, requireOwner: true);
@@ -87,7 +87,7 @@ class ImportSourcePolicy
     private function canActOnSource(User $user, ImportSource $importSource): bool
     {
         if ($importSource->venue_id === null) {
-            return $this->isGlobalStaff($user) && $user->can(Permission::ManageImportSources->value);
+            return $this->staffCan($user, Permission::ManageImportSources->value);
         }
 
         return $this->canActOnVenue(

@@ -86,7 +86,7 @@ final class ApplicationController extends Controller
     public function approve(Request $request, ReviewVenueApplication $review, int $application): JsonResponse
     {
         $user = $this->user($request);
-        $record = $this->application($user, $application, 'update');
+        $record = $this->application($user, $application, 'approve');
         $kind = $record->kind();
         $subject = $review->approve($record, $user);
 

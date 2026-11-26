@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Enums\ApiErrorCode;
-use App\Exceptions\ApiException;
 use App\Services\Editorial\EditorialUnlocks;
 use Closure;
 use Illuminate\Http\Request;
@@ -22,9 +20,10 @@ use Symfony\Component\HttpFoundation\Response;
  * nel file del suo pacchetto; `EditorialRoutesTest` controlla che le rotte
  * con i nomi delle azioni pericolose ce l'abbiano.
  *
- * Un'azione che è pericolosa solo in certi casi (rifiutare un ordine di
- * sponsorizzazione già pagato online, che rimborsa su Stripe senza ritorno)
- * chiama `ensure()` dal controller, dopo aver letto il record.
+ * Un'azione che è pericolosa solo con certi dati (rifiutare un ordine già
+ * pagato online, annullare una serie di date, dare il ruolo di referente)
+ * chiama `ensure()` o `EditorialUnlocks::requirePassword()` dal controller,
+ * dopo aver letto il record: la regola è una sola.
  */
 final class RequireRecentPassword
 {
@@ -45,12 +44,6 @@ final class RequireRecentPassword
      */
     public function ensure(Request $request): void
     {
-        $unlock = $this->unlocks->find($request);
-        if (! $this->unlocks->unlocked($unlock)) {
-            throw new ApiException(ApiErrorCode::EditorialLocked);
-        }
-        if (! $this->unlocks->passwordConfirmed($unlock)) {
-            throw new ApiException(ApiErrorCode::PasswordRequired);
-        }
+        $this->unlocks->requirePassword($request);
     }
 }

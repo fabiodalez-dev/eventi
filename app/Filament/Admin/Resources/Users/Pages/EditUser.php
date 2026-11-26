@@ -17,6 +17,9 @@ class EditUser extends EditRecord
     /** @var list<string> Gli eventi di sicurezza da scrivere dopo il salvataggio. */
     private array $cambiCredenziali = [];
 
+    /** L'email prima del salvataggio, per avvisarla se cambia. */
+    private ?string $emailPrecedente = null;
+
     /**
      * @return array<mixed>
      */
@@ -40,6 +43,7 @@ class EditUser extends EditRecord
     {
         $record = $this->getRecord();
         $this->cambiCredenziali = $record instanceof User ? UpdateUserByStaff::credentialChanges($record, $data) : [];
+        $this->emailPrecedente = $record instanceof User ? (string) $record->email : null;
 
         return $data;
     }
@@ -54,8 +58,14 @@ class EditUser extends EditRecord
         $record = $this->getRecord();
         if ($record instanceof User) {
             $staff = auth()->user();
-            UpdateUserByStaff::afterCredentialChanges($record, $this->cambiCredenziali, $staff instanceof User ? $staff : null);
+            /* La propria email cambiata si riconferma, qualunque cosa dica il
+               campo «Email verificata» (la regola è in `UpdateUserByStaff`). */
+            if (UpdateUserByStaff::ownEmailChange($record, $this->cambiCredenziali, $staff instanceof User ? $staff : null)) {
+                $record->forceFill(['email_verified_at' => null])->save();
+            }
+            UpdateUserByStaff::afterCredentialChanges($record, $this->cambiCredenziali, $staff instanceof User ? $staff : null, $this->emailPrecedente);
         }
         $this->cambiCredenziali = [];
+        $this->emailPrecedente = null;
     }
 }

@@ -6,6 +6,9 @@ namespace App\Policies\Concerns;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 /**
  * Verifica di appartenenza a un locale, riusata da ogni Policy che tocca un
@@ -31,6 +34,43 @@ trait ScopesToVenueMembership
         return $user->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value, UserRole::Moderator->value]);
     }
 
+    /**
+     * Vero se `$permission` arriva a `$user` da un ruolo di staff globale
+     * (moderatore, admin, super admin), non da `venue_owner` o
+     * `venue_editor`.
+     *
+     * È la sola domanda che apre la scorciatoia «qualunque locale»: spatie
+     * unisce i permessi di tutti i ruoli, e un moderatore che ha anche
+     * `venue_owner` (per un locale suo, o per un ruolo dato per sbaglio)
+     * riceveva `venues.update`, `events.delete` e il resto su tutti i locali
+     * della piattaforma. Così i permessi di referente valgono solo dove la
+     * persona è davvero referente, come per chiunque altro.
+     *
+     * Il permesso e i suoi ruoli si leggono dalla cache di spatie, la stessa
+     * di `$user->can()`: nessuna query in più per riga.
+     */
+    protected function staffCan(User $user, string $permission): bool
+    {
+        if (! $this->isGlobalStaff($user)) {
+            return false;
+        }
+
+        try {
+            $model = Permission::findByName($permission, 'web');
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
+
+        $staff = [UserRole::Admin->value, UserRole::SuperAdmin->value, UserRole::Moderator->value];
+        $roles = $model->roles
+            ->map(static fn (Role $role): string => (string) $role->name)
+            ->filter(static fn (string $name): bool => in_array($name, $staff, true))
+            ->values()
+            ->all();
+
+        return $roles !== [] && $user->hasAnyRole($roles);
+    }
+
     protected function isMemberOfVenue(User $user, int $venueId): bool
     {
         return $user->isMemberOfVenue($venueId);
@@ -42,9 +82,10 @@ trait ScopesToVenueMembership
     }
 
     /**
-     * Vero se l'utente ha il permesso indicato E, quando non fa parte dello
-     * staff globale, appartiene proprio a quel locale (come owner se
-     * `$requireOwner` è vero, altrimenti anche come editor).
+     * Vero se l'utente ha il permesso indicato E, quando il permesso non gli
+     * arriva da un ruolo di staff globale (`staffCan()`), appartiene proprio
+     * a quel locale (come owner se `$requireOwner` è vero, altrimenti anche
+     * come editor).
      *
      * Questo è l'unico punto che decide se un owner/editor del locale A può
      * toccare qualcosa del locale B: la risposta è sempre no, a prescindere
@@ -56,7 +97,7 @@ trait ScopesToVenueMembership
             return false;
         }
 
-        if ($this->isGlobalStaff($user)) {
+        if ($this->staffCan($user, $permission)) {
             return true;
         }
 

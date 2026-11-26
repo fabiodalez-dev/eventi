@@ -47,6 +47,8 @@ const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.carpool.cases.evidence',
     // Chi scrive il codice di Search Console diventa proprietario verificato del sito.
     'api.v1.editorial.seo.verification',
+    // Revisione di sicurezza dell'ondata 1, punto 3: un account nuovo può nascere con un ruolo della redazione.
+    'api.v1.editorial.users.store',
 ];
 
 /** @return Collection<int, RouteDefinition> */

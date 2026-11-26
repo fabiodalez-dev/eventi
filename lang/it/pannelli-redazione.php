@@ -36,4 +36,13 @@ return [
         'empty_heading' => 'Nessun organizzatore',
         'empty_description' => 'Un organizzatore è un gruppo o un collettivo che fa eventi in più posti. Lo crei con «Nuovo».',
     ],
+    // Troppe password sbagliate allo sblocco della redazione nell'app (`EditorialUnlockLockout`).
+    'sblocco_fermato' => [
+        'subject_owner' => 'Redazione di :product: accesso dall\'app fermato',
+        'owner_intro' => 'Sul telefono collegato al tuo account la password per aprire la Redazione è stata sbagliata :count volte in un giorno. Per sicurezza la sessione dell\'app su quel telefono è stata chiusa.',
+        'owner_action' => 'Se eri tu, rientra nell\'app con email e password. Se non eri tu, cambia subito la password dal sito: qualcuno ha in mano un telefono con il tuo account aperto.',
+        'subject_admin' => 'Redazione di :product: sessione dell\'app di :account revocata',
+        'admin_intro' => 'Sull\'account :account la password per aprire la Redazione nell\'app è stata sbagliata :count volte in un giorno (ultimo indirizzo :ip). La sessione dell\'app di quel telefono è stata revocata.',
+        'admin_action' => 'I tentativi sono nel registro di sicurezza (redazione_sblocco_fallito, redazione_token_revocato). La persona è stata avvisata per email.',
+    ],
 ];

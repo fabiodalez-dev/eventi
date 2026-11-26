@@ -22,6 +22,8 @@ class EditorialVenuesModelsTest {
         assertEquals(JsonNull, identity["slug"]) // vuoto: il server lo ricava dal nome
         assertEquals(JsonPrimitive(3L), identity["city_id"])
         assertEquals(JsonNull, draft.payload(EditorialVenueSection.Moderation)["rejection_reason"])
+        /* Lo stato non si manda con il modulo: approva, rifiuta e sospendi hanno le loro rotte. */
+        assertFalse(draft.payload(EditorialVenueSection.Moderation).containsKey("status"))
         assertEquals(JsonPrimitive(true), draft.payload(EditorialVenueSection.Ticketing)["ticketing_enabled"])
         assertEquals(JsonPrimitive("excluded"), draft.payload(EditorialVenueSection.Visibility)["seo_indexing"])
     }

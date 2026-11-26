@@ -124,17 +124,19 @@ class VenuesViewModelsTest {
         val saved = SavedStateHandle(mapOf(VenueDetailViewModel.KEY_VENUE to 4L, VenueEditorialSectionViewModel.KEY_SECTION to "Moderation"))
         val model = VenueEditorialSectionViewModel(repository, source, saved)
         advanceUntilIdle()
-        model.edit { it.copy(status = "suspended", rejectionReason = "Chiuso") }
+        model.edit { it.copy(plan = "premium", rejectionReason = "Chiuso") }
         /* Il modulo sopravvive alla morte del processo. */
-        assertTrue(saved.get<String>(VenueEditorialSectionViewModel.KEY_DRAFT).orEmpty().contains("suspended"))
-        source.failNext = ApiException(422, ApiProblem(code = "VALIDATION_FAILED", message = "x", fields = mapOf("status" to listOf("Stato non valido"))))
+        assertTrue(saved.get<String>(VenueEditorialSectionViewModel.KEY_DRAFT).orEmpty().contains("premium"))
+        source.failNext = ApiException(422, ApiProblem(code = "VALIDATION_FAILED", message = "x", fields = mapOf("plan" to listOf("Piano non valido"))))
         model.save()
         advanceUntilIdle()
-        assertEquals("Stato non valido", model.uiState.value.errors.field("status"))
+        assertEquals("Piano non valido", model.uiState.value.errors.field("plan"))
         model.save()
         advanceUntilIdle()
         assertEquals(EditorialVenueSection.Moderation.keys.toSet(), source.updates.last().keys)
         assertEquals(JsonPrimitive("Chiuso"), source.updates.last()["rejection_reason"])
+        /* Lo stato non parte mai dal modulo: lo cambiano le azioni di moderazione. */
+        assertFalse(source.updates.last().containsKey("status"))
         /* Dopo il salvataggio il modulo riparte da quello che risponde il server. */
         assertEquals("pending", model.uiState.value.draft?.status)
     }
