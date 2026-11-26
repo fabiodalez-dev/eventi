@@ -15,6 +15,8 @@ import it.fabiodalez.incitta.ui.editorial.moderation.ModerationCommentsRoute
 import it.fabiodalez.incitta.ui.editorial.moderation.ModerationReportsRoute
 import it.fabiodalez.incitta.ui.editorial.moderation.ModerationReviewsRoute
 import it.fabiodalez.incitta.ui.editorial.moderation.acceptModerationLists
+import it.fabiodalez.incitta.ui.editorial.system.SystemImportsRoute
+import it.fabiodalez.incitta.ui.editorial.system.acceptSystemLists
 import it.fabiodalez.incitta.ui.editorial.users.UsersRoute
 import it.fabiodalez.incitta.ui.editorial.users.acceptUsersLists
 import it.fabiodalez.incitta.ui.editorial.venues.ApplicationListRoute
@@ -40,6 +42,7 @@ class DashboardTargetsTest {
         acceptVenuesLists()
         acceptUsersLists()
         acceptModerationLists()
+        acceptSystemLists()
     }
 
     private fun can(vararg keys: String) = EditorialPermissions(keys.associateWith { true })
@@ -82,9 +85,11 @@ class DashboardTargetsTest {
         }
     }
 
-    @Test fun theFailedImportsStayOnThePanelUntilTheSystemAreaIsInTheApp() {
+    @Test fun theFailedImportsOpenTheNativeListOfTheSystemArea() {
+        /* R12: l'area Sistema è nell'app; il moderatore non ha le sorgenti e apre il pannello, come lì. */
         val failed = target("import_sources", mapOf("failed" to "1"), web = "admin/import-sources?filters%5Bfailed%5D%5BisActive%5D=1")
-        assertEquals(DashboardDestination.Web("admin/import-sources?filters%5Bfailed%5D%5BisActive%5D=1"), dashboardDestination(failed, admin))
+        assertEquals(DashboardDestination.Native(SystemImportsRoute(filter = "failed:1")), dashboardDestination(failed, admin))
+        assertEquals(DashboardDestination.Web("admin/import-sources?filters%5Bfailed%5D%5BisActive%5D=1"), dashboardDestination(failed, moderator))
     }
 
     @Test fun withoutThePermissionOfTheListTheTileOpensThePanel() {

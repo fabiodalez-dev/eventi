@@ -17,6 +17,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * È il registro che permette di rispondere a «da quando non arriva più
  * niente», domanda che le colonne `last_*` della sorgente non sanno affrontare
  * perché conservano solo l'ultima risposta.
+ *
+ * La tabella nasce con `datetimes()`, che l'analisi statica non riconosce
+ * come i soliti `timestamps()`: le due colonne le dichiaro qui.
+ *
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
  */
 class ImportRun extends Model
 {

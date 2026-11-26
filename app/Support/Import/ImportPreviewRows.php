@@ -2,15 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Support;
+namespace App\Support\Import;
 
 use App\DTOs\ImportedEventDto;
+use App\Exceptions\ImportException;
+use App\Models\ImportSource;
+use App\Services\Import\ImportRunner;
 
 /**
  * L'anteprima di §14.2 ridotta a righe già pronte da stampare.
  *
  * Serve a due pannelli con esigenze diverse — la redazione la guarda in una
- * finestra, il gestore del locale la guarda **nella pagina**, perché lì
+ * finestra (e nell'app, da `POST /api/v1/editorial/import-sources/{id}/preview`:
+ * per questo sta in `App\Support` e non sotto `App\Filament`), il gestore
+ * del locale la guarda **nella pagina**, perché lì
  * l'anteprima non è un dettaglio ma il passaggio obbligato prima di accendere
  * la sorgente (D32). Una sola tabella per entrambi, e nessun `ImportedEventDto`
  * che finisce nello stato di un componente Livewire: i DTO portano istanti
@@ -24,6 +29,26 @@ use App\DTOs\ImportedEventDto;
  */
 final class ImportPreviewRows
 {
+    /**
+     * L'anteprima di una sorgente già salvata, come la mostra la finestra
+     * «Anteprima» della redazione: le righe, oppure il motivo per cui il
+     * calendario non si legge (che non è un errore della richiesta, è la
+     * risposta). Non scrive niente e non tocca `last_run_at`.
+     *
+     * @return array{rows: list<array{when: string, title: string, where: string|null, notes: list<string>, cancelled: bool}>, error: string|null}
+     */
+    public static function forSource(ImportSource $source): array
+    {
+        try {
+            return [
+                'rows' => self::make(app(ImportRunner::class)->preview($source), $source->city->timezone),
+                'error' => null,
+            ];
+        } catch (ImportException $exception) {
+            return ['rows' => [], 'error' => $exception->getMessage()];
+        }
+    }
+
     /**
      * @param  list<ImportedEventDto>  $dates
      * @return list<array{when: string, title: string, where: string|null, notes: list<string>, cancelled: bool}>

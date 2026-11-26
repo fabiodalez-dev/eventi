@@ -6,21 +6,20 @@ namespace App\Filament\Admin\Resources\ImportSources;
 
 use App\Enums\ImportRunStatus;
 use App\Enums\ImportSourceType;
-use App\Exceptions\ImportException;
 use App\Filament\Admin\Resources\ImportSources\Pages\CreateImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\EditImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\ListImportSources;
 use App\Filament\Admin\Resources\ImportSources\RelationManagers\RunsRelationManager;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
-use App\Filament\Support\ImportPreviewRows;
 use App\Jobs\Import\ImportSourceJob;
 use App\Models\City;
 use App\Models\ImportSource;
 use App\Queries\EditorialDashboardQuery;
 use App\Rules\SafeImportUrl;
 use App\Services\Import\ImportDriverFactory;
-use App\Services\Import\ImportRunner;
+use App\Support\Import\ImportPreviewRows;
+use App\Support\Import\ImportSourceRules;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -120,7 +119,7 @@ class ImportSourceResource extends Resource
                             ->relationship('defaultCategory', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(fn (Get $get): bool => blank($get('venue_id'))),
+                            ->required(fn (Get $get): bool => ImportSourceRules::needsDefaultCategory($get('venue_id'))),
 
                         /*
                          * `SafeImportUrl` è la stessa difesa che il driver
@@ -131,7 +130,7 @@ class ImportSourceResource extends Resource
                         TextInput::make('url')
                             ->label(__('admin.fields.url'))
                             ->url()
-                            ->maxLength(1000)
+                            ->maxLength(ImportSourceRules::MAX_URL_LENGTH)
                             ->rule(new SafeImportUrl)
                             ->columnSpanFull(),
 
@@ -251,21 +250,7 @@ class ImportSourceResource extends Resource
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('admin.actions.close'))
             ->visible(fn (ImportSource $record): bool => app(ImportDriverFactory::class)->supports($record))
-            ->modalContent(function (ImportSource $record): View {
-                $rows = [];
-                $error = null;
-
-                try {
-                    $rows = ImportPreviewRows::make(
-                        app(ImportRunner::class)->preview($record),
-                        $record->city->timezone,
-                    );
-                } catch (ImportException $exception) {
-                    $error = $exception->getMessage();
-                }
-
-                return view('filament.import.preview', ['rows' => $rows, 'error' => $error]);
-            });
+            ->modalContent(fn (ImportSource $record): View => view('filament.import.preview', ImportPreviewRows::forSource($record)));
     }
 
     /**

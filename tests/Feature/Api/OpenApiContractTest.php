@@ -209,6 +209,22 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/social/today'])->toHaveKeys(['get', 'post'])
         ->and($document['paths']['/editorial/social/settings'])->toHaveKeys(['get', 'put'])
         ->and($document['paths']['/editorial/social/publications/{publication}'])->toHaveKey('patch');
+    // R12 (26/11/2026): sistema della redazione, sorgenti di import, invii previsti, cron.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/import-sources',
+        '/editorial/import-sources/form',
+        '/editorial/import-sources/venues',
+        '/editorial/import-sources/{source}',
+        '/editorial/import-sources/{source}/preview',
+        '/editorial/import-sources/{source}/run',
+        '/editorial/import-sources/{source}/runs',
+        '/editorial/scheduled-notifications',
+        '/editorial/scheduled-notifications/{notification}/cancel',
+        '/editorial/scheduled-operations',
+    ])
+        ->and($document['paths']['/editorial/import-sources'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/import-sources/{source}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/scheduled-notifications/{notification}/cancel'])->toHaveKey('post');
 
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([

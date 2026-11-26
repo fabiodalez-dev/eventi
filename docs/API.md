@@ -986,3 +986,39 @@ Una regola sola per pannello e app: lo studio usa `SocialStudioDesk` (già di P1
 | `POST E/social/meta/disconnect` | «Scollega Meta»: via il token della Pagina, la verifica e l'automatico |
 
 Limiti di frequenza per persona: letture `editorial-social` 60/min, preparazione `editorial-social-generate` 10/min, pubblicazione `editorial-social-publish` 20/min, impostazioni `editorial-social-settings` 20/min, verifiche `editorial-social-verify` 10/min, anteprima `social-preview` (il secchio del sito). La pagina e l'API non scrivono nel registro attività per queste azioni (il modello `SocialConnection` non è registrato): l'app fa come il pannello.
+
+## Redazione: sistema, import, invii, cron (R12, 26 novembre 2026)
+
+Tre voci del gruppo «Sistema» del pannello `/admin` (sorgenti di import, notifiche programmate, cron e programmazioni) sotto `E` = `/v1/editorial`, con la porta, lo sblocco e la convenzione degli elenchi delle fondamenta. **Tredici operazioni** nuove (rotte in `routes/editorial/system.php`, controller `ImportSourceController`, `ScheduledNotificationController`, `ScheduledOperationsController`). La città di lavoro non filtra: come il pannello, si vedono le sorgenti e gli invii di tutte le città. Le regole sono quelle del pannello, nello stesso codice: `ImportSourcePolicy` e `ScheduledNotificationPolicy`, le regole del modulo in `App\Support\Import\ImportSourceRules` (usate anche dal modulo del pannello), l'anteprima in `App\Support\Import\ImportPreviewRows::forSource` (spostata da `App\Filament\Support`, la usa anche la finestra del pannello), il soggetto di un invio in `App\Support\Notifications\ScheduledNotificationSubject` (la usa anche la colonna del pannello).
+
+### Sorgenti di import (admin e super admin: `import_sources.manage`; il moderatore riceve 403)
+
+- `GET E/import-sources`: filtri `filter[type]` (`ImportSourceType`), `filter[active]` (`1` o `0`), `filter[failed]=1` («Import falliti»: attive e ferme su un errore, la stessa condizione del riquadro del riepilogo); `sort=last_run_at|-last_run_at` (predefinito dall'ultima eseguita); niente ricerca, come la tabella del pannello. Riga: `id, city{id,name}, venue{id,name}|null, type, type_label, url, has_credentials, mapping|null, default_category{id,name}|null, is_active, last_run_at, last_status, last_status_label, last_error, runnable, web_path, abilities{update, destroy, preview, run, runs}`. Le credenziali non escono mai, nemmeno cifrate: `has_credentials` dice solo se ci sono, `web_path` è la scheda del pannello dove si cambiano. `runnable` è falso per i tipi senza lettore (oggi tutti tranne ICS e CSV): niente anteprima né esecuzione, come i pulsanti del pannello.
+- `GET E/import-sources/form`: le scelte del modulo `{types[{value,label,runnable}], cities[{id,name,slug,is_active}], categories[{id,name}], defaults{city_id,type,is_active}, limits{max_url_length, max_mapping_entries, max_mapping_key_length, max_mapping_value_length}}`. `GET E/import-sources/venues?q=`: i primi venti locali per nome, `{id, name, city}`.
+- `POST E/import-sources` (201) e `PATCH E/import-sources/{source}` con `city_id`, `venue_id` (facoltativo), `type`, `default_category_id` (obbligatorio senza locale), `url` (fino a 1000 caratteri, verificato con `SafeImportUrl` come nel modulo), `mapping` (dizionario di chiavi testuali, valori testo, numero, sì/no o elenco di testi, al più 50 voci), `is_active`. La modifica è parziale: si mandano solo i campi che cambiano, e `{"is_active": false}` da solo è «disattiva». `credentials` è rifiutato con 422: le credenziali si scrivono dal sito (decisione 6). La policy viene prima dei campi: chi non può scrivere riceve 403.
+- `DELETE E/import-sources/{source}`: **pericolosa** (password recente, 423 `PASSWORD_REQUIRED`). Elimina per sempre la sorgente e il suo storico, come «Elimina» del pannello; gli eventi già importati restano.
+- `POST E/import-sources/{source}/preview`: le prime date che entrerebbero, `{rows[{when, title, where, notes[], cancelled}], error, timezone}`, con `when` già scritto nell'ora della città come nella finestra del pannello. Un calendario che non si legge risponde 200 con il motivo in `error`. Non scrive niente e non tocca `last_run_at`.
+- `POST E/import-sources/{source}/run` (202): accoda `ImportSourceJob`, come «Esegui adesso». Per un tipo senza lettore, anteprima ed esecuzione rispondono 422 su `type`.
+- `GET E/import-sources/{source}/runs`: lo storico, solo lettura, `filter[status]` (`ImportRunStatus`), `sort=created_at|-created_at` (predefinito dalla più recente). Riga: `id, created_at, status, status_label, created_count, updated_count, unchanged_count, excluded_count, cancelled_count, error_count, message`.
+
+### Notifiche programmate (tutta la redazione: `notifications.view`; fermare: admin e super admin, `notifications.manage`)
+
+- `GET E/scheduled-notifications`: filtri `filter[status]` (`NotificationStatus`), `filter[type]` (`NotificationType`), `filter[due]=1` («in scadenza»); `q` sull'email del destinatario, l'unica colonna cercabile della tabella; `sort=send_at|-send_at` (predefinito dal più lontano). Riga: `id, send_at, type, type_label, recipient (email), subject («Data · Concerto all'alba»), status, status_label, channel, channel_label, attempts, sent_at, reason (il motivo di un salto in parole, o l'errore), dedupe_key, abilities{cancel}`.
+- `POST E/scheduled-notifications/{notification}/cancel`: ferma un invio ancora in attesa; la riga resta con lo stato «annullata» e torna nella risposta con `meta.message`. Uno già partito, saltato o fermato: 403 (la policy guarda lo stato). Non chiede la password recente: nel pannello chiede solo una conferma.
+
+### Cron e programmazioni (admin e super admin, come `canAccess` della pagina; il moderatore riceve 403)
+
+- `GET E/scheduled-operations`: la pagina di sola lettura del pannello come dati, da `SchedulerOverview`: `installed{readable, scheduler, worker}` (le righe trovate nel crontab), `cron{scheduler, worker}` (le due righe da installare), `queue`, `social[{city_id, city, telegram_verified, verified_at, instagram_enabled, automatic, publish_time}]`, `tasks[{name, explanation, command, expression, next_due_date, last_finished, last_failed, monitored}]` (in UTC). Aprirla non esegue niente.
+
+### Opzioni
+
+`GET E/options` ha tre elenchi in più: `notification_types`, `import_source_types`, `import_run_statuses`, con le etichette del sito.
+
+Limiti di frequenza per persona: letture 60/min (`editorial-import-sources`, `-form`, `-venues`, `-show`, `-runs`, `editorial-scheduled-notifications`), creazione 20/min, modifica 30/min, eliminazione 20/min, anteprima ed esecuzione 10/min (leggono un calendario esterno), annullamento di un invio 30/min, cron 20/min. Errori: 404 a chi non è della redazione o per un id che non esiste, 403 dove la policy dice no, 422 con `error.fields`, 423 per sblocco e password.
+
+### Differenze dal pannello da sapere
+
+- Il modulo del pannello riverifica l'indirizzo a ogni salvataggio, anche quando non cambia: per una sorgente con un CSV caricato da un locale (`upload:…`), per come leggo il codice (la regola `url` del campo), il salvataggio dal pannello fallisce; non l'ho provato nel pannello. La modifica parziale dell'API verifica l'indirizzo solo se arriva, così attivare o disattivare quelle sorgenti dall'app funziona.
+- La mappatura nel pannello è un campo chiave-valore di testi; dall'API accetto anche gli elenchi di testi (`exclude_keywords`), che è la forma che il lettore usa davvero, e rifiuto i dizionari annidati.
+- «Esegui adesso» su una sorgente disattivata accoda il lavoro, che poi non legge niente (`ImportSourceJob` salta le sorgenti spente): è così anche nel pannello. L'app lo dice nella conferma.
+- L'eliminazione in gruppo della tabella del pannello non c'è: nell'app si elimina una sorgente alla volta, con la password.
