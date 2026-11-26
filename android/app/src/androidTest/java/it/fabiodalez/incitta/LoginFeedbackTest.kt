@@ -24,7 +24,12 @@ class LoginFeedbackTest {
 
     /* Il messaggio sta sopra la tastiera, fuori dal modulo che scorre: si aspetta che la tastiera finisca di muoversi. */
     private fun shown(text: String) {
-        compose.waitUntil(5_000) { runCatching { compose.onNodeWithText(text).assertIsDisplayed() }.isSuccess }
+        val ok = runCatching { compose.waitUntil(15_000) { runCatching { compose.onNodeWithText(text).assertIsDisplayed() }.isSuccess } }.isSuccess
+        if (!ok) {
+            val nodes = compose.onAllNodes(hasText("Inserisci", substring = true), useUnmergedTree = true).fetchSemanticsNodes()
+            val root = compose.onAllNodes(androidx.compose.ui.test.isRoot()).fetchSemanticsNodes().map { it.boundsInRoot.toString() }
+            throw AssertionError("«$text» non è visibile; finestre $root, messaggi " + nodes.map { it.boundsInWindow })
+        }
     }
 
     private fun submit() = compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()

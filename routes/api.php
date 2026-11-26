@@ -63,6 +63,8 @@ use App\Http\Middleware\Api\IdempotentRequest;
 use App\Http\Middleware\Api\ResolveApiCity;
 use App\Http\Middleware\PersonalizeDiscovery;
 use App\Http\Middleware\RequireConfirmedAccount;
+use App\Http\Middleware\RequireEditorialUnlock;
+use App\Http\Middleware\ResolveEditorialDesk;
 use App\Http\Middleware\ResolveManagementSubject;
 use App\Http\Middleware\TicketingPrivacy;
 use Illuminate\Support\Facades\Route;
@@ -133,6 +135,30 @@ Route::prefix('v1/management')->middleware(['auth:sanctum', TicketingPrivacy::cl
                 }
             });
     }
+});
+
+/*
+ * La redazione nell'app: il pannello `/admin` sotto `/api/v1/editorial/…`
+ * (piano android-redazione).
+ *
+ * Le rotte stanno in `routes/editorial/<pacchetto>.php`, un file per
+ * pacchetto, così i pacchetti in parallelo non toccano lo stesso file.
+ * `ResolveEditorialDesk` apre la porta solo alla redazione (404 a tutti gli
+ * altri, e a tutti quando l'interruttore `API_EDITORIAL_ENABLED` è spento) e
+ * lega il banco con la città `?city=`. Tutto tranne `desk`, `options` e
+ * `unlock` chiede anche lo sblocco con la password nelle ultime 12 ore
+ * (`RequireEditorialUnlock`, 423 `EDITORIAL_LOCKED`); le azioni pericolose
+ * aggiungono `RequireRecentPassword` (423 `PASSWORD_REQUIRED`). Lo verifica
+ * `EditorialRoutesTest`.
+ */
+Route::prefix('v1/editorial')->middleware(['auth:sanctum', TicketingPrivacy::class, ResolveEditorialDesk::class])->name('api.v1.editorial.')->group(function (): void {
+    require __DIR__.'/editorial/desk.php';
+
+    Route::middleware(RequireEditorialUnlock::class)->group(function (): void {
+        foreach (['dashboard', 'events', 'event-editor', 'venues', 'users', 'moderation', 'community', 'promotion', 'social', 'analytics', 'catalog', 'system', 'settings', 'calendar'] as $package) {
+            require __DIR__.'/editorial/'.$package.'.php';
+        }
+    });
 });
 
 // Gli inviti ricevuti dalla persona (P8): fuori dal soggetto, perché chi è invitato non gestisce ancora niente.

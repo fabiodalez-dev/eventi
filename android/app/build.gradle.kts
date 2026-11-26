@@ -31,8 +31,8 @@ android {
         applicationId = "it.fabiodalez.incitta"
         minSdk = 26
         targetSdk = 36
-        versionCode = 55
-        versionName = "1.28.0"
+        versionCode = 56
+        versionName = "1.29.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -121,6 +121,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.navigation:navigation-compose:2.9.5")
+    /* Lo sblocco della redazione con il blocco del telefono (biometria o PIN,
+       decisione 2 del piano della redazione). Chiede una FragmentActivity:
+       per questo MainActivity lo è. */
+    implementation("androidx.biometric:biometric:1.1.0")
     // Il widget della schermata iniziale: Compose per RemoteViews, niente XML a mano.
     implementation("androidx.glance:glance-appwidget:1.2.0")
     /* Dichiarato e non lasciato arrivare da Glance: il widget ci pianifica

@@ -93,6 +93,7 @@ use App\Support\CurrentCity;
 use App\Support\CurrentFollows;
 use App\Support\CurrentSaves;
 use App\Support\DateFormatter;
+use App\Support\Editorial\EditorialDesk;
 use App\Support\IpBucket;
 use App\Support\Lang\DatabaseOverrideLoader;
 use App\Support\SecurityLog;
@@ -129,6 +130,7 @@ use Laravel\Telescope\TelescopeApplicationServiceProvider;
 use Minishlink\WebPush\WebPush;
 use NotificationChannels\WebPush\WebPushChannel;
 use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -272,6 +274,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPanelDateMacros();
+
+        /*
+         * Ogni riga del registro attività e del registro di sicurezza scritta
+         * da una richiesta della redazione nell'app porta `canale: app`
+         * (brief della redazione): così nel registro si distingue che cosa
+         * è arrivato dal telefono e che cosa dal pannello, senza che ogni
+         * pacchetto debba ricordarsene. Il banco legato alla richiesta c'è
+         * solo nell'API (`ResolveEditorialDesk`), mai nel pannello.
+         */
+        Activity::creating(static function (Activity $activity): void {
+            if (EditorialDesk::boundToRequest()) {
+                $activity->properties = collect($activity->properties ?? [])->put('canale', 'app');
+            }
+        });
 
         /*
          * I collegamenti nelle email (accesso senza password, verifica,

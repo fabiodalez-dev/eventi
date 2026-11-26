@@ -52,11 +52,11 @@ it('riconosce chi fa solo il controllo ingressi e lo conta in /me', function ():
 
     Sanctum::actingAs($staff);
     $this->getJson('/api/v1/management/subjects')->assertOk()->assertJsonPath('data.checkin_only', true);
-    $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.management', ['venues' => 0, 'organizers' => 0, 'checkin' => 1, 'invitations' => 0]);
+    $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.management', ['venues' => 0, 'organizers' => 0, 'checkin' => 1, 'invitations' => 0, 'editorial' => false]);
 
     Sanctum::actingAs($this->s->plainUser);
     $this->getJson('/api/v1/management/subjects')->assertOk()->assertJsonPath('data.checkin_only', false);
-    $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.management', ['venues' => 0, 'organizers' => 0, 'checkin' => 0, 'invitations' => 0]);
+    $this->getJson('/api/v1/me')->assertOk()->assertJsonPath('data.management', ['venues' => 0, 'organizers' => 0, 'checkin' => 0, 'invitations' => 0, 'editorial' => false]);
 });
 
 it('conta in /me solo i locali senza provvedimento, e non offre la biglietteria a chi ha solo un locale sospeso', function (): void {

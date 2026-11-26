@@ -29,7 +29,7 @@ import java.time.ZoneId
 @Composable
 internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets: () -> Unit, onSaved: () -> Unit,
     onLogout: () -> Unit, onDeleteAccount: (String) -> Unit, onInterestsSaved: () -> Unit,
-    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}, onApplications: () -> Unit = {}, onManagementLink: (String) -> Unit = {}) {
+    onAppearance: (String) -> Unit, onProfileSaved: () -> Unit, onCommunity: () -> Unit, onCarpool: () -> Unit, onCarpoolMessages: () -> Unit, onCommunityInbox: () -> Unit, communityTotal: Int, onManagement: () -> Unit = {}, onPublicProfile: () -> Unit = {}, onRelationships: () -> Unit = {}, onVerification: () -> Unit = {}, onAttended: () -> Unit = {}, onCollections: () -> Unit = {}, onOpenSavedSearch: (SavedSearch) -> Unit = {}, onInvitations: () -> Unit = {}, onApplications: () -> Unit = {}, onManagementLink: (String) -> Unit = {}, onEditorial: () -> Unit = {}) {
     val session = state.session ?: return
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     var section by rememberSaveable(session.user.id) { mutableStateOf<String?>(null) }
@@ -77,6 +77,11 @@ internal fun ProfileScreen(state: AppUiState, padding: PaddingValues, onTickets:
                     if (session.user.managementLinks.isNotEmpty()) {
                         Text("Gestione", style = MaterialTheme.typography.titleLarge)
                         session.user.managementLinks.forEach { link ->
+                            /* «Amministrazione»: per la redazione si apre l'area nativa (che, se `features.editorial` è spento, torna al sito). */
+                            if (link.icon == it.fabiodalez.incitta.data.editorial.EDITORIAL_LINK_ICON && it.fabiodalez.incitta.data.editorial.showsEditorialEntry(session.user)) {
+                                ProfileRow(link.label, androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.editorial_profile_native), Icons.Outlined.Dashboard, onEditorial)
+                                return@forEach
+                            }
                             /* P12: i pannelli e la biglietteria hanno le loro schermate nell'app; resta al sito solo ciò che non c'è (la newsletter della redazione). */
                             val native = it.fabiodalez.incitta.data.management.ManagementDestination.parse(link.url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) != null
                             ProfileRow(link.label, androidx.compose.ui.res.stringResource(if (native) it.fabiodalez.incitta.R.string.management_link_native else it.fabiodalez.incitta.R.string.management_link_web), when (link.icon) {

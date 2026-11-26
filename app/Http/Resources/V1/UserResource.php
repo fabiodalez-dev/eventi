@@ -64,7 +64,7 @@ final class UserResource
         ];
     }
 
-    /** @return array{venues: int, organizers: int, checkin: int, invitations: int} */
+    /** @return array{venues: int, organizers: int, checkin: int, invitations: int, editorial: bool} */
     private static function management(User $user): array
     {
         $counts = app(ManagementSubjects::class)->counts($user);
@@ -75,6 +75,9 @@ final class UserResource
             'checkin' => (int) $counts['checkin'],
             // Inviti in un locale e al personale d'ingresso ancora senza risposta: la voce «I tuoi inviti» del profilo (P8).
             'invitations' => (int) app(PendingInvitations::class)->count($user),
+            // Moderatore, admin o super admin: la riga «Amministrazione» del profilo apre la redazione
+            // nell'app quando anche `features.editorial` di `GET /config` è acceso. Il dettaglio è in `GET /editorial/desk`.
+            'editorial' => $user->isEditorialStaff(),
         ];
     }
 

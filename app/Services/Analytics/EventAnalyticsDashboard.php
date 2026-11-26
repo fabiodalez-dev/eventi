@@ -13,10 +13,9 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Sponsorship;
 use App\Models\Venue;
-use App\Support\CurrentCity;
+use App\Support\Editorial\EditorialDesk;
 use App\Support\Management\ManagementSubject;
 use Carbon\CarbonImmutable;
-use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -30,8 +29,9 @@ final class EventAnalyticsDashboard
     /** @return EloquentBuilder<Event> */
     public function events(): EloquentBuilder
     {
-        if (Filament::getCurrentPanel()?->getId() === 'admin') {
-            abort_unless(auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true, 403);
+        $desk = EditorialDesk::current();
+        if ($desk !== null) {
+            abort_unless($desk->isAdmin(), 403);
 
             return Event::query();
         }
@@ -43,7 +43,7 @@ final class EventAnalyticsDashboard
     public function venues(): EloquentBuilder
     {
         $events = $this->events();
-        if (Filament::getCurrentPanel()?->getId() === 'admin') {
+        if (EditorialDesk::active()) {
             return Venue::query();
         }
         $tenant = ManagementSubject::current()?->model;
@@ -56,7 +56,7 @@ final class EventAnalyticsDashboard
     public function organizers(): EloquentBuilder
     {
         $events = $this->events();
-        if (Filament::getCurrentPanel()?->getId() === 'admin') {
+        if (EditorialDesk::active()) {
             return Organizer::query();
         }
         $tenant = ManagementSubject::current()?->model;
@@ -66,14 +66,14 @@ final class EventAnalyticsDashboard
     }
 
     /**
-     * Il fuso in cui si legge «oggi»: quello della città scelta nel pannello
-     * della redazione, altrimenti quello del locale o dell'organizzazione.
+     * Il fuso in cui si legge «oggi»: quello della città su cui lavora la
+     * redazione (pannello o app), altrimenti quello del locale o
+     * dell'organizzazione.
      */
     public function timezone(): string
     {
-        return Filament::getCurrentPanel()?->getId() === 'admin'
-            ? app(CurrentCity::class)->timezone()
-            : app(ManagementAnalytics::class)->subject()->city->timezone;
+        return EditorialDesk::current()?->timezone()
+            ?? app(ManagementAnalytics::class)->subject()->city->timezone;
     }
 
     /** @param array<string, mixed> $filters
@@ -297,7 +297,7 @@ final class EventAnalyticsDashboard
             ->selectRaw('e.id, COUNT(*) as reviews, SUM(a.status = ?) as approved_reviews, AVG(CASE WHEN a.status = ? THEN r.value END) as rating', [CatalogReviewStatus::Approved->value, CatalogReviewStatus::Approved->value])
             ->groupBy('e.id')->get()->keyBy('id');
         // A venue manager must not receive an organizer's profile totals across other venues.
-        $ownProfile = Filament::getCurrentPanel()?->getId() === 'admin' || ($type === 'venue' && ManagementSubject::current()?->isVenue() === true) || ($type === 'organizer' && ManagementSubject::current()?->isOrganizer() === true);
+        $ownProfile = EditorialDesk::active() || ($type === 'venue' && ManagementSubject::current()?->isVenue() === true) || ($type === 'organizer' && ManagementSubject::current()?->isOrganizer() === true);
 
         return $profiles->with('city')->orderBy('name')->get()->map(function ($profile) use ($type, $events, $metrics, $daily, $currentFollowers, $newFollowers, $reviews, $ownProfile): array {
             $matching = $events->where($type.'_id', $profile->id);

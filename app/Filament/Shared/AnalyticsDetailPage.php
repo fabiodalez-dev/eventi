@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\Organizer;
 use App\Models\Venue;
 use App\Services\Analytics\EventAnalyticsDashboard;
+use App\Support\Editorial\EditorialDesk;
 use App\Support\RequestMemo;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
@@ -47,8 +48,9 @@ abstract class AnalyticsDetailPage extends EventAnalyticsPage
 
     public static function canAccess(): bool
     {
-        if (Filament::getCurrentPanel()?->getId() === 'admin') {
-            return auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true;
+        $desk = EditorialDesk::current();
+        if ($desk !== null) {
+            return $desk->isAdmin();
         }
         $tenant = Filament::getTenant();
 

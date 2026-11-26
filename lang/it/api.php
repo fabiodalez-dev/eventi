@@ -26,6 +26,8 @@ return [
         'idempotency_conflict' => 'La stessa chiave di idempotenza è già stata usata con dati diversi.',
         'rate_limited' => 'Troppe richieste: riprova fra poco.',
         'server_error' => 'Errore interno del server.',
+        'editorial_locked' => 'La redazione è bloccata: scrivi la password del tuo account per sbloccarla.',
+        'password_required' => 'Per questa azione serve di nuovo la password del tuo account.',
     ],
 
     'auth' => [

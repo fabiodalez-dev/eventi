@@ -173,6 +173,14 @@ return [
          * resta la gestione di prima (solo biglietteria).
          */
         'management' => true,
+        /*
+         * La redazione nell'app (`/api/v1/editorial/…`, l'area «Redazione»).
+         * È anche l'interruttore d'emergenza (decisione 13 del piano della
+         * redazione): con `API_EDITORIAL_ENABLED=false` ogni rotta della
+         * redazione risponde 404 e l'app torna al collegamento web, senza
+         * rilasciare. Serve per un telefono perso o un difetto scoperto.
+         */
+        'editorial' => (bool) env('API_EDITORIAL_ENABLED', true),
     ],
 
     /*

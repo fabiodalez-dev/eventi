@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La redazione nell'app (fondamenta): ingresso, blocchi, componenti comuni. I pacchetti aggiungono i loro testi in editorial_<area>.xml. -->
+<resources>
+    <string name="editorial_title">Redazione</string>
+    <string name="editorial_profile_native">Apri la redazione nell’app</string>
+    <string name="editorial_disabled">La redazione nell’app è spenta: apro il pannello sul sito.</string>
+    <string name="editorial_role_moderator">Moderatore</string>
+    <string name="editorial_role_admin">Amministratore</string>
+    <string name="editorial_role_super_admin">Super amministratore</string>
+    <string name="editorial_role_city">%1$s · %2$s</string>
+    <string name="editorial_city_switch">Cambia città</string>
+    <string name="editorial_city_current">Città: %1$s · cambia</string>
+    <string name="editorial_city_inactive">%1$s (non ancora attiva)</string>
+    <string name="editorial_open_web">Apri il pannello sul sito</string>
+    <string name="editorial_open_web_help">Tutte le pagine della redazione, nel browser</string>
+    <string name="editorial_area_web_mark">Sul sito per ora</string>
+    <string name="editorial_badge">%1$d da guardare</string>
+    <string name="editorial_coming_title">In arrivo nell’app</string>
+    <string name="editorial_coming_text">Questa parte della redazione non è ancora nell’app. Intanto la trovi nel pannello sul sito, con gli stessi permessi.</string>
+
+    <!-- Blocco e sblocco -->
+    <string name="editorial_locked_title">La redazione è chiusa</string>
+    <string name="editorial_locked_text">Per sicurezza si chiude dopo 15 minuti in secondo piano o senza tocchi. Sbloccala con il blocco del telefono.</string>
+    <string name="editorial_locked_text_password">Per sicurezza si chiude dopo 15 minuti in secondo piano o senza tocchi. Il telefono non ha un blocco schermo: sbloccala con la password del tuo account.</string>
+    <string name="editorial_unlock">Sblocca</string>
+    <string name="editorial_unlock_phone_title">Sblocca la redazione</string>
+    <string name="editorial_unlock_phone_subtitle">Usa l’impronta, il volto o il PIN del telefono</string>
+    <string name="editorial_password_title">Password del tuo account</string>
+    <string name="editorial_password_locked">Scrivi la password del tuo account per aprire la redazione su questo telefono. Vale 12 ore.</string>
+    <string name="editorial_password_required">Per questa azione serve di nuovo la password del tuo account. Vale 15 minuti.</string>
+    <string name="editorial_password_field">Password</string>
+    <string name="editorial_password_submit">Conferma</string>
+    <string name="editorial_password_checking">Verifico la password</string>
+    <string name="editorial_cancel">Annulla</string>
+
+    <!-- Elenchi -->
+    <string name="editorial_list_search">Cerca</string>
+    <string name="editorial_list_clear_search">Cancella la ricerca</string>
+    <string name="editorial_list_filters">Filtri</string>
+    <string name="editorial_list_filters_count">Filtri (%1$d)</string>
+    <string name="editorial_list_empty">Nessun risultato con questi criteri.</string>
+    <string name="editorial_list_loading_more">Carico altri risultati</string>
+    <string name="editorial_list_total">%1$d risultati</string>
+    <string name="editorial_list_tab_count">%1$s (%2$d)</string>
+    <string name="editorial_filters_title">Filtri</string>
+    <string name="editorial_filters_apply">Applica</string>
+    <string name="editorial_filters_clear">Azzera i filtri</string>
+
+    <!-- Motivo -->
+    <string name="editorial_reason_field">Motivo</string>
+    <string name="editorial_reason_help">Da %1$d a %2$d caratteri. Resta nel registro.</string>
+    <string name="editorial_reason_too_short">Scrivi almeno %1$d caratteri.</string>
+    <string name="editorial_reason_too_long">Al massimo %1$d caratteri.</string>
+    <string name="editorial_reason_counter">%1$d / %2$d</string>
+
+    <!-- Azioni di una riga -->
+    <string name="editorial_actions">Azioni</string>
+    <string name="editorial_actions_for">Azioni per %1$s</string>
+</resources>
