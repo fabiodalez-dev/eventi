@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Admin\Resources\Users;
+namespace App\Enums;
 
 use App\Models\User;
 use Carbon\CarbonImmutable;

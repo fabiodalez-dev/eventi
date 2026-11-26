@@ -9,9 +9,9 @@ use App\Enums\CatalogReviewStatus;
 use App\Enums\EventCommentStatus;
 use App\Enums\EventStatus;
 use App\Enums\Permission;
+use App\Enums\RegistrationState;
 use App\Enums\SponsorshipOrderStatus;
 use App\Enums\VenueStatus;
-use App\Filament\Admin\Resources\Users\RegistrationState;
 use App\Models\CarpoolCase;
 use App\Models\CatalogReview;
 use App\Models\Event;
@@ -42,9 +42,9 @@ use Illuminate\Support\Facades\Gate;
  * Un contatore vale `null` quando la persona non vede la voce del menu
  * (le recensioni e gli ordini al moderatore), come nel pannello.
  *
- * Sta in `App\Support` e non in `App\Services` perché le iscrizioni in
- * sospeso le definisce `RegistrationState`, che vive ancora accanto alla
- * risorsa degli utenti (la sposta R5).
+ * Le iscrizioni in sospeso le definisce `App\Enums\RegistrationState`
+ * (uscita da `App\Filament` con R5). La classe resta in `App\Support` per non
+ * spostare un file che altri pacchetti usano già.
  */
 final class EditorialBadges
 {
