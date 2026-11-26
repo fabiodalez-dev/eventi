@@ -93,7 +93,8 @@ class EditorialAnalyticsUiTest {
         }
         compose.onNodeWithText(text(R.string.editorial_analytics_report_title)).assertExists()
         compose.onNodeWithText(text(R.string.analytics_back_overview)).assertDoesNotExist()
-        compose.onNodeWithText("Visite all’evento", substring = true).performScrollTo().assertExists()
+        // Il testo sta dentro la scheda del numero, che ne unisce i figli: si cerca nell'albero non unito.
+        compose.onNodeWithText("Visite all’evento", substring = true, useUnmergedTree = true).assertExists()
         compose.onNodeWithText(text(R.string.analytics_dataset_count, "Locali", 2)).performScrollTo().performClick()
         compose.runOnIdle { assertEquals(listOf("venues"), tables) }
     }

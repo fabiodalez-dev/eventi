@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\ApiException;
 use App\Services\Editorial\EditorialUnlocks;
 use Closure;
 use Illuminate\Http\Request;

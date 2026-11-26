@@ -36,7 +36,7 @@ beforeEach(function (): void {
 });
 
 /** Una serie di quattro giovedì da una ricorrenza, alle 21 di Padova. */
-function weeklySeries(Event $event): array
+function editorialWeeklySeries(Event $event): array
 {
     $recurrence = EventRecurrence::query()->create(['event_id' => $event->id, 'rrule' => 'FREQ=WEEKLY;COUNT=4', 'until' => null]);
     $start = CarbonImmutable::parse('2026-12-03 21:00', 'Europe/Rome');
@@ -52,7 +52,7 @@ function weeklySeries(Event $event): array
 }
 
 it('elenca le date a chi vede l\'evento, con i gesti solo per chi lo modifica', function (): void {
-    $dates = weeklySeries($this->event);
+    $dates = editorialWeeklySeries($this->event);
 
     $this->getJson($this->url)->assertUnauthorized();
     foreach ($this->outsiders as $outsider) {
@@ -136,7 +136,7 @@ it('aggiunge e modifica una data con locale, stato, posti, listino della sera e 
 });
 
 it('sposta e annulla la sola data o la serie da lì in avanti, come il pannello', function (): void {
-    $dates = weeklySeries($this->event);
+    $dates = editorialWeeklySeries($this->event);
     $token = EditorialSession::token($this->s->admin);
 
     EditorialSession::as($this, EditorialSession::token($this->s->moderator))->postJson($this->url.'/'.$dates[1]->id.'/shift', ['shift_minutes' => 30])->assertForbidden();
@@ -170,7 +170,7 @@ it('sposta e annulla la sola data o la serie da lì in avanti, come il pannello'
 });
 
 it('elimina una data solo con la password recente', function (): void {
-    $date = weeklySeries($this->event)[0];
+    $date = editorialWeeklySeries($this->event)[0];
     $url = $this->url.'/'.$date->id;
 
     EditorialSession::as($this, EditorialSession::token($this->s->moderator))->deleteJson($url)->assertForbidden();
@@ -184,7 +184,7 @@ it('elimina una data solo con la password recente', function (): void {
 
 it('porta alla biglietteria della data chi la gestisce', function (): void {
     $this->s->venueA->update(['ticketing_enabled' => true]);
-    $date = weeklySeries($this->event)[0];
+    $date = editorialWeeklySeries($this->event)[0];
 
     $row = EditorialSession::as($this, EditorialSession::token($this->s->admin))->getJson($this->url.'/'.$date->id)->assertOk()->json('data');
     expect($row['abilities']['ticketing'])->toBe(Gate::forUser($this->s->admin)->allows('manage', [Booking::class, $date->fresh()]))
