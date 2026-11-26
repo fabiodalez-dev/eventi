@@ -315,6 +315,9 @@ return [
         'invite_intro' => 'Ti hanno invitato a pubblicare gli eventi di :venue su :product, come :role.',
         'accept_hint' => 'Entra con il tuo account e accetta: finché non lo fai non vedi il pannello, non ricevi le email del locale e il locale non vede il tuo nome. Il collegamento vale :days giorni.',
         'accept_action' => 'Accetta l’invito',
+        // Nella casella e nella push (Q3): il collegamento firmato resta solo nell'email.
+        'app_answer_hint' => 'Per rispondere apri il collegamento nell’email, oppure «I tuoi inviti» nell’app.',
+        'app_answer_action' => 'Accedi per rispondere',
         'decline_action' => 'Rifiuta',
         'decline_hint' => 'Dalla stessa pagina puoi anche rifiutare. Se non ti aspettavi questo messaggio, ignoralo: senza una tua risposta non cambia niente.',
         'password_accept_hint' => 'Scegli una password per accettare ed entrare: il collegamento vale un’ora, e se scade basta usare «password dimenticata» con questo indirizzo.',
