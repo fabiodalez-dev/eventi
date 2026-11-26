@@ -30,8 +30,11 @@ use App\Models\Booking;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Models\Organizer;
+use App\Models\Venue;
 use App\Queries\EventOccurrenceQuery;
 use App\Queries\VenueDashboardQuery;
+use App\Services\Analytics\ManagementAnalytics;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -266,7 +269,9 @@ class EventResource extends Resource
         if ($withEdit && $resource::canEdit($event)) {
             $links[] = self::link('edit', 'heroicon-o-pencil-square', $resource::getUrl('edit', ['record' => $event]));
         }
-        if ($detail::canAccess()) {
+        // Le statistiche di un evento solo co-organizzato sono di chi lo organizza (`ManagementAnalytics`).
+        $tenant = Filament::getTenant();
+        if ($detail::canAccess() && ($tenant instanceof Venue || $tenant instanceof Organizer) && ManagementAnalytics::covers($tenant, $event)) {
             $links[] = self::link('statistics', 'heroicon-o-chart-bar', $detail::getUrl(['subjectType' => 'event', 'subjectId' => $event->getKey()]));
         }
         if (! $organizer && Social::canAccess()) {
