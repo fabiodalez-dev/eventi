@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **632 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **627 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
