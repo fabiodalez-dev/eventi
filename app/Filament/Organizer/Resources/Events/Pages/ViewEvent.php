@@ -6,6 +6,7 @@ namespace App\Filament\Organizer\Resources\Events\Pages;
 
 use App\Filament\Organizer\Pages\EventAnalyticsDetail;
 use App\Filament\Organizer\Resources\Events\EventResource;
+use App\Filament\Shared\EventAnalyticsNavigation;
 use App\Models\Event;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Enums\SubNavigationPosition;
@@ -66,18 +67,7 @@ class ViewEvent extends ViewRecord
      */
     public function getSubNavigation(): array
     {
-        $event = $this->eventRecord();
-        $items = [
-            NavigationItem::make(__('analytics-dashboard.event_tab'))->url(EventResource::getUrl('view', ['record' => $event]))->isActiveWhen(fn (): bool => true),
-        ];
-        if (EventResource::canEdit($event)) {
-            $items[] = NavigationItem::make(__('manage.actions.edit'))->url(EventResource::getUrl('edit', ['record' => $event]))->isActiveWhen(fn (): bool => false);
-        }
-        $items[] = NavigationItem::make(__('analytics-dashboard.statistics_tab'))
-            ->url(EventAnalyticsDetail::getUrl(['subjectType' => 'event', 'subjectId' => $event->getKey()]))
-            ->isActiveWhen(fn (): bool => false);
-
-        return $items;
+        return EventAnalyticsNavigation::items((int) $this->eventRecord()->getKey(), false);
     }
 
     private function eventRecord(): Event
