@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **453 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **476 operazioni** (con R9) |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -895,3 +895,48 @@ L'elenco eventi di `/admin/events`, la scheda in sola lettura, le decisioni dell
 - `GET E/submissions/{submission}`: in più `contact_email`, `raw_text`, `raw_text_html`, `notes`, `reviewed_at`, `timezone`, `limits{title, raw_text, notes}` e, se in attesa, `form{title, raw_text, venue_id, category_id, starts_at_hint, ends_at, price_type (unknown), price_min}` e `choices{venues (approvati della città della proposta), categories (attive), price_types}`.
 - `POST E/submissions/{submission}/publish` con i campi del modulo: le date ISO 8601 con il fuso (o senza fuso nell'ora della città). Chiede `events.publish` e `EventPolicy::create` oltre a `update` (solo admin e super admin; il moderatore riceve 403, come il pulsante che nel pannello non vede). Errori 422 sui campi (`venue_id`, `ends_at`…); 409 su una proposta già rifiutata. Risposta 201 `{data{event_id, submission}, message}`.
 - `POST E/submissions/{submission}/reject` con `notes` obbligatorio fino a 2.000 caratteri (`update`). 409 se non è più in attesa.
+
+## Redazione: social (R9, 26 novembre 2026)
+
+La pagina «Social» del pannello `/admin` (lo studio della redazione), lo storico e la pubblicazione sui canali della città, la pagina «Account e pubblicazione social» e il riquadro «Social di oggi» del riepilogo, sotto `E` = `/v1/editorial` (porta, sblocco delle 12 ore e convenzioni delle fondamenta). **23 operazioni** in `routes/editorial/social.php`, controller `SocialStudioController`, `SocialPublicationController`, `SocialSettingsController` di `App\Http\Controllers\Api\V1\Editorial`. Tutte per admin e super admin (`social_use`, come `Social::canAccess`): il moderatore riceve 403, chi non è della redazione 404. Nessuna è pericolosa secondo la decisione 4: pubblicare chiede una conferma nell'app, come il `wire:confirm` della pagina.
+
+Una regola sola per pannello e app: lo studio usa `SocialStudioDesk` (già di P10), con in più `today()` e `prepareToday()` per «Social di oggi»; la pubblicazione e lo storico sono in `App\Services\Social\EditorialPublishing` (estratto da `InteractsWithSocialStudio`); le impostazioni in `App\Services\Social\SocialSettingsDesk` (estratto da `SocialSettings`); le forme di card e pacchetti in `App\Services\Social\SocialStudioPayload`, usato anche dallo studio del locale. Lo studio della redazione è quello del locale senza locale (tutte le serate della città) e senza eventi dimostrativi, come la pagina.
+
+### Studio e «Social di oggi» (città di lavoro: `?city=`, anche non attiva)
+
+| Metodo e percorso | Note |
+|---|---|
+| `GET E/social/catalog` | come `GET V/social/catalog` di P10 (`period`, `from`, `until`, `search`, `limit`, `event`), più `meta.city{id, slug, name}`. Con `event` (`update` sull'evento, 404 se non esiste) lo studio si restringe a lui e la città diventa la sua, come la pagina aperta dalla scheda dell'evento |
+| `GET E/social/calendar` | come P10: `month`, `date`, `search`, `event` |
+| `GET E/social/day` | come P10: senza `date` il giorno da cui la pagina si apre; `meta.city` |
+| `GET E/social/today` | R-DB-10: le serate di oggi della città (card), `meta{date, label, timezone, city}` |
+| `POST E/social/today` | «Scarica le grafiche di oggi»: il pacchetto verticale con lo stile predefinito e tutte le serate di oggi. 201 con il pacchetto (lo ZIP si scarica da `batches/{batch}/zip`); senza serate 422 su `generate` |
+| `GET E/social/dates/{occurrence}/preview` | l'anteprima JPEG della grafica di una serata (`EventPolicy::update`), stesso secchio del sito (`social-preview`, 120 al minuto) |
+| `GET E/social/batches` | gli ultimi dodici pacchetti della redazione nella città |
+| `POST E/social/batches` | come P10 (`date`, `occurrences[]` da 1 a 100 del giorno e preparabili, altrimenti 403; `format`, `monochrome`, `show_address`, `show_price`, `image_fit`, `title` solo con una serata, `event`). 201 |
+| `GET E/social/batches/{batch}` | il pacchetto come P10, più `city`, `captions[]` (il testo automatico di ogni parte del carosello, «Anteprima del testo automatico» della pagina) e `in_history` (già nello storico). Qualunque pacchetto, come `openBatch` della pagina (`SocialBatchPolicy::view`) |
+| `GET E/social/batches/{batch}/images/{index}`, `…/zip` | il JPEG e lo ZIP, come P10 |
+
+### Pubblicazione e storico (R-SO-03, R-SO-04)
+
+| Metodo e percorso | Note |
+|---|---|
+| `POST E/social/batches/{batch}/publish` | «Pubblica sui canali collegati». `data[]` le righe dello storico del pacchetto, `meta.message`. Gli errori di `SocialPublisher::enqueue` (collegamento non verificato, storie, didascalia oltre 2.200 o 1.024 caratteri per Telegram, evento cambiato) sono 422 su `publish`; un errore del database non diventa un messaggio |
+| `POST E/social/batches/{batch}/schedule` | `scheduled_at` `Y-m-dTH:i` nel fuso della città del pacchetto, nel futuro (422 su `scheduled_at`); un pacchetto già nello storico 422 («si cambia da lì»). 201 |
+| `GET E/social/publications` | lo storico della città, dalla più recente, anche con il pacchetto tolto dalla pulizia; `per_page` predefinito 30 come la pagina (massimo 50), `filter[status]`. Riga `{id, created_at, platform, platform_label, part (da 1), status{value,label}, scheduled_at, timezone, error, batch_id, batch_gone, abilities{reschedule, cancel, retry}}` |
+| `PATCH E/social/publications/{publication}` | «Usa la nuova data e ora» (`scheduled_at`, fuso della città del collegamento). Solo se ancora programmata: altrimenti la riga com'è con `meta.changed` falso, come la pagina che non fa niente |
+| `POST E/social/publications/{publication}/cancel` | «Annulla programmazione» |
+| `POST E/social/publications/{publication}/retry` | «Riprova dopo aver controllato»: solo una non riuscita o incerta (422 altrimenti), con il pacchetto (422 su `publish` se è stato tolto) e con gli eventi ancora uguali (422 su `publish`) |
+
+### Impostazioni (R-SO-05…07, R-WB-04)
+
+| Metodo e percorso | Note |
+|---|---|
+| `GET E/social/settings` | `values{app_id, city_id, page_id, instagram_id, graph_version, facebook_enabled, instagram_enabled, telegram_chat_id, telegram_enabled, automatic, graphic_options{monochrome, show_address, show_price, image_fit}, publish_time, caption}`, `status{exists, app_secret_saved, access_token_saved, telegram_bot_token_saved, meta_verified_at, telegram_verified_at}`, `cities[]`, `tokens[]{token, label}`, `callback_url`, `limits`, `web_path`. I segreti non escono mai, solo se ci sono |
+| `PUT E/social/settings` | i campi di `values` con le regole del modulo della pagina; segnaposti sconosciuti 422 su `caption`. `app_secret`, `access_token`, `telegram_bot_token` sono **rifiutati** (422, decisione 5: si scrivono dal sito). Un cambio dei dati Meta o Telegram toglie la verifica; con l'automatico acceso e nessun canale verificato l'automatico si spegne e `meta.warning` lo dice |
+| `POST E/social/settings/verify` | «Verifica collegamento» sui valori salvati; non riuscita 422 su `verify` |
+| `POST E/social/settings/telegram/verify` | «Verifica Telegram» senza mandare messaggi; non riuscita 422 su `telegram` con il motivo |
+| `GET E/social/meta/connect` | decisione 14: `{url, callback_url, return_path}`, l'indirizzo del sito (`social.meta.connect`) da aprire nel browser con l'accesso al sito. Senza App ID e App Secret salvati 422 su `meta` |
+| `POST E/social/meta/disconnect` | «Scollega Meta»: via il token della Pagina, la verifica e l'automatico |
+
+Limiti di frequenza per persona: letture `editorial-social` 60/min, preparazione `editorial-social-generate` 10/min, pubblicazione `editorial-social-publish` 20/min, impostazioni `editorial-social-settings` 20/min, verifiche `editorial-social-verify` 10/min, anteprima `social-preview` (il secchio del sito). La pagina e l'API non scrivono nel registro attività per queste azioni (il modello `SocialConnection` non è registrato): l'app fa come il pannello.

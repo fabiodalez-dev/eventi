@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Pages;
 
 use App\Models\City;
-use App\Models\SocialConnection;
-use App\Services\Social\SocialPublisher;
-use App\Services\Social\TelegramPublisher;
+use App\Services\Social\SocialSettingsDesk;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -18,7 +16,6 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Validation\ValidationException;
 
 class SocialSettings extends Page
 {
@@ -43,11 +40,7 @@ class SocialSettings extends Page
 
     public function mount(): void
     {
-        $connection = SocialConnection::first();
-        $values = $connection?->toArray() ?? ['city_id' => City::first()?->id, 'graph_version' => 'v25.0', 'publish_time' => '09:00', 'caption' => __('social.default_template')];
-        $values['graphic_options'] = array_merge(['monochrome' => true, 'show_address' => true, 'show_price' => true, 'image_fit' => 'contain'], $values['graphic_options'] ?? []);
-        unset($values['id'], $values['verified_at'], $values['created_at'], $values['updated_at']);
-        $this->getSchema('form')->fill($values);
+        $this->getSchema('form')->fill(app(SocialSettingsDesk::class)->values());
     }
 
     public function form(Schema $schema): Schema
@@ -85,34 +78,14 @@ class SocialSettings extends Page
     public function save(): void
     {
         abort_unless(static::canAccess(), 403);
-        $values = $this->getSchema('form')->getState();
-        preg_match_all('/(?<!\w):([a-z_]+)/u', $values['caption'], $matches);
-        $unknown = array_diff($matches[1], SocialPublisher::TOKENS);
-        if ($unknown !== []) {
-            throw ValidationException::withMessages(['data.caption' => __('social.invalid_tokens', ['tokens' => implode(', ', $unknown)])]);
-        }
-        $connection = SocialConnection::first() ?? new SocialConnection;
-        foreach (['access_token', 'app_secret', 'telegram_bot_token'] as $secret) {
-            if (blank($values[$secret] ?? null)) {
-                unset($values[$secret]);
-            }
-        }
-        $connection->fill($values);
-        if ($connection->isDirty(['city_id', 'app_id', 'app_secret', 'access_token', 'page_id', 'instagram_id', 'graph_version', 'facebook_enabled', 'instagram_enabled'])) {
-            $connection->verified_at = null;
-        }
-        if ($connection->isDirty(['city_id', 'telegram_bot_token', 'telegram_chat_id', 'telegram_enabled'])) {
-            $connection->telegram_verified_at = null;
-        }
-        if ($connection->automatic && ! (($connection->verified_at && ($connection->instagram_enabled || $connection->facebook_enabled)) || ($connection->telegram_enabled && $connection->telegram_verified_at))) {
-            $connection->automatic = false;
+        $saved = app(SocialSettingsDesk::class)->save($this->getSchema('form')->getState(), 'data.caption');
+        if ($saved['automatic_off']) {
             Notification::make()->title(__('social.not_connected'))->warning()->send();
         }
-        $connection->save();
         $this->data['access_token'] = '';
         $this->data['app_secret'] = '';
         $this->data['telegram_bot_token'] = '';
-        $this->data['automatic'] = $connection->automatic;
+        $this->data['automatic'] = $saved['connection']->automatic;
         Notification::make()->title(__('social.saved'))->success()->send();
     }
 
@@ -126,7 +99,7 @@ class SocialSettings extends Page
     public function disconnectMeta(): void
     {
         abort_unless(static::canAccess(), 403);
-        SocialConnection::query()->update(['access_token' => null, 'verified_at' => null, 'automatic' => false]);
+        app(SocialSettingsDesk::class)->disconnectMeta();
         session()->forget('meta_oauth');
         session()->forget('meta_pages');
         Notification::make()->title('Collegamento locale rimosso; pubblicazioni automatiche disattivate')->success()->send();
@@ -136,11 +109,11 @@ class SocialSettings extends Page
     {
         abort_unless(static::canAccess(), 403);
         $this->save();
-        try {
-            app(TelegramPublisher::class)->verify(SocialConnection::firstOrFail());
+        $error = app(SocialSettingsDesk::class)->verifyTelegram();
+        if ($error === null) {
             Notification::make()->title('Bot e permessi del canale Telegram verificati')->success()->send();
-        } catch (\RuntimeException $e) {
-            Notification::make()->title($e->getMessage())->danger()->send();
+        } else {
+            Notification::make()->title($error)->danger()->send();
         }
     }
 
@@ -148,12 +121,9 @@ class SocialSettings extends Page
     {
         abort_unless(static::canAccess(), 403);
         $this->save();
-        try {
-            $connection = SocialConnection::firstOrFail();
-            abort_unless($connection->access_token && ($connection->facebook_enabled || $connection->instagram_enabled), 422);
-            app(SocialPublisher::class)->verify($connection);
+        if (app(SocialSettingsDesk::class)->verifyMeta()) {
             Notification::make()->title(__('social.verified'))->success()->send();
-        } catch (\Throwable) {
+        } else {
             Notification::make()->title(__('social.verify_failed'))->danger()->send();
         }
     }

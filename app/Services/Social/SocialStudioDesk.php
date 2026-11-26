@@ -167,6 +167,28 @@ final class SocialStudioDesk
     }
 
     /**
+     * «Social di oggi» del riepilogo della redazione: le serate di oggi che
+     * si possono preparare, senza i dimostrativi (come il carosello
+     * automatico).
+     *
+     * @return Collection<int, EventOccurrence>
+     */
+    public function today(City $city): Collection
+    {
+        return $this->catalog->events($city, EventOccurrenceQuery::for($city)->currentBusinessDate());
+    }
+
+    /**
+     * «Scarica le grafiche di oggi»: un pacchetto verticale con lo stile
+     * predefinito e tutte le serate di oggi. Gli errori della grafica sono
+     * quelli di `SocialStudio::generate`.
+     */
+    public function prepareToday(City $city, ?User $user): SocialBatch
+    {
+        return app(SocialStudio::class)->generate($city, EventOccurrenceQuery::for($city)->currentBusinessDate(), $this->today($city), SocialFormat::Portrait, [], $user);
+    }
+
+    /**
      * Gli ultimi pacchetti preparati nel pannello del locale (o della
      * redazione, con `$venueId` nullo), dal più recente.
      *

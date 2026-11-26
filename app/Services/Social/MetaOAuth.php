@@ -67,6 +67,18 @@ final class MetaOAuth
         return hash('sha256', implode('|', [$connection->app_id, $connection->app_secret, $connection->graph_version, $connection->city_id]));
     }
 
+    /**
+     * Se il collegamento è pronto per l'autorizzazione Meta (App ID, App
+     * Secret e versione Graph salvati): lo chiede l'app della redazione
+     * prima di aprire il browser su `social.meta.connect`.
+     *
+     * @throws RuntimeException
+     */
+    public function assertReady(SocialConnection $connection): void
+    {
+        $this->validateApp($connection);
+    }
+
     private function validateApp(SocialConnection $connection): void
     {
         if (! preg_match('/^\d+$/', (string) $connection->app_id) || ! $connection->app_secret || ! preg_match('/^v\d+\.\d+$/', $connection->graph_version)) {

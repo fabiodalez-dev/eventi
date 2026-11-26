@@ -160,6 +160,32 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
         ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
+    // R9 della redazione (26/11/2026): studio, pubblicazione, storico e impostazioni dei social.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/social/catalog',
+        '/editorial/social/calendar',
+        '/editorial/social/day',
+        '/editorial/social/today',
+        '/editorial/social/dates/{occurrence}/preview',
+        '/editorial/social/batches',
+        '/editorial/social/batches/{batch}',
+        '/editorial/social/batches/{batch}/images/{index}',
+        '/editorial/social/batches/{batch}/zip',
+        '/editorial/social/batches/{batch}/publish',
+        '/editorial/social/batches/{batch}/schedule',
+        '/editorial/social/publications',
+        '/editorial/social/publications/{publication}',
+        '/editorial/social/publications/{publication}/cancel',
+        '/editorial/social/publications/{publication}/retry',
+        '/editorial/social/settings',
+        '/editorial/social/settings/verify',
+        '/editorial/social/settings/telegram/verify',
+        '/editorial/social/meta/connect',
+        '/editorial/social/meta/disconnect',
+    ])
+        ->and($document['paths']['/editorial/social/today'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/social/settings'])->toHaveKeys(['get', 'put'])
+        ->and($document['paths']['/editorial/social/publications/{publication}'])->toHaveKey('patch');
 
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
