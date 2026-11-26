@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Filament\Admin\Resources\Users\RegistrationState;
+use App\Enums\RegistrationState;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\User;
 use Filament\Actions\Action;

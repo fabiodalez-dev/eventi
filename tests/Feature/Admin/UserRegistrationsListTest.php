@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Account\RequestRegistration;
+use App\Enums\RegistrationState;
 use App\Enums\UserRole;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Resources\Users\Pages\ListUsers;
-use App\Filament\Admin\Resources\Users\RegistrationState;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Widgets\NewRegistrationsWidget;
 use App\Filament\Admin\Widgets\ReturnRatesWidget;

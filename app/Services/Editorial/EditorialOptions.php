@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Editorial;
 
+use App\Actions\Users\SyncUserRoles;
 use App\Enums\ApplicationKind;
 use App\Enums\ApplicationStatus;
 use App\Enums\CarpoolCaseStatus;
@@ -79,7 +80,7 @@ final class EditorialOptions
     /**
      * I ruoli di piattaforma, con chi li può conferire.
      *
-     * - `assignable`: la regola di `RoleField::conferibili()` nel pannello
+     * - `assignable`: la regola del pannello (`SyncUserRoles::assignable()`)
      *   (solo un super admin conferisce `super_admin`; gli altri fino ad
      *   `admin`), per chi chiede.
      * - `assignable_in_app`: in più la decisione 4 della redazione: dall'app
@@ -90,14 +91,14 @@ final class EditorialOptions
      */
     public function roles(User $user): array
     {
-        $super = $user->hasRole(UserRole::SuperAdmin->value);
-        $webOnly = [UserRole::Admin, UserRole::SuperAdmin];
+        $assignable = SyncUserRoles::assignable($user);
+        $inApp = SyncUserRoles::assignable($user, inApp: true);
 
         return array_map(static fn (UserRole $role): array => [
             'value' => $role->value,
             'label' => $role->label(),
-            'assignable' => $super || $role !== UserRole::SuperAdmin,
-            'assignable_in_app' => ($super || $role !== UserRole::SuperAdmin) && ! in_array($role, $webOnly, true),
+            'assignable' => in_array($role->value, $assignable, true),
+            'assignable_in_app' => in_array($role->value, $inApp, true),
         ], UserRole::cases());
     }
 

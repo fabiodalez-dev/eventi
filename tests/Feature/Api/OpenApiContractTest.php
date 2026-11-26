@@ -60,6 +60,23 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/desk'])->toHaveKey('get')
         ->and($document['paths']['/editorial/unlock'])->toHaveKey('post');
 
+    // R5 (26/11/2026): gli utenti nella redazione dell'app.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/users',
+        '/editorial/users/options',
+        '/editorial/users/{user}',
+        '/editorial/users/{user}/credentials',
+        '/editorial/users/{user}/roles',
+        '/editorial/users/{user}/restore',
+        '/editorial/users/{user}/community/suspend',
+        '/editorial/users/{user}/community/unsuspend',
+        '/editorial/users/{user}/community/handle',
+        '/editorial/users/{user}/whatsapp',
+        '/editorial/users/{user}/whatsapp/history',
+    ])
+        ->and(array_keys($document['paths']['/editorial/users/{user}']))->toContain('get', 'patch', 'delete')
+        ->and($document['paths']['/editorial/users/{user}/roles'])->toHaveKey('put');
+
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/members',

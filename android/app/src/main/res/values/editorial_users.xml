@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- R5 — Utenti della redazione. I nomi di schede, filtri e campi sono quelli del pannello. -->
+    <string name="editorial_users_title">Utenti</string>
+    <string name="editorial_users_intro">Qui trovi le persone e i loro accessi. I locali hanno una sezione separata. La città di riferimento è facoltativa: non viene dedotta dalle attività degli utenti.</string>
+    <string name="editorial_users_search">Cerca per nome, email, locale o nome utente</string>
+    <string name="editorial_users_empty">Nessuna persona con questi criteri.</string>
+    <string name="editorial_users_new">Nuovo utente</string>
+    <string name="editorial_users_web_only">Esportare l’elenco, entrare come un altro utente, eliminare per sempre, dare i ruoli di amministratore e cambiare email o password di un’altra persona si fa dal pannello sul sito.</string>
+    <string name="editorial_users_open_web">Apri gli utenti sul sito</string>
+
+    <string name="editorial_users_tab_all">Tutti</string>
+    <string name="editorial_users_tab_pending">In attesa di conferma</string>
+    <string name="editorial_users_tab_admins">Admin piattaforma</string>
+    <string name="editorial_users_tab_staff">Moderatori</string>
+    <string name="editorial_users_tab_owners">Amministratori locali</string>
+    <string name="editorial_users_tab_editors">Collaboratori</string>
+    <string name="editorial_users_tab_users">Utenti normali</string>
+    <string name="editorial_users_tab_unlinked">Senza locale</string>
+
+    <string name="editorial_users_filter_registration">Iscrizione</string>
+    <string name="editorial_users_filter_city">Città di riferimento</string>
+    <string name="editorial_users_filter_venue_city">Città dei locali gestiti</string>
+    <string name="editorial_users_filter_venue">Locale gestito</string>
+    <string name="editorial_users_filter_missing_city">Città di riferimento mancante</string>
+    <string name="editorial_users_filter_role">Ruoli</string>
+    <string name="editorial_users_filter_email_verified">Email verificata</string>
+    <string name="editorial_users_filter_whatsapp">Verifica WhatsApp</string>
+    <string name="editorial_users_filter_suspended">Sospeso dalla community</string>
+    <string name="editorial_users_filter_trashed">Utenti eliminati</string>
+    <string name="editorial_users_yes">Sì</string>
+    <string name="editorial_users_no">No</string>
+    <string name="editorial_users_trashed_with">Anche gli eliminati</string>
+    <string name="editorial_users_trashed_only">Solo gli eliminati</string>
+
+    <string name="editorial_users_no_name">Senza nome</string>
+    <string name="editorial_users_role_user">Utente</string>
+    <string name="editorial_users_no_venues">Nessun locale assegnato</string>
+    <string name="editorial_users_registered">Iscritto il %1$s</string>
+    <string name="editorial_users_badge_suspended">Sospeso</string>
+    <string name="editorial_users_badge_trashed">Eliminato</string>
+    <string name="editorial_users_membership">%1$s (%2$s) — %3$s</string>
+
+    <string name="editorial_users_action_open">Apri la scheda</string>
+    <string name="editorial_users_action_suspend">Sospendi</string>
+    <string name="editorial_users_action_unsuspend">Riattiva</string>
+    <string name="editorial_users_action_handle">Cambia nome utente</string>
+    <string name="editorial_users_action_whatsapp_revoke">Revoca la verifica WhatsApp</string>
+    <string name="editorial_users_action_whatsapp_history">Storico tentativi WhatsApp</string>
+    <string name="editorial_users_action_destroy">Elimina</string>
+    <string name="editorial_users_action_restore">Ripristina</string>
+
+    <string name="editorial_users_confirm_suspend_title">Sospendere %1$s?</string>
+    <string name="editorial_users_confirm_suspend">Sospendere questa persona dalla community? Profilo, post e commenti verranno nascosti.</string>
+    <string name="editorial_users_confirm_unsuspend_title">Riattivare %1$s?</string>
+    <string name="editorial_users_confirm_unsuspend">Profilo, post e commenti tornano visibili nella community.</string>
+    <string name="editorial_users_confirm_whatsapp_title">Revocare la verifica WhatsApp?</string>
+    <string name="editorial_users_confirm_whatsapp">Il numero di %1$s non sarà più verificato e torna libero. Profilo, post e commenti nella community verranno nascosti finché non verifica di nuovo.</string>
+    <string name="editorial_users_confirm_destroy_title">Eliminare %1$s?</string>
+    <string name="editorial_users_confirm_destroy">L’account va nel cestino: la persona non entra più, i suoi commenti agli eventi vengono tolti. Si può ripristinare dal filtro «Utenti eliminati».</string>
+    <string name="editorial_users_confirm_restore_title">Ripristinare %1$s?</string>
+    <string name="editorial_users_confirm_restore">L’account torna attivo e la persona può entrare di nuovo.</string>
+
+    <string name="editorial_users_handle_title">Cambia nome utente</string>
+    <string name="editorial_users_handle_help">La redazione cambia il nome senza attesa. Il nome lasciato continua a portare al profilo, e da adesso parte l’attesa prima che la persona possa cambiarlo di nuovo.</string>
+    <string name="editorial_users_handle_field">Nome utente</string>
+    <string name="editorial_users_handle_reason">Motivo</string>
+    <string name="editorial_users_handle_confirm">Cambia il nome</string>
+
+    <string name="editorial_users_history_title">Storico tentativi WhatsApp</string>
+    <string name="editorial_users_history_empty">Nessun tentativo di verifica.</string>
+    <string name="editorial_users_history_row">%1$s · %2$s</string>
+    <string name="editorial_users_history_detail">Tentativi: %1$d · Scadenza: %2$s</string>
+    <string name="editorial_users_close">Chiudi</string>
+
+    <string name="editorial_users_section_account">Account</string>
+    <string name="editorial_users_section_community">Community e moderazione</string>
+    <string name="editorial_users_section_roles">Ruoli nella piattaforma</string>
+    <string name="editorial_users_section_credentials">La tua email e la tua password</string>
+    <string name="editorial_users_section_actions">Azioni</string>
+    <string name="editorial_users_roles_help">I ruoli globali non assegnano un locale. Referenti e collaboratori si collegano dalla scheda del locale, nella sezione del team.</string>
+    <string name="editorial_users_roles_web">%1$s: si dà e si toglie dal pannello sul sito.</string>
+    <string name="editorial_users_roles_none">Nessun ruolo: vale come utente.</string>
+    <string name="editorial_users_roles_save">Salva i ruoli</string>
+    <string name="editorial_users_field_city">Città di riferimento</string>
+    <string name="editorial_users_field_city_help">Indica una città solo se conosciuta. Non è la residenza e non limita gli accessi.</string>
+    <string name="editorial_users_field_city_none">Non indicata</string>
+    <string name="editorial_users_field_name">Nome</string>
+    <string name="editorial_users_field_email">Email</string>
+    <string name="editorial_users_field_password">Password</string>
+    <string name="editorial_users_field_password_keep">Lascia vuoto per tenere quella di adesso.</string>
+    <string name="editorial_users_field_password_help">Almeno 8 caratteri.</string>
+    <string name="editorial_users_field_timezone">Fuso orario</string>
+    <string name="editorial_users_field_timezone_search">Cerca un fuso orario</string>
+    <string name="editorial_users_field_locale">Lingua predefinita</string>
+    <string name="editorial_users_field_email_verified">Email verificata il</string>
+    <string name="editorial_users_field_last_active">Ultimo accesso</string>
+    <string name="editorial_users_field_handle">Nome utente</string>
+    <string name="editorial_users_field_whatsapp">Verifica WhatsApp</string>
+    <string name="editorial_users_field_whatsapp_phone">Numero WhatsApp</string>
+    <string name="editorial_users_field_suspended">Sospeso dalla community</string>
+    <string name="editorial_users_field_venues">Locali e incarichi</string>
+    <string name="editorial_users_field_venue_cities">Città dei locali gestiti</string>
+    <string name="editorial_users_field_registration">Stato dell’iscrizione</string>
+    <string name="editorial_users_never">Mai</string>
+    <string name="editorial_users_none">—</string>
+    <string name="editorial_users_save">Salva le modifiche</string>
+    <string name="editorial_users_create">Crea l’utente</string>
+    <string name="editorial_users_credentials_save">Cambia email e password</string>
+    <string name="editorial_users_credentials_help">Dopo il cambio si chiudono tutte le sessioni dell’app, compresa questa: rientri con le credenziali nuove.</string>
+    <string name="editorial_users_credentials_title">Cambiare le tue credenziali?</string>
+    <string name="editorial_users_signed_out">Credenziali cambiate. Esci dal profilo e accedi di nuovo con quelle nuove.</string>
+    <string name="editorial_users_read_only">Questa scheda si può solo leggere: modificarla è di admin e super admin, e un super admin lo modifica solo un super admin.</string>
+    <string name="editorial_users_check_fields">Controlla i campi segnati.</string>
+    <string name="editorial_users_name_required">Scrivi il nome.</string>
+    <string name="editorial_users_email_invalid">Scrivi un indirizzo email valido.</string>
+    <string name="editorial_users_password_short">La password deve avere almeno 8 caratteri.</string>
+    <string name="editorial_users_timezone_invalid">Scegli un fuso orario dall’elenco.</string>
+</resources>

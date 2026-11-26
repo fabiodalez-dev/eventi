@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **363 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **377 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -759,3 +759,34 @@ Il token dell'app dura 90 giorni; la redazione chiede in più la password dell'a
 - `GET /v1/me`: `management.editorial` (booleano), vero per moderatore, admin e super admin.
 - `GET /v1/config`: `features.editorial`, acceso salvo `API_EDITORIAL_ENABLED=false`. L'app apre la redazione nativa solo con tutti e due veri; altrimenti la riga «Amministrazione» apre il pannello sul sito, come prima.
 - Codici d'errore nuovi: `EDITORIAL_LOCKED` e `PASSWORD_REQUIRED`, tutti e due con stato 423.
+
+## Redazione: utenti (R5, 26 novembre 2026)
+
+La risorsa «Utenti» del pannello sotto `E/users` (R-US-01, 02, 04…06, 08…12), con le classi che usa anche il pannello: `UserDirectory` (schede, filtri, ricerca), `SyncUserRoles` (ex salvataggio di `RoleField`), `UpdateUserByStaff` (ex `EditUser`: credenziali, revoca di token e dispositivi, registro), `CommunityModeration`, `WhatsappVerification`, `WhatsappHistory`. `RegistrationState` è passata da `App\Filament\Admin\Resources\Users` ad `App\Enums`. Restano solo sul sito (decisioni 4, 8, 9): esportazione dell'elenco (R-US-03), impersonificazione (R-US-07, R-WB-02), eliminazione definitiva, conferimento e revoca di admin e super admin, email e password di un'altra persona.
+
+### Rotte (tutte con lo sblocco delle 12 ore; «password» = `RequireRecentPassword`, 423 `PASSWORD_REQUIRED` oltre i 15 minuti)
+
+| Metodo e percorso | Chi | Note |
+|---|---|---|
+| `GET E/users` | redazione (`UserPolicy::viewAny`) | convenzione degli elenchi: `tab` (`all`, `pending`, `admins`, `staff`, `owners`, `editors`, `users`, `unlinked`), `filter[registration\|city\|venue_city\|venue\|missing_city\|role\|email_verified\|whatsapp_verified\|suspended\|trashed]` (sì/no con `1`/`0`; `trashed` = `with`\|`only`, senza: niente cestinati), `q` (nome, email, locale, nome utente), `sort` (`name`, `created_at`, `city`, `whatsapp_verified_at`, `community_suspended_at`, `last_active_at`, con `-` discendente; predefinito il più recente). `meta.tabs` con i conteggi di tutte le schede |
+| `GET E/users/options` | redazione | `registration_states`, `roles`, `assignable_roles` (dall'app: fino a `moderator`), `cities`, `venues`, `timezones`, `locales`, `default_timezone`, `default_locale` |
+| `POST E/users` | admin, super admin (`create`) | `name`, `email`, `password` (`Password::defaults()`), `city_id`, `timezone`, `locale`, `roles[]` fra quelli assegnabili dall'app (altrimenti 422 su `roles.N`). 201 con la scheda |
+| `GET E/users/{user}` | redazione | anche nel cestino. La riga più `form{city_id, name, email, timezone, locale, roles}`, `whatsapp_masked` (ultime quattro cifre), `assignable_roles` |
+| `PATCH E/users/{user}` | `UserPolicy::update` | `city_id`, `name`, `timezone`, `locale`; `email` e `password` rifiutate (422). La data di conferma dell'email non si salva (vedi sotto) |
+| `PUT E/users/{user}/credentials` | solo la propria scheda, password | `email`, `password` facoltativa. Cancella tutti i token (anche quello della richiesta) e i dispositivi; `meta.signed_out` |
+| `PUT E/users/{user}/roles` | `update` + `users.manage`, password | `roles[]` fra gli assegnabili dall'app; admin e super admin già presenti restano. `ruoli_cambiati` nel registro solo se cambia qualcosa |
+| `DELETE E/users/{user}` | `UserPolicy::delete`, password | nel cestino; mai se stessi né un super admin se non lo si è |
+| `POST E/users/{user}/restore` | `UserPolicy::restore` | |
+| `POST E/users/{user}/community/suspend` | `community.manage`, rango più alto, password | motivo predefinito dell'azione, come il pannello |
+| `POST E/users/{user}/community/unsuspend` | `community.manage` | anche verso chi sta sopra, come il pannello |
+| `POST E/users/{user}/community/handle` | `community.manage`, rango più alto | `handle` (max 40, regole del modulo del profilo), `reason` (5–1000) |
+| `DELETE E/users/{user}/whatsapp` | admin, super admin | 404 se non c'è una verifica |
+| `GET E/users/{user}/whatsapp/history` | redazione | ultimi 30 tentativi: `created_at`, `phone_masked`, `status` (`used`, `pending`, `sent`, `failed`), `status_label`, `attempts`, `expires_at` |
+
+Ogni riga ha `abilities{update, roles, credentials, destroy, restore, suspend, unsuspend, handle, whatsapp_revoke, whatsapp_history}`. Le risposte delle scritture sono la scheda aggiornata con `meta.message`. Tutti i registri (`ruoli_cambiati`, `email_cambiata_da_staff`, `password_impostata_da_staff`, `utente_eliminato`, `utente_ripristinato`, `community`) portano `canale: app`.
+
+### Differenze dal pannello da sapere
+
+- Nel pannello il campo «Email verificata il» del modulo non salva (non è in `$fillable` di `User`): l'API non lo accetta e l'app lo mostra in sola lettura.
+- Nel pannello il filtro «Ruoli» non trova nessuno (le opzioni hanno come chiave il nome del ruolo, il filtro confronta l'id): l'API filtra per nome.
+- Nel pannello non c'è un pulsante «Ripristina» (solo il filtro dei cestinati): l'API e l'app lo offrono, con la stessa policy dell'eliminazione.
