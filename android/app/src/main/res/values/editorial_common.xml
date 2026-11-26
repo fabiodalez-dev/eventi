@@ -29,7 +29,7 @@
     <string name="editorial_password_locked">Scrivi la password del tuo account per aprire la redazione su questo telefono. Vale 12 ore.</string>
     <string name="editorial_password_required">Per questa azione serve di nuovo la password del tuo account. Vale 15 minuti.</string>
     <string name="editorial_password_field">Password</string>
-    <string name="editorial_password_submit">Sblocca</string>
+    <string name="editorial_password_submit">Conferma</string>
     <string name="editorial_password_checking">Verifico la password</string>
     <string name="editorial_cancel">Annulla</string>
 
