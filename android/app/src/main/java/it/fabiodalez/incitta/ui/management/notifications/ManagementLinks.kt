@@ -72,6 +72,7 @@ internal suspend fun resolvePanel(repository: ManagementRepository, destination:
         PanelPage.ShareAnalytics -> ShareAnalyticsRoute(subject = key)
         is PanelPage.SubjectAnalytics -> SubjectAnalyticsRoute(subject = key, type = page.type, id = page.id)
         PanelPage.SponsorshipAnalytics -> SponsorshipAnalyticsRoute(subject = key)
+        is PanelPage.CampaignAnalytics -> SponsorshipAnalyticsRoute(subject = key, campaign = page.campaign)
         PanelPage.Sponsorships -> SponsorshipsRoute(subject = key)
         is PanelPage.Social -> SocialStudioRoute(subject = key, event = page.eventId ?: 0)
     }

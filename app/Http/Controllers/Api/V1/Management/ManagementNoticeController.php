@@ -25,7 +25,11 @@ use Illuminate\Support\Facades\Gate;
  *   questa organizzazione, presi dall'archivio dell'account con la stessa
  *   forma di `GET /me/notifications`. Sono le righe che portano
  *   `management` (`ManagementNoticeTarget`); quelle scritte prima restano
- *   nella casella generica dell'account.
+ *   nella casella generica dell'account. Con Q3 ci sono anche gli avvisi
+ *   che erano solo email (ordine deciso, riepilogo della sponsorizzazione,
+ *   rapporto mensile, locale moderato, accesso concesso, richiesta accolta)
+ *   quando portano a questo soggetto; quelli dell'account (richiesta
+ *   rifiutata, invito da accettare) restano nella casella dell'account.
  * - `GET S/events/by-slug/{slug}`: l'id di un evento del soggetto dal suo
  *   slug, per aprire nella schermata nativa un indirizzo del pannello
  *   (`/gestione/{locale}/eventi/{slug}`), che porta lo slug e non l'id.
@@ -38,7 +42,7 @@ final class ManagementNoticeController extends Controller
         $subject = ManagementSubject::require();
         $types = array_values(array_map(
             static fn (NotificationType $type): string => $type->value,
-            array_filter(NotificationType::cases(), static fn (NotificationType $type): bool => $type->isForVenueStaff()),
+            array_filter(NotificationType::cases(), static fn (NotificationType $type): bool => $type->opensManagement()),
         ));
         $query = static fn () => $user->notifications()
             ->whereIn('type', $types)

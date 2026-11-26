@@ -258,4 +258,14 @@ return [
         'home' => 'Vai agli eventi',
     ],
 
+    /*
+     * Il testo nella casella dell'account e nella push degli avvisi che
+     * erano solo email (Q3), quando la riga dell'email non basta da sola: il
+     * resto riusa le frasi dell'email.
+     */
+    'in_app' => [
+        'sponsorship_weekly' => 'Dal :da al :a: :viste visualizzazioni e :aperture aperture.',
+        'venue_monthly' => 'Nel mese di :mese: :views schede evento aperte e :profile visite alla pagina del locale.',
+    ],
+
 ];
