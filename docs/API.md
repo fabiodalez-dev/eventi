@@ -803,3 +803,29 @@ Ogni riga ha `abilities{update, roles, credentials, destroy, restore, suspend, u
 - Nel pannello il campo «Email verificata il» del modulo non salva (non è in `$fillable` di `User`): l'API non lo accetta e l'app lo mostra in sola lettura.
 - Nel pannello il filtro «Ruoli» non trova nessuno (le opzioni hanno come chiave il nome del ruolo, il filtro confronta l'id): l'API filtra per nome.
 - Nel pannello non c'è un pulsante «Ripristina» (solo il filtro dei cestinati): l'API e l'app lo offrono, con la stessa policy dell'eliminazione.
+
+## Redazione: moderazione dei contenuti (R6, 26 novembre 2026)
+
+Le tre risorse del gruppo «Moderazione» del pannello `/admin` (segnalazioni, recensioni, commenti agli eventi) sotto `/v1/editorial/…`, con la porta, lo sblocco e la convenzione degli elenchi delle fondamenta (`page`, `per_page` fino a 50, `q`, `filter[chiave]`, `sort` `campo|-campo`, `meta{current_page, last_page, per_page, total}`, `abilities{}` su ogni riga). Dodici operazioni nuove. Il pannello vede tutte le città in queste pagine, e così l'API: `?city=` non filtra. Le scritture passano dalle stesse azioni del pannello: `App\Actions\Moderation\ResolveReport` (estratta da `EditReport`), `CatalogReviews::moderate` e `reply`, `ModerateComment`. La descrizione del soggetto di una segnalazione è in `App\Support\Moderation\ReportSubject`, usata anche dalla colonna del pannello.
+
+### Segnalazioni (tutta la redazione: `reports.view`, `reports.resolve`)
+
+- `GET /v1/editorial/reports`: filtri `filter[status]` (`ReportStatus`), `filter[reason]` (`ReportReason`), `filter[open]=1` (da esaminare o in esame); `sort=created_at|-created_at` (predefinito dalla più recente); niente ricerca, come la tabella del pannello. Riga: `id, created_at, reason, reason_label, status, status_label, subject{type, id, label, community}, note, resolution_note, reviewed_by (nome), reviewed_at, abilities{resolve, destroy}`. Contatto e indirizzo IP di chi segnala non escono, come nel pannello. `subject.community` vero per profili, post e commenti della community: l'app offre «Modera il soggetto», che apre l'area Community.
+- `GET /v1/editorial/reports/{report}`: la stessa riga.
+- `PATCH /v1/editorial/reports/{report}` `{status, resolution_note?}`: l'esito; `reviewed_by` e `reviewed_at` li scrive il server (`ResolveReport`), qualunque cosa arrivi nel corpo. Risponde con la riga e `meta.message`.
+- `DELETE /v1/editorial/reports/{report}`: **pericolosa** (password recente, 423 `PASSWORD_REQUIRED`). Elimina la riga per sempre, come «Elimina» del pannello: il modello non ha il cestino.
+
+### Recensioni (solo admin e super admin: `CatalogReviewPolicy`; il moderatore riceve 403)
+
+- `GET /v1/editorial/reviews`: filtri `filter[type]` (`venue|organizer`) e `filter[status]` (`pending|approved|rejected`), `q` sul nome dell'autore, `sort=created_at|-created_at` (predefinito: ultime toccate, `updated_at`). Riga: `id, subject{type, type_label, id, name}, author, rating, body, status, status_label, created_at, moderated_by, moderated_at, moderation_note, revision, reply{body, replied_at}|null, abilities{approve, reject, remove_reply}`.
+- `POST /v1/editorial/reviews/{review}/moderate` `{status: approved|rejected, revision, note?}`: nota da 5 a 1000 caratteri, obbligatoria per rifiutare. Revisione diversa da quella attuale: 422 su `revision` (qualcuno ha deciso nel frattempo). Avvisa l'autore e scrive nel registro dei passaggi (`catalog_review_moderated`), come il pannello.
+- `DELETE /v1/editorial/reviews/{review}/reply`: toglie la risposta del gestore (`catalog_review_reply_removed` nel registro); senza risposta non fa niente. Non è pericolosa: nel pannello chiede solo una conferma.
+
+### Commenti agli eventi (tutta la redazione; eliminare solo admin e super admin)
+
+- `GET /v1/editorial/comments`: `filter[status]` (`published|hidden`), `q` su titolo dell'evento, nome dell'autore e testo, `sort=reactions_count|-reactions_count` (predefinito dal più recente). Riga: `id, event{id, title, slug, poster}|null, author, body, is_reply, status, status_label, created_at, reactions_count, moderated_by, moderated_at, moderation_note, revision, abilities{show, hide, restore, destroy}`.
+- `GET /v1/editorial/comments/{comment}`: «Dettagli», la stessa riga (policy `hide`, come il pannello).
+- `POST /v1/editorial/comments/{comment}/hide` `{revision, note?}` (nota fino a 1000 caratteri) e `POST …/restore` `{revision}`: con `ModerateComment`. Un commento già nello stato di arrivo o una revisione vecchia: 422 su `revision`.
+- `DELETE /v1/editorial/comments/{comment}`: **pericolosa** (password recente). Elimina il commento e le sue risposte (`EventCommentPolicy::delete`: admin, super admin, l'autore sul proprio).
+
+Limiti di frequenza per persona: letture 60/min (`editorial-reports`, `editorial-reports-show`, `editorial-reviews`, `editorial-comments`, `editorial-comments-show`), decisioni 30/min, eliminazioni 20/min. Errori: 404 a chi non è della redazione o per un id che non esiste, 403 dove la policy dice no, 422 con `error.fields`, 423 per sblocco e password.

@@ -12,6 +12,7 @@ use App\Filament\Admin\Resources\Reports\Pages\ListReports;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Models\Report;
 use App\Queries\EditorialDashboardQuery;
+use App\Support\Moderation\ReportSubject;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -26,7 +27,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -158,35 +158,18 @@ class ReportResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 Action::make('community_subject')->label(__('community.moderate_subject'))
-                    ->visible(fn (Report $record): bool => in_array($record->reportable_type, ['community_profile', 'community_post', 'community_comment'], true))
+                    ->visible(fn (Report $record): bool => ReportSubject::isCommunity($record))
                     ->url(fn (): string => Community::getUrl()),
             ]);
     }
 
     /**
-     * Il tipo morph contiene un alias breve (`event`, `venue`, …) e non un
-     * nome di classe: è la scelta di §3.13 dello schema, e va tradotta qui
-     * invece di mostrare all'utente una stringa da programmatori.
+     * Il tipo e il titolo del soggetto. La regola sta in `ReportSubject`,
+     * condivisa con l'elenco delle segnalazioni dell'app della redazione.
      */
     private static function describeSubject(Report $report): string
     {
-        $label = __('admin.resources.'.$report->reportable_type.'.label');
-        $label = $label === 'admin.resources.'.$report->reportable_type.'.label'
-            ? $report->reportable_type
-            : $label;
-
-        $label = match ($report->reportable_type) {
-            'community_profile' => __('community.subject_profile'),
-            'community_post' => __('community.subject_post'),
-            'community_comment' => __('community.subject_comment'),
-            default => $label,
-        };
-        $subject = $report->reportable;
-        $title = $subject instanceof Model
-            ? (string) ($subject->getAttribute('title') ?? $subject->getAttribute('name') ?? $subject->getAttribute('display_name') ?? mb_substr((string) $subject->getAttribute('body'), 0, 100) ?: $subject->getKey())
-            : (string) $report->reportable_id;
-
-        return $label.' '.__('common.separator').' '.$title;
+        return ReportSubject::describe($report);
     }
 
     /**

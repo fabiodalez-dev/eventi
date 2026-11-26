@@ -80,6 +80,21 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and(array_keys($document['paths']['/editorial/users/{user}']))->toContain('get', 'patch', 'delete')
         ->and($document['paths']['/editorial/users/{user}/roles'])->toHaveKey('put');
+    // R6 (26/11/2026): la moderazione della redazione, segnalazioni, recensioni, commenti.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/reports',
+        '/editorial/reports/{report}',
+        '/editorial/reviews',
+        '/editorial/reviews/{review}/moderate',
+        '/editorial/reviews/{review}/reply',
+        '/editorial/comments',
+        '/editorial/comments/{comment}',
+        '/editorial/comments/{comment}/hide',
+        '/editorial/comments/{comment}/restore',
+    ])
+        ->and($document['paths']['/editorial/reports/{report}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/comments/{comment}'])->toHaveKeys(['get', 'delete'])
+        ->and($document['paths']['/editorial/reviews/{review}/reply'])->toHaveKey('delete');
 
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([

@@ -23,6 +23,8 @@ return [
         'received' => 'Arrivata',
         'empty_heading' => 'Nessuna segnalazione',
         'empty_description' => 'Quando qualcuno segnala un evento, un locale o un commento, lo trovi qui.',
+        'saved' => 'Esito della segnalazione salvato.',
+        'deleted' => 'Segnalazione eliminata.',
     ],
     'richieste' => [
         'empty_heading' => 'Nessuna richiesta',
