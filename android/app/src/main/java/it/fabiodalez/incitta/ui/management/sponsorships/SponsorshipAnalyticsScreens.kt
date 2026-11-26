@@ -37,13 +37,18 @@ import java.util.Locale
  * attese e conti economici; il registro dei clic.
  */
 @Composable
-internal fun SponsorshipAnalyticsScreen(viewModel: SponsorshipAnalyticsViewModel, context: ManagementGraphContext) {
+internal fun SponsorshipAnalyticsScreen(viewModel: SponsorshipAnalyticsViewModel, context: ManagementGraphContext) =
+    SponsorshipAnalyticsScreen(viewModel, context.padding, context::back)
+
+/** La stessa pagina fuori dalla gestione: la usa anche la redazione (R8), con tutte le campagne. */
+@Composable
+internal fun SponsorshipAnalyticsScreen(viewModel: SponsorshipAnalyticsViewModel, padding: PaddingValues, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val subject = state.subject.valueOrNull
     ManagementScaffold(
         title = stringResource(R.string.sponsorships_analytics_title),
-        padding = context.padding,
-        onBack = context::back,
+        padding = padding,
+        onBack = onBack,
         subtitle = subject?.name,
         busy = state.clicksBusy && state.report is Loadable.Ready,
     ) {

@@ -919,3 +919,41 @@ Le pagine «Profili e post» (`/admin/community`) e «Passaggi in auto» (`/admi
 - Solo sul sito: l'esportazione delle evidenze di un caso (R-CP-11, decisione 8).
 
 Limiti per persona: letture 60/min, decisioni 20–30/min, conservazione 10/min, evidenze 20 l'ora. Errori: 404 a chi non è della redazione o per un id che non esiste, 403 dove permesso o rango dicono no, 409 per un caso cambiato o un'azione che lo stato non permette più, 422 con `error.fields`, 423 per sblocco e password.
+
+## Redazione: promozione (R8, 26 novembre 2026)
+
+Il gruppo «Promozione» di `/admin` (campagne, abilitazioni e pagamenti, ordini, listino, banner, statistiche) sotto `E` = `/v1/editorial`, con porta, sblocco delle 12 ore e `canale: app` come nelle fondamenta. 29 operazioni in `routes/editorial/promotion.php`. Tutto è di admin e super admin, come nel pannello: il moderatore riceve 403 `FORBIDDEN`, referenti e utenti 404. Le regole non sono riscritte: pannello e controller chiamano gli stessi servizi, cioè `App\Services\Sponsorship\Editorial\CampaignBuilder` (salvataggio e regole dei quattro passi, stima, chi occupa lo spazio, prezzo dal listino), `SponsorshipProgress`, `SponsorshipCapacity`, `UnitProgress` e `ProgressDetail` (spostati da `App\Filament\Admin\Resources\Sponsorships\Support`), `App\Actions\Sponsorship\ToggleSponsorship`, `App\Support\Sponsorship\SponsorableEventChoices` (gli eventi sponsorizzabili del selettore), `SponsorshipOrders`, `GrantPayment`, `GrantCampaigns`. Importi in euro come stringa (`"150.00"`), date ISO 8601 con il fuso (senza fuso valgono nell'ora della città della campagna; per le abilitazioni nell'ora di Padova, come il modulo del pannello).
+
+### Campagne (`SponsorshipPolicy`, permesso `sponsorships.manage`)
+
+- `GET E/sponsorships`: righe `{id, event{id, title, slug, poster, venue, date, published}, event_gone, placement{value,label}, status{value,label}, phase{value,label,color}, progress{state, state_label, color, goal, delivered, percent, expected_percent, summary}, timezone, starts_at, ends_at, advertiser_name, impressions, clicks, click_rate, grant_id, toggle_label, abilities{update, toggle, destroy}}`, più `choices{placements, statuses, pacings, pacing_states}` e `can_create`. `filter[…]`: `placement`, `status`, `pacing_state` (stati dell'avanzamento e `period`), `running` (`1`, solo quelle visibili adesso). `q` nel titolo dell'evento e nel committente; `sort` `starts_at`, `ends_at`, `impressions`, `clicks` (predefinito `-ends_at`). Limite 60 al minuto (`editorial-sponsorships`).
+- `GET E/sponsorships/export`: il foglio Excel con gli stessi criteri e le colonne dell'elenco. Limite 10 al minuto.
+- `GET E/sponsorships/{sponsorship}`: in più `form{event_id, placement, status, starts_at, ends_at, priority, weight, impressions_cap, clicks_cap, impressions_goal, pacing, advertiser_name, advertiser_email, advertiser_url, amount, currency, invoice_reference, notes}`, `on_grant`, `grant_help`, `event_warning` (evento non pubblicato), `period_only`, `amount_label`, `progress_detail{progress, true_end, sentence, legend, cards[], provisional, daily[], daily_empty, events[], events_lead}`, `choices`.
+- `PATCH E/sponsorships/{sponsorship}`: solo le chiavi inviate, con le regole del modulo (fine dopo l'inizio, priorità 0–1000, peso 1–100, obiettivo 1–10.000.000 e vietato sulle collocazioni solo a periodo, email e sito validi). Su una riga di un'abilitazione evento, priorità, peso, obiettivo e distribuzione si ignorano (spenti nel pannello). Se l'evento cambia, la città lo segue; un evento deve essere sponsorizzabile o quello di adesso.
+- `POST E/sponsorships/{sponsorship}/toggle`: «Sospendi» o «Attiva»; risposta `{data: <riga>, message}`.
+- Pericolose, con la password recente (423 `PASSWORD_REQUIRED`): `DELETE E/sponsorships/{sponsorship}` (nel cestino, come il pannello) e `POST E/sponsorships/bulk-destroy` con `ids[]` fino a 50 (ognuna con la sua `delete`; risposta `{deleted[]}`).
+
+### Nuova sponsorizzazione (`SponsorshipPolicy::create`)
+
+- `GET E/sponsorships/prefill?event=`: lo stato iniziale (anche dall'arrivo da «Sponsorizza questo evento»: committente il locale, poi l'organizzatore, altrimenti esterno) e le scelte `{placements, statuses, pacings, months, sponsor_types, scopes, products}` con la riga di aiuto.
+- `GET E/sponsorships/sponsors?type=venue|organizer&q=&all=`: i committenti (locali approvati, organizzatori attivi; `all=1` tutti) con `{id, label, name, city_id, email, website}`.
+- `GET E/sponsorships/events?sponsor_type=&venue_id=&organizer_id=&venue_filter=&keep=&q=`: gli eventi sponsorizzabili del committente (`any` = tutti, per la modifica), al massimo 50 (30 cercando), con `already_sponsored` e `more_dates`; `meta{count, ready}`.
+- `POST E/sponsorships/estimate`: con lo stato del percorso dà `{scope, city_id, timezone, period_lead, ends_at (dai mesi), period_only, price{amount,label}, price_hint, estimate{views, days, provisional, heading, description, status}, occupants[], all_events{sponsor, count, events[]}, placement_lead}`. Con `step` (1–4) prima controlla i passi fino a quello: 422 con i campi, come il pannello andando avanti. Limite 120 al minuto (`editorial-sponsorships-estimate`).
+- `POST E/sponsorships`: controlla i quattro passi e salva. «Un evento» crea una campagna (`kind: sponsorship`), «tutti gli eventi» un'abilitazione automatica con le sue righe (`kind: grant`, `SponsorshipGrantPolicy::create`). Risposta 201 `{data{kind, id, message}}`. Un obiettivo oltre l'80% della stima risponde 422 su `impressions_goal`; un evento non del committente o non sponsorizzabile 422 su `event_id`.
+
+### Ordini (`SponsorshipOrderPolicy::decide`)
+
+- `GET E/sponsorship-orders`: `{id, created_at, sponsor, sponsor_kind, event, event_label, placement, months, months_label, mode, amount_cents, amount_label, status{value,label,color}, buyer, paid_at, decided_at, decided_by, request_note, decision_note, payment_reference, approve_lead, reject_lead, suggested_amount, abilities{approve, approve_request, reject}}`, `filter[status]`, `choices{statuses, methods, settlements}`.
+- `POST E/sponsorship-orders/{order}/approve`: un ordine pagato senza corpo; una richiesta con `settlement` `paid` (`amount` in euro fino a 100.000, `payment_method` fra `bank_transfer`, `cash`, `card_pos`, `other`, `payment_reference` facoltativo) o `free` (`reason` fino a 2.000). `POST E/sponsorship-orders/{order}/reject` con `reason` fino a 2.000: un ordine pagato online si rimborsa su Stripe. Un ordine che non aspetta più una decisione: 409 `CONFLICT`. Risposta `{data: <riga>, message}`. Chi ha ordinato riceve l'avviso di sempre.
+
+### Abilitazioni (`SponsorshipGrantPolicy`)
+
+- `GET E/sponsorship-grants`: `{id, sponsor, sponsor_kind, status_label, mode, placement, enabled, complimentary, timezone, starts_at, ends_at, paid_at, amount_label, progress, impressions, clicks, abilities{update, destroy}}`, `q` nel committente, `filter[venue]`, `filter[organizer]`, `choices{modes, placements, pacings, months}`.
+- `GET E/sponsorship-grants/{grant}`: in più `form{…}`, `period_only`, `progress_detail`.
+- `POST E/sponsorship-grants` (201) e `PATCH E/sponsorship-grants/{grant}`: le regole del modulo (un locale o un organizzatore, mai entrambi; importo obbligatorio se non gratuita; motivo nelle note se gratuita; pagata non nel futuro). Committente, modalità e collocazione si scelgono solo alla nascita. Al salvataggio `created_by`, pagamento svuotato per le gratuite e sincronizzazione delle righe, come le pagine del pannello. Nessuna eliminazione (405).
+
+### Listino, banner, statistiche
+
+- `GET E/sponsorship-prices` (`filter[is_active]`, `sort`), `POST`, `PATCH E/sponsorship-prices/{price}` con `placement`, `months` (1, 2, 3, 6, 12, una sola voce per collocazione e durata: 422 «già nel listino»), `amount`, `is_active`; `DELETE E/sponsorship-prices/{price}` con la password recente (`SponsorshipPricePolicy`).
+- `GET E/sponsorship-banners` e `PUT` con `web_enabled`, `android_enabled` (admin e super admin, come la pagina «Banner sponsorizzati»).
+- `GET E/sponsorships/analytics`, `/analytics/clicks`, `/analytics/campaigns`, `/analytics/campaigns/{campaign}`: le stesse risposte di `S/sponsorships/analytics…` della gestione, con tutte le campagne (`SponsorshipReport` nella redazione, solo admin e super admin).

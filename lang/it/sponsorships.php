@@ -376,6 +376,7 @@ return [
         'rules' => 'Gli eventi conclusi non vengono più sponsorizzati dal giorno successivo, nel fuso della città. Le date annullate, rinviate o spostate sono escluse. Restano validi solo gli eventi con almeno una data valida.',
         'save' => 'Salva impostazioni',
         'switch_off' => 'Lo spegnimento riguarda questi banner aggiuntivi, non le collocazioni originali delle campagne. Si applica subito alle nuove richieste e, entro un minuto, alle pagine e alle app già aperte e connesse.',
+        'saved' => 'Impostazioni salvate',
     ],
 
     /* La pagina delle statistiche, uguale nei tre pannelli. */
