@@ -54,7 +54,7 @@ internal enum class EditorialArea(
     Analytics(R.string.editorial_area_analytics, R.string.editorial_area_analytics_help, "admin/statistiche-condivisioni", AnalyticsRoute),
     Catalog(R.string.editorial_area_catalog, R.string.editorial_area_catalog_help, "admin/categories", CatalogRoute),
     System(R.string.editorial_area_system, R.string.editorial_area_system_help, "admin/scheduled-notifications", SystemRoute, badges = listOf("scheduled_notifications_due")),
-    Settings(R.string.editorial_area_settings, R.string.editorial_area_settings_help, "admin/cache-performance", SettingsRoute),
+    Settings(R.string.editorial_area_settings, R.string.editorial_area_settings_help, "admin/cache-performance", SettingsRoute, native = true),
     Calendar(R.string.editorial_area_calendar, R.string.editorial_area_calendar_help, "admin/calendario", CalendarRoute);
 
     /**
@@ -79,7 +79,8 @@ internal enum class EditorialArea(
         /* Categorie, tag, città e caratteristiche si leggono da tutta la redazione; scriverli chiede `catalog_manage`. */
         Catalog -> can.eventsView || can.catalogManage
         System -> can.any("imports_manage", "notifications_view", "system_view")
-        Settings -> can.any("system_manage", "mail_manage")
+        /* Testi, posta, newsletter, script, cookie e cache chiedono il ruolo; gli indirizzi cambiati `pages.manage`. */
+        Settings -> can.any("system_manage", "mail_manage", "pages_manage")
     }
 
     /** La somma dei contatori dell'area; `null` se nessuno si vede. */
