@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Pages;
 
 use App\Enums\Permission;
-use App\Enums\RideStatus;
-use App\Models\CarpoolAudit;
 use App\Models\CarpoolCase;
-use App\Models\RideFeedback;
 use App\Models\RideOffer;
 use App\Models\RideReview;
 use App\Models\User;
 use App\Services\Carpool\CommunitySafety;
 use App\Services\Carpool\RideReviews;
+use App\Services\Editorial\CarpoolDesk;
 use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
@@ -24,7 +22,6 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Livewire\WithPagination;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -44,7 +41,7 @@ class Carpool extends Page
 {
     use WithPagination;
 
-    public const SECTIONS = ['cases', 'rides', 'reviews', 'feedback', 'users', 'audit', 'deliveries'];
+    public const SECTIONS = CarpoolDesk::SECTIONS;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
@@ -289,12 +286,7 @@ class Carpool extends Page
     /** @return array<int, string> */
     private function casePeople(int $caseId): array
     {
-        $case = CarpoolCase::with(['reporter', 'offer.driver', 'rideRequest.user'])->find($caseId);
-
-        return collect([$case?->reporter, $case?->offer?->driver, $case?->rideRequest?->user])
-            ->filter()->unique('id')
-            ->mapWithKeys(fn (User $person): array => [$person->id => $person->name.' #'.$person->id])
-            ->all();
+        return app(CarpoolDesk::class)->people(CarpoolCase::with(['reporter', 'offer.driver', 'rideRequest.user'])->find($caseId));
     }
 
     private function check(Permission $permission = Permission::ManageCommunityCases): void
@@ -314,25 +306,15 @@ class Carpool extends Page
     protected function getViewData(): array
     {
         $this->check();
-        $needle = '%'.addcslashes(mb_substr($this->search, 0, 80), '%_\\').'%';
-        $case = $this->selectedCase ? CarpoolCase::with(['reporter', 'assignee', 'offer.driver', 'rideRequest.user', 'messages.author', 'messages.recipient'])->findOrFail($this->selectedCase) : null;
-        $query = match ($this->section) {
-            'reviews' => RideReview::with(['user', 'driver', 'rideRequest'])->when($this->search !== '', fn ($q) => $q->where('body', 'like', $needle)),
-            'feedback' => RideFeedback::with(['user', 'rideRequest.offer'])->where('kind', 'like', $needle),
-            'rides' => RideOffer::with(['driver.communityProfile', 'occurrence.event'])->withCount('requests')->where(fn ($q) => $q->where('zone', 'like', $needle)->orWhereHas('driver', fn ($q) => $q->where('name', 'like', $needle))),
-            'users' => User::with('communityProfile')->where(fn ($q) => $q->where('name', 'like', $needle)->orWhere('email', 'like', $needle)),
-            'audit' => CarpoolAudit::with('actor')->where('action', 'like', $needle),
-            'deliveries' => DB::table('community_delivery_outbox')->select(['id', 'user_id', 'notification_id', 'attempts', 'available_at', 'delivered_at', 'last_error'])->whereNull('delivered_at')->where('attempts', '>=', 1),
-            default => CarpoolCase::with(['reporter', 'assignee'])->when($this->status !== '', fn ($q) => $q->where('status', $this->status)),
-        };
-        if (in_array($this->section, ['rides', 'users', 'deliveries', 'reviews', 'feedback'], true)) {
+        // Le query della pagina stanno in `CarpoolDesk`: le usa anche l'app della redazione.
+        $desk = app(CarpoolDesk::class);
+        $case = $this->selectedCase ? $desk->case($this->selectedCase) : null;
+        $query = $desk->query($this->section, $this->search, $this->status);
+        if (CarpoolDesk::permission($this->section) === Permission::ManageCarpool) {
             $this->check(Permission::ManageCarpool);
         }
-        if ($this->section === 'rides' && in_array($this->status, array_column(RideStatus::cases(), 'value'), true)) {
-            $query->where('status', $this->status);
-        }
 
-        return ['items' => $query->orderByDesc('id')->paginate(25), 'case' => $case,
+        return ['items' => $query->paginate(25), 'case' => $case,
             'canSensitive' => app(CommunitySafety::class)->staff($this->staffUser(), Permission::ReadCommunityMessages, true),
             'canRetention' => app(CommunitySafety::class)->staff($this->staffUser(), Permission::ManageCommunityRetention, true)];
     }

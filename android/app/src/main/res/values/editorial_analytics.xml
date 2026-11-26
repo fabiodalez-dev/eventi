@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R10 — Statistiche, SEO, ricerche della redazione. I testi delle statistiche
+     in comune con l'app di gestione stanno in management_analytics.xml. -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="editorial_analytics_hub_intro">Le pagine del gruppo «Analisi» del pannello.</string>
+    <string name="editorial_analytics_report_title">Statistiche in dettaglio</string>
+    <string name="editorial_analytics_report_help">Visite, condivisioni e partecipazione di tutti gli eventi, con filtri e file da scaricare</string>
+    <string name="editorial_analytics_seo_title">SEO e qualità del catalogo</string>
+    <string name="editorial_analytics_seo_help">Search Console e controllo degli ultimi 200 eventi pubblici</string>
+    <string name="editorial_analytics_misses_title">Ricerche senza risultati</string>
+    <string name="editorial_analytics_misses_help">Parole cercate che non hanno trovato nulla</string>
+    <string name="editorial_analytics_nothing">Nessuna pagina di quest’area è disponibile per il tuo ruolo.</string>
+
+    <!-- Statistiche in dettaglio -->
+    <string name="editorial_analytics_filters_hint">Restringi il report a un locale, un organizzatore, un evento, un canale o a date precise.</string>
+    <string name="editorial_analytics_filter_venue">Locale</string>
+    <string name="editorial_analytics_filter_venue_all">Tutti i locali autorizzati</string>
+    <string name="editorial_analytics_filter_organizer">Organizzatore</string>
+    <string name="editorial_analytics_filter_organizer_all">Tutti gli organizzatori autorizzati</string>
+    <string name="editorial_analytics_filter_choose">Scegli</string>
+    <string name="editorial_analytics_filter_clear">Togli</string>
+    <string name="editorial_analytics_filters_count">Filtri (%1$d)</string>
+    <string name="editorial_analytics_profile_search">Cerca per nome</string>
+    <string name="editorial_analytics_profile_empty">Nessun risultato.</string>
+    <string name="editorial_analytics_profile_loading">Cerco…</string>
+    <string name="editorial_analytics_export_report">Scarica il rapporto in Excel</string>
+
+    <!-- SEO -->
+    <string name="editorial_seo_city">Città</string>
+    <string name="editorial_seo_code_too_long">Al massimo %1$d caratteri.</string>
+    <string name="editorial_seo_code_invalid">Incolla solo il valore content: lettere, cifre, trattino e trattino basso, senza spazi né tag.</string>
+    <string name="editorial_seo_saved">Codice di verifica salvato</string>
+    <string name="editorial_seo_saving">Salvo…</string>
+    <string name="editorial_seo_copy">Copia</string>
+    <string name="editorial_seo_copied">Copiato</string>
+    <string name="editorial_seo_open">Apri</string>
+    <string name="editorial_seo_complete">A posto</string>
+    <string name="editorial_seo_issues_count">%1$d da sistemare</string>
+    <string name="editorial_seo_inactive">%1$s (non attiva)</string>
+    <string name="editorial_seo_open_event">Apri la pagina pubblica di %1$s</string>
+
+    <!-- Ricerche senza risultati -->
+    <string name="editorial_misses_hint">Parole cercate sul sito e nell’app che non hanno trovato nulla. Sono domanda che il catalogo non copre: una categoria che manca, un locale mai inserito, un nome scritto in modo diverso. Cancellare una riga la toglie dal registro finché qualcuno non la cerca di nuovo.</string>
+    <string name="editorial_misses_search">Cerca una parola</string>
+    <string name="editorial_misses_city">Città</string>
+    <string name="editorial_misses_count">Cercata %1$s volte</string>
+    <string name="editorial_misses_last">Ultima volta: %1$s</string>
+    <string name="editorial_misses_first">Prima volta: %1$s</string>
+    <string name="editorial_misses_sort">Ordina</string>
+    <string name="editorial_misses_sort_count">Più cercate</string>
+    <string name="editorial_misses_sort_count_asc">Meno cercate</string>
+    <string name="editorial_misses_sort_last">Cercate di recente</string>
+    <string name="editorial_misses_sort_first">Cercate da più tempo</string>
+    <string name="editorial_misses_remove">Elimina</string>
+    <string name="editorial_misses_remove_title">Eliminare «%1$s»?</string>
+    <string name="editorial_misses_remove_text">La riga sparisce dal registro finché qualcuno non cerca di nuovo la stessa cosa.</string>
+    <string name="editorial_misses_select">Scegli «%1$s»</string>
+    <string name="editorial_misses_selected">%1$d scelte</string>
+    <string name="editorial_misses_remove_selected">Elimina le scelte</string>
+    <string name="editorial_misses_clear_selection">Annulla la scelta</string>
+    <string name="editorial_misses_bulk_title">Eliminare %1$d ricerche?</string>
+    <string name="editorial_misses_bulk_text">Le righe scelte spariscono dal registro finché qualcuno non cerca di nuovo le stesse cose.</string>
+    <string name="editorial_misses_removed">Eliminato</string>
+    <string name="editorial_misses_empty">Nessuna ricerca senza risultati.</string>
+</resources>

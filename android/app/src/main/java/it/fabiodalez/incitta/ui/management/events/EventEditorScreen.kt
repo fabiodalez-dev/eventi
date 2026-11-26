@@ -331,7 +331,7 @@ private fun LocationSection(form: EventForm, options: EventFormOptions, mode: Ev
 
 /** «Prima di andare»: fasce d'età, famiglie, tessera, accessibilità, caratteristiche, voci libere, cibo, note. */
 @Composable
-private fun BeforeGoingSection(form: EventForm, catalog: ManagementOptions, edit: ((EventForm) -> EventForm) -> Unit) {
+internal fun BeforeGoingSection(form: EventForm, catalog: ManagementOptions, edit: ((EventForm) -> EventForm) -> Unit) {
     CollapsibleSection(stringResource(R.string.management_events_before_going), stringResource(R.string.management_events_before_going_hint)) {
         MultiChips(stringResource(R.string.management_events_age_groups), catalog.choices("age_groups").map { it.value to it.label }, form.ageGroups, { v -> edit { it.copy(ageGroups = v) } })
         val yesNo = listOf("yes" to stringResource(R.string.management_events_yes), "no" to stringResource(R.string.management_events_no))

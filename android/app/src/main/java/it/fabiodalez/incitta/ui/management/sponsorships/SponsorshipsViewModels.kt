@@ -20,6 +20,7 @@ import it.fabiodalez.incitta.data.management.SponsorshipCampaignOption
 import it.fabiodalez.incitta.data.management.SponsorshipCatalog
 import it.fabiodalez.incitta.data.management.SponsorshipChoice
 import it.fabiodalez.incitta.data.management.SponsorshipClick
+import it.fabiodalez.incitta.data.management.SponsorshipClickPage
 import it.fabiodalez.incitta.data.management.SponsorshipDesk
 import it.fabiodalez.incitta.data.management.SponsorshipDuration
 import it.fabiodalez.incitta.data.management.SponsorshipEvent
@@ -565,7 +566,29 @@ internal data class SponsorshipAnalyticsUiState(
     val error: String? = null,
 )
 
-internal class SponsorshipAnalyticsViewModel(private val repository: ManagementRepository, private val saved: SavedStateHandle) : ViewModel() {
+/**
+ * Da dove arrivano le statistiche delle sponsorizzazioni: nella gestione il
+ * soggetto scelto e le sue rotte `S`; nella redazione (R8) tutte le campagne
+ * con le rotte `E/sponsorships/analytics…`, che rispondono nella stessa forma.
+ */
+internal interface SponsorshipReportLoader {
+    suspend fun subject(key: String?): ManagementSubject?
+    suspend fun analytics(subject: ManagementSubject, filters: SponsorshipFilters): SponsorshipAnalytics
+    suspend fun clicks(subject: ManagementSubject, filters: SponsorshipFilters, page: Int): SponsorshipClickPage
+    suspend fun campaignOptions(subject: ManagementSubject, query: String): List<SponsorshipCampaignOption>
+}
+
+/** Le statistiche del soggetto della gestione. */
+internal class ManagedSponsorshipReports(private val repository: ManagementRepository) : SponsorshipReportLoader {
+    override suspend fun subject(key: String?): ManagementSubject? = resolveSponsorshipSubject(repository, key)
+    override suspend fun analytics(subject: ManagementSubject, filters: SponsorshipFilters) = repository.sponsorshipsApi().analytics(subject, filters)
+    override suspend fun clicks(subject: ManagementSubject, filters: SponsorshipFilters, page: Int) = repository.sponsorshipsApi().clicks(subject, filters, page)
+    override suspend fun campaignOptions(subject: ManagementSubject, query: String) = repository.sponsorshipsApi().campaignOptions(subject, query)
+}
+
+internal class SponsorshipAnalyticsViewModel(private val loader: SponsorshipReportLoader, private val saved: SavedStateHandle) : ViewModel() {
+    constructor(repository: ManagementRepository, saved: SavedStateHandle) : this(ManagedSponsorshipReports(repository), saved)
+
     private val key: String? = saved[KEY_SUBJECT]
     private val state = MutableStateFlow(SponsorshipAnalyticsUiState(filters = SponsorshipFilters(
         days = saved.get<String>(KEY_DAYS)?.takeIf { it in PERIODS } ?: "30",
@@ -583,7 +606,7 @@ internal class SponsorshipAnalyticsViewModel(private val repository: ManagementR
         state.update { it.copy(subject = Loadable.Loading) }
         viewModelScope.launch {
             try {
-                val subject = resolveSponsorshipSubject(repository, key)
+                val subject = loader.subject(key)
                 state.update { it.copy(subject = subject?.let { found -> Loadable.Ready(found) } ?: Loadable.Empty) }
                 if (subject != null) load()
             } catch (e: CancellationException) { throw e }
@@ -599,9 +622,8 @@ internal class SponsorshipAnalyticsViewModel(private val repository: ManagementR
         state.update { it.copy(report = if (it.report is Loadable.Ready) it.report else Loadable.Loading, clicksBusy = true, error = null) }
         job = viewModelScope.launch {
             try {
-                val api = repository.sponsorshipsApi()
-                val report = api.analytics(subject, filters)
-                val clicks = api.clicks(subject, filters, 1)
+                val report = loader.analytics(subject, filters)
+                val clicks = loader.clicks(subject, filters, 1)
                 state.update { it.copy(report = Loadable.Ready(report), clicks = clicks.data, clicksNextPage = clicks.meta.nextPage, clicksTotal = clicks.meta.total, clicksBusy = false,
                     campaignTitle = report.campaign?.let { c -> c.event?.title ?: c.eventGone }) }
             } catch (e: CancellationException) { throw e }
@@ -651,7 +673,7 @@ internal class SponsorshipAnalyticsViewModel(private val repository: ManagementR
         state.update { it.copy(optionsBusy = true) }
         optionsJob = viewModelScope.launch {
             try {
-                val list = repository.sponsorshipsApi().campaignOptions(subject, query)
+                val list = loader.campaignOptions(subject, query)
                 state.update { it.copy(options = if (it.options == null) null else list, optionsBusy = false) }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { state.update { it.copy(optionsBusy = false, error = requestFailureMessage(e)) } }
@@ -674,7 +696,7 @@ internal class SponsorshipAnalyticsViewModel(private val repository: ManagementR
         state.update { it.copy(clicksBusy = true) }
         viewModelScope.launch {
             try {
-                val next = repository.sponsorshipsApi().clicks(subject, filters, page)
+                val next = loader.clicks(subject, filters, page)
                 state.update { it.copy(clicks = (it.clicks + next.data).distinctBy(SponsorshipClick::id), clicksNextPage = next.meta.nextPage, clicksBusy = false) }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { state.update { it.copy(clicksBusy = false, error = requestFailureMessage(e)) } }

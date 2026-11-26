@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Tag;
+use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Unisce due tag doppioni (§9.2, «Tag — con merge dei duplicati»).
@@ -21,9 +24,29 @@ use Illuminate\Support\Facades\DB;
  *   spostare vengono scelte escludendo quelle già presenti sul superstite;
  * - tutto avviene in una transazione, perché un merge interrotto a metà
  *   lascerebbe eventi senza tag e un doppione ancora vivo.
+ *
+ * Chi unisce elimina il tag assorbito: serve `delete` su **tutti e due**,
+ * non solo su quello da cui parte l'azione (`allows`/`authorize`, la stessa
+ * regola per il pannello e per l'app).
  */
 final class MergeTagsAction
 {
+    /** Vero se la persona può eliminare sia il tag che resta sia quello assorbito. */
+    public static function allows(User $user, Tag $keep, Tag $absorbed): bool
+    {
+        $gate = Gate::forUser($user);
+
+        return $gate->allows('delete', $keep) && $gate->allows('delete', $absorbed);
+    }
+
+    /** @throws AuthorizationException */
+    public static function authorize(User $user, Tag $keep, Tag $absorbed): void
+    {
+        $gate = Gate::forUser($user);
+        $gate->authorize('delete', $keep);
+        $gate->authorize('delete', $absorbed);
+    }
+
     /**
      * @return int Quanti eventi hanno cambiato tag.
      */

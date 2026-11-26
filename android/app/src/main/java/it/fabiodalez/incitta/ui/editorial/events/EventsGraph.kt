@@ -6,10 +6,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import it.fabiodalez.incitta.data.editorial.EditorialPermissions
 import it.fabiodalez.incitta.data.management.OptionChoice
+import it.fabiodalez.incitta.ui.editorial.EditorialArea
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
+import it.fabiodalez.incitta.ui.editorial.analytics.AnalyticsReportRoute
 import it.fabiodalez.incitta.ui.editorial.common.EditorialListHandoff
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
+import it.fabiodalez.incitta.ui.editorial.eventeditor.EditorialEventDatesRoute
+import it.fabiodalez.incitta.ui.editorial.eventeditor.EditorialEventEditorRoute
+import it.fabiodalez.incitta.ui.editorial.promotion.CampaignWizardRoute
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
@@ -46,6 +52,23 @@ internal fun acceptEventsLists() {
     EditorialListHandoff.accept("events", { it.eventsView }) { target -> EditorialEventsListRoute(target.tab.orEmpty(), target.filterParam) }
 }
 
+/**
+ * Le pagine collegate alla scheda che l'app apre da sé, come i collegamenti
+ * della pagina «Vedi» del pannello: le statistiche dell'evento (R10) e
+ * «Sponsorizza questo evento» (R8, R-EV-15), solo dove l'area è nativa e la
+ * persona la apre. `null`: la pagina del pannello che il server manda in
+ * `links`.
+ */
+internal class EventLinkRoutes(
+    val statistics: ((Long) -> Any)? = null,
+    val sponsor: ((Long) -> Any)? = null,
+)
+
+internal fun eventLinkRoutes(can: EditorialPermissions?): EventLinkRoutes = EventLinkRoutes(
+    statistics = if (EditorialArea.Analytics.native && can?.analyticsView == true) { id -> AnalyticsReportRoute(type = "event", id = id) } else null,
+    sponsor = if (EditorialArea.Promotion.native && can?.sponsorshipsManage == true) { id -> CampaignWizardRoute(event = id) } else null,
+)
+
 internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
     acceptEventsLists()
     val nav = context.navController
@@ -56,6 +79,8 @@ internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
         val viewModel = editorialViewModel { EventRecordViewModel(context.repository, it) }
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val zone = ((state as? Loadable.Ready)?.value?.city?.timezone) ?: "Europe/Rome"
+        val desk by context.repository.current.collectAsStateWithLifecycle()
+        val links = eventLinkRoutes(desk?.can)
         EventRecordScreen(
             viewModel = viewModel,
             padding = context.padding,
@@ -65,6 +90,10 @@ internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
             onPreview = { id -> nav.navigate(EditorialEventPreviewRoute(id)) },
             onActivity = { id -> nav.navigate(EditorialEventActivityRoute(id, zone)) },
             onOpenWeb = context::openWeb,
+            onEdit = { id -> nav.navigate(EditorialEventEditorRoute(id)) },
+            onDates = { id -> nav.navigate(EditorialEventDatesRoute(id)) },
+            onStatistics = links.statistics?.let { route -> { id: Long -> nav.navigate(route(id)) } },
+            onSponsor = links.sponsor?.let { route -> { id: Long -> nav.navigate(route(id)) } },
         )
     }
     composable<EditorialEventActivityRoute> { entry ->
@@ -101,5 +130,7 @@ private fun EventsQueueDestination(context: EditorialGraphContext) {
         onOpen = { id -> nav.navigate(EditorialEventRoute(id)) },
         onMerge = { id -> nav.navigate(EditorialEventRoute(id, merge = true)) },
         onSubmissions = { nav.navigate(EditorialSubmissionsRoute()) },
+        // «Nuovo evento» (R3) per chi crea eventi (`EventPolicy::create`: admin e super admin).
+        onCreate = if (desk?.can?.eventsEdit == true) { { nav.navigate(EditorialEventEditorRoute()) } } else null,
     )
 }

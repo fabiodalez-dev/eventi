@@ -11,6 +11,9 @@ use Illuminate\Support\Str;
 
 class EventFeature extends Model
 {
+    /** I gruppi della sezione «Prima di andare», nell'ordine del modulo del pannello e dell'app. */
+    public const GROUPS = ['Accessibilità', 'Ingresso', 'Pubblico', 'Servizi', 'Mobilità', 'Regole', 'Informazioni'];
+
     protected $fillable = ['name', 'slug', 'group', 'icon', 'description', 'is_active', 'sort_order'];
 
     protected function casts(): array

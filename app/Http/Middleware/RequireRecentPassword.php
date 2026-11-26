@@ -21,12 +21,29 @@ use Symfony\Component\HttpFoundation\Response;
  * Una rotta diventa pericolosa con `->middleware(RequireRecentPassword::class)`
  * nel file del suo pacchetto; `EditorialRoutesTest` controlla che le rotte
  * con i nomi delle azioni pericolose ce l'abbiano.
+ *
+ * Un'azione che è pericolosa solo in certi casi (rifiutare un ordine di
+ * sponsorizzazione già pagato online, che rimborsa su Stripe senza ritorno)
+ * chiama `ensure()` dal controller, dopo aver letto il record.
  */
 final class RequireRecentPassword
 {
     public function __construct(private readonly EditorialUnlocks $unlocks) {}
 
     public function handle(Request $request, Closure $next): Response
+    {
+        $this->ensure($request);
+
+        return $next($request);
+    }
+
+    /**
+     * 423 `EDITORIAL_LOCKED` senza sblocco, 423 `PASSWORD_REQUIRED` senza
+     * password negli ultimi 15 minuti su questo token.
+     *
+     * @throws ApiException
+     */
+    public function ensure(Request $request): void
     {
         $unlock = $this->unlocks->find($request);
         if (! $this->unlocks->unlocked($unlock)) {
@@ -35,7 +52,5 @@ final class RequireRecentPassword
         if (! $this->unlocks->passwordConfirmed($unlock)) {
             throw new ApiException(ApiErrorCode::PasswordRequired);
         }
-
-        return $next($request);
     }
 }

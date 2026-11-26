@@ -71,30 +71,61 @@ class EditorialFoundationsTest {
         }
     }
 
-    @Test fun theNativeAreasOfTheFirstWaveOpenTheirOwnScreens() {
+    @Test fun theNativeAreasOfTheTwoWavesOpenTheirOwnScreens() {
         val native = EditorialArea.entries.filter { it.native }
-        /* Le aree della prima ondata restano native; quelle delle ondate dopo aggiungono la loro riga qui sotto. */
-        assertTrue(native.toString(), native.containsAll(listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation)))
-        /* R13: la configurazione tecnica. */
-        assertTrue(EditorialArea.Settings in native)
+        assertEquals(
+            listOf(
+                EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.EventEditor, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation,
+                EditorialArea.Community, EditorialArea.Promotion, EditorialArea.Social, EditorialArea.Analytics, EditorialArea.Catalog,
+                EditorialArea.System, EditorialArea.Settings,
+            ),
+            native,
+        )
+        /* Resta sul sito finché il suo pacchetto non arriva: il calendario (R14). */
+        assertEquals(listOf(EditorialArea.Calendar), EditorialArea.entries.filterNot { it.native })
         assertEquals(it.fabiodalez.incitta.ui.editorial.settings.SettingsRoute, EditorialArea.Settings.entry)
-        /* R9: il Social. */
-        assertTrue(EditorialArea.Social in native)
-        /* R12: il Sistema. */
-        assertTrue(EditorialArea.System in native)
         assertEquals(it.fabiodalez.incitta.ui.editorial.dashboard.DashboardRoute, EditorialArea.Dashboard.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.events.EventsRoute, EditorialArea.Events.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.eventeditor.EventEditorRoute, EditorialArea.EventEditor.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.venues.VenuesRoute, EditorialArea.Venues.entry)
         /* Dal menu l'elenco degli utenti parte senza scheda né filtri: «Tutti». */
         assertEquals(it.fabiodalez.incitta.ui.editorial.users.UsersRoute(), EditorialArea.Users.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationRoute, EditorialArea.Moderation.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.system.SystemRoute, EditorialArea.System.entry)
         assertEquals(listOf("scheduled_notifications_due"), EditorialArea.System.badges)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.community.CommunityRoute, EditorialArea.Community.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.promotion.PromotionRoute, EditorialArea.Promotion.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.analytics.AnalyticsRoute, EditorialArea.Analytics.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.catalog.CatalogRoute, EditorialArea.Catalog.entry)
+        /* Il modulo evento si apre dall'elenco e dalla scheda, non dal menu. */
+        assertFalse(EditorialArea.EventEditor.inMenu)
         /* I contatori del menu: le stesse chiavi che le voci dentro l'area mostrano. */
         assertEquals(listOf("venues_pending", "venue_applications_pending"), EditorialArea.Venues.badges)
         assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationSection.entries.map { it.badge }.toSet(), EditorialArea.Moderation.badges.toSet())
         assertEquals(listOf("users_registrations"), EditorialArea.Users.badges)
         assertEquals(listOf("events_pending", "event_submissions_pending"), EditorialArea.Events.badges)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.community.CommunityPage.entries.mapNotNull { it.badge }, EditorialArea.Community.badges)
+        assertEquals(listOf("sponsorship_orders_awaiting"), EditorialArea.Promotion.badges)
+    }
+
+    @Test fun everyCounterOfTheDeskBelongsToExactlyOneArea() {
+        /* EditorialBadges::KEYS lato server, nell'ordine del contratto. */
+        val serverBadges = listOf(
+            "events_pending", "event_submissions_pending", "venues_pending", "venue_applications_pending", "users_registrations",
+            "reports_open", "event_comments_hidden", "catalog_reviews_pending", "carpool_open", "sponsorship_orders_awaiting", "scheduled_notifications_due",
+        )
+        val inAreas = EditorialArea.entries.flatMap { it.badges }
+        assertEquals(inAreas.size, inAreas.toSet().size)
+        assertEquals(serverBadges.toSet(), inAreas.toSet())
+    }
+
+    @Test fun theMenuOfTheModeratorIsExactlyThePanelOne() {
+        /* Niente promozione né social; nelle statistiche solo le ricerche senza risultati, nel sistema solo gli invii programmati, il catalogo in lettura. */
+        assertEquals(
+            listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation, EditorialArea.Community,
+                EditorialArea.Analytics, EditorialArea.Catalog, EditorialArea.System, EditorialArea.Calendar),
+            editorialMenu(moderator),
+        )
     }
 
     @Test fun theBadgeOfAnAreaSumsOnlyWhatTheServerShows() {

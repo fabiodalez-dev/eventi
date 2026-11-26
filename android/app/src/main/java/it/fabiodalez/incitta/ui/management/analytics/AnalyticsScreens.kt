@@ -109,7 +109,7 @@ internal fun ExportResult(export: ExportState) {
 }
 
 @Composable
-private fun ExportButtons(export: ExportState, csv: Boolean, onExport: (String) -> Unit) {
+internal fun ExportButtons(export: ExportState, csv: Boolean, onExport: (String) -> Unit) {
     val busy = stringResource(R.string.analytics_export_busy)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (csv) OutlinedButton(enabled = export.busy == null, onClick = { onExport("csv") }, modifier = Modifier.heightIn(min = 48.dp)) {
@@ -125,7 +125,7 @@ private fun ExportButtons(export: ExportState, csv: Boolean, onExport: (String) 
 
 /** Il vuoto del pannello: titolo e frase. */
 @Composable
-private fun EmptyAnalytics() {
+internal fun EmptyAnalytics() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.analytics_empty_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.analytics_empty_body), color = Muted)
@@ -134,7 +134,7 @@ private fun EmptyAnalytics() {
 
 /** Avanti e indietro fra le pagine di un elenco del server. */
 @Composable
-private fun Pager(page: Int, nextPage: Int?, enabled: Boolean, onPage: (Int) -> Unit) {
+internal fun Pager(page: Int, nextPage: Int?, enabled: Boolean, onPage: (Int) -> Unit) {
     if (page <= 1 && nextPage == null) return
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(enabled = enabled && page > 1, onClick = { onPage(page - 1) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.analytics_table_previous)) }
@@ -243,7 +243,7 @@ private fun SummaryContent(data: AnalyticsSummary, state: StatisticsUiState, vie
 }
 
 @Composable
-private fun ValueLine(label: String, value: String) {
+internal fun ValueLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, modifier = Modifier.weight(1f))
         Text(value, fontWeight = FontWeight.SemiBold)
@@ -313,7 +313,7 @@ internal fun ReportScreen(viewModel: ReportViewModel, context: ManagementGraphCo
 }
 
 @Composable
-private fun periodText(report: AnalyticsReport): String = when {
+internal fun periodText(report: AnalyticsReport): String = when {
     report.from == null -> stringResource(R.string.analytics_period_until, longDate(report.until) ?: report.until)
     else -> stringResource(R.string.analytics_period_range, longDate(report.from) ?: report.from, longDate(report.until) ?: report.until)
 }
@@ -447,7 +447,7 @@ private fun ReportContent(
 
 /** Un grafico a barre con il suo titolo e la sua frase; richiudibile dove il pannello lo tiene chiuso. */
 @Composable
-private fun ChartSection(chart: ReportChart, onOpen: (SubjectLink) -> Unit) {
+internal fun ChartSection(chart: ReportChart, onOpen: (SubjectLink) -> Unit) {
     val (title, hint, open) = when (chart.key) {
         "events" -> Triple(R.string.analytics_chart_events, R.string.analytics_chart_events_hint, true)
         "channels" -> Triple(R.string.analytics_chart_channels, R.string.analytics_chart_channels_hint, false)
@@ -599,7 +599,7 @@ private fun ReportFiltersSheet(
 }
 
 @Composable
-private fun ChannelOption(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun ChannelOption(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
@@ -613,7 +613,7 @@ private fun ChannelOption(label: String, selected: Boolean, onClick: () -> Unit)
 /** Una data `AAAA-MM-GG` scelta dal calendario del sistema. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateField(label: String, value: String?, allowEmpty: Boolean, onChange: (String?) -> Unit) {
+internal fun DateField(label: String, value: String?, allowEmpty: Boolean, onChange: (String?) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.titleSmall)
@@ -666,7 +666,7 @@ internal fun AnalyticsTableScreen(viewModel: AnalyticsTableViewModel, context: M
 }
 
 @Composable
-private fun TableContent(table: AnalyticsTable, onOpen: (SubjectLink) -> Unit) {
+internal fun TableContent(table: AnalyticsTable, onOpen: (SubjectLink) -> Unit) {
     if (table.rows.isEmpty()) {
         Text(stringResource(R.string.analytics_table_empty), color = Muted)
         return

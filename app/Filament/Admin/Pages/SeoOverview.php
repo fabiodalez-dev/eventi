@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Admin\Pages;
 
 use App\Models\City;
+use App\Services\Seo\SearchConsoleVerification;
 use App\Services\Seo\SeoAudit;
-use App\Support\CurrentCity;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -17,7 +17,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\WithPagination;
 
 /**
@@ -34,7 +33,7 @@ class SeoOverview extends Page
 {
     use WithPagination;
 
-    public const PER_PAGE = 20;
+    public const PER_PAGE = SeoAudit::PER_PAGE;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMagnifyingGlass;
 
@@ -53,7 +52,7 @@ class SeoOverview extends Page
 
     public function updatedFilter(): void
     {
-        if (! in_array($this->filter, ['issues', 'all'], true)) {
+        if (! in_array($this->filter, SeoAudit::FILTERS, true)) {
             $this->filter = 'issues';
         }
 
@@ -63,21 +62,16 @@ class SeoOverview extends Page
     /** @return array<string, mixed> */
     protected function getViewData(): array
     {
-        $report = collect(app(SeoAudit::class)->report());
-        $withIssues = $report->filter(fn (array $row): bool => $row['issues'] !== []);
-        $rows = $this->filter === 'all' ? $report : $withIssues;
-        $page = $this->getPage();
+        // Lo stesso controllo, le stesse schede e le stesse pagine dell'app della redazione.
+        $overview = app(SeoAudit::class)->overview($this->filter, $this->getPage(), self::PER_PAGE);
 
-        return [
-            'rows' => new LengthAwarePaginator($rows->forPage($page, self::PER_PAGE)->values(), $rows->count(), self::PER_PAGE, $page),
-            'counts' => ['issues' => $withIssues->count(), 'all' => $report->count()],
-        ];
+        return ['rows' => $overview['rows'], 'counts' => $overview['counts']];
     }
 
     public function mount(): void
     {
         $city = City::query()->first();
-        $this->getSchema('form')->fill(['city_id' => $city?->id, 'verification' => $city?->getAttribute('seo')['google_verification'] ?? null]);
+        $this->getSchema('form')->fill(['city_id' => $city?->id, 'verification' => $city === null ? null : SearchConsoleVerification::code($city)]);
     }
 
     public function form(Schema $schema): Schema
@@ -86,25 +80,29 @@ class SeoOverview extends Page
             Section::make(__('seo.search_console.title'))->description(__('seo.search_console.help'))->columns(['default' => 1, 'lg' => 2])->schema([
                 Select::make('city_id')->label(__('seo.search_console.city'))
                     ->options(City::query()->pluck('name', 'id'))->required()->exists('cities', 'id')->live()
-                    ->afterStateUpdated(fn ($state, Set $set) => $set('verification', City::query()->whereKey($state)->first()?->getAttribute('seo')['google_verification'] ?? null)),
+                    ->afterStateUpdated(fn ($state, Set $set) => $set('verification', self::codeOf($state))),
                 TextInput::make('verification')->label(__('seo.search_console.code'))
-                    ->helperText(__('seo.search_console.code_help'))->maxLength(255)->regex('/^[A-Za-z0-9_-]+$/')->nullable(),
+                    ->helperText(__('seo.search_console.code_help'))->maxLength(SearchConsoleVerification::MAX)->regex(SearchConsoleVerification::PATTERN)->nullable(),
             ])->footerActions([
                 Action::make('saveVerification')->label(__('seo.search_console.save'))->action(fn () => $this->save()),
             ]),
         ]);
     }
 
+    /** Il codice salvato della città scelta nel campo «Città». */
+    private static function codeOf(mixed $cityId): ?string
+    {
+        $city = City::query()->whereKey($cityId)->first();
+
+        return $city === null ? null : SearchConsoleVerification::code($city);
+    }
+
     public function save(): void
     {
         abort_unless(static::canAccess(), 403);
         $state = $this->getSchema('form')->getState();
-        $city = City::findOrFail($state['city_id']);
-        $city->update(['seo' => array_replace($city->seo ?? [], ['google_verification' => $state['verification'] ?? null])]);
-        $currentCity = app(CurrentCity::class);
-        if ($currentCity->get()?->id === $city->id) {
-            $currentCity->set($city);
-        }
+        // Lo stesso salvataggio dell'app della redazione: tocca solo il codice.
+        app(SearchConsoleVerification::class)->save(City::findOrFail($state['city_id']), $state['verification'] ?? null);
         Notification::make()->title(__('seo.search_console.saved'))->success()->send();
     }
 

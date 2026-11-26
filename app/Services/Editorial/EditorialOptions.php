@@ -18,6 +18,7 @@ use App\Enums\NotificationStatus;
 use App\Enums\NotificationType;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
+use App\Enums\RideStatus;
 use App\Enums\SponsorshipOrderStatus;
 use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
@@ -62,6 +63,8 @@ final class EditorialOptions
             // Il pannello le etichetta con `reviews.<stato>` (l'enum non ha `label()`).
             'review_statuses' => array_map(static fn (CatalogReviewStatus $status): array => ['value' => $status->value, 'label' => (string) __('reviews.'.$status->value)], CatalogReviewStatus::cases()),
             'carpool_case_statuses' => self::cases(CarpoolCaseStatus::cases()),
+            // R7: il filtro «Stato» della sezione «Passaggi» della pagina dei passaggi.
+            'ride_statuses' => self::cases(RideStatus::cases()),
             'notification_statuses' => self::cases(NotificationStatus::cases()),
             // R12: tipi degli invii previsti, tipi e esiti degli import.
             'notification_types' => self::cases(NotificationType::cases()),

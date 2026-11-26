@@ -12,6 +12,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 
 /**
@@ -83,4 +84,26 @@ it('espone l\'unione come azione del pannello', function (): void {
         ->assertHasNoTableActionErrors();
 
     expect(Tag::query()->whereKey($absorbed->getKey())->exists())->toBeFalse();
+});
+
+it('nel pannello non unisce se chi chiede non può eliminare il tag assorbito', function (): void {
+    (new RolesAndPermissionsSeeder)->run();
+
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::Admin->value);
+    $this->actingAs($admin);
+
+    $keep = Tag::factory()->create(['name' => 'Concerti']);
+    $absorbed = Tag::factory()->create(['name' => 'concerto']);
+    $event = eventForTags();
+    $event->tags()->attach($absorbed);
+    /* `TagPolicy::delete` oggi guarda solo il permesso: qui il doppione è protetto e il tag che resta no. */
+    Gate::before(fn ($user, string $ability, array $arguments): ?bool => $ability === 'delete' && ($arguments[0] ?? null) instanceof Tag && $arguments[0]->is($absorbed) ? false : null);
+
+    Livewire::test(ListTags::class)
+        ->callTableAction('merge', $keep, ['absorbed' => $absorbed->getKey()])
+        ->assertNotified(__('admin.notifications.merge_forbidden'));
+
+    expect(Tag::query()->whereKey($absorbed->getKey())->exists())->toBeTrue()
+        ->and($event->refresh()->tags->pluck('id')->all())->toBe([$absorbed->getKey()]);
 });

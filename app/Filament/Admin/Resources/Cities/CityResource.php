@@ -180,7 +180,7 @@ class CityResource extends Resource
                         Select::make('locale')
                             ->label(__('admin.fields.locale'))
                             ->required()
-                            ->options(['it' => 'it', 'en' => 'en', 'de' => 'de'])
+                            ->options(array_combine(City::LOCALES, City::LOCALES))
                             ->default('it'),
                     ]),
 

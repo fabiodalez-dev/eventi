@@ -12,7 +12,9 @@ import it.fabiodalez.incitta.data.editorial.moderationApi
 import it.fabiodalez.incitta.ui.editorial.EditorialArea
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
 import it.fabiodalez.incitta.ui.editorial.common.EditorialListHandoff
+import it.fabiodalez.incitta.ui.editorial.community.communityRouteForReport
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
+import it.fabiodalez.incitta.ui.management.common.Loadable
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
 
@@ -81,7 +83,16 @@ internal fun NavGraphBuilder.moderationGraph(context: EditorialGraphContext) {
             if (state.changed) context.navController.previousBackStackEntry?.savedStateHandle?.set(KEY_REPORTS_CHANGED, true)
             if (state.deleted) context.back()
         }
-        ReportDetailScreen(viewModel, context.padding, zone(context), onBack = context::back, onCommunity = { context.open(EditorialArea.Community) })
+        val desk by context.repository.current.collectAsStateWithLifecycle()
+        ReportDetailScreen(viewModel, context.padding, zone(context), onBack = context::back, onCommunity = {
+            val subject = (state.report as? Loadable.Ready)?.value?.subject
+            /* «Modera il soggetto»: la community nell'app, sulla scheda del contenuto segnalato; senza `community_manage` il pannello. */
+            when {
+                subject == null -> Unit
+                desk?.can?.communityManage == true -> context.navController.navigate(communityRouteForReport(subject.type))
+                else -> context.openWeb(EditorialArea.Community.webPath)
+            }
+        })
     }
     composable<ModerationReviewsRoute> {
         val viewModel = editorialViewModel { ReviewsViewModel(context.repository, context.repository.moderationApi(), it) }

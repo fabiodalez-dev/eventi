@@ -457,6 +457,7 @@ return [
         'occurrences_generated' => 'Date generate: :count.',
         'occurrences_updated' => 'Date aggiornate: :count.',
         'merged' => 'Tag uniti: :count eventi spostati.',
+        'merge_forbidden' => 'Non puoi eliminare il tag doppione: i tag non sono stati uniti.',
         'invitation_sent' => 'Invito inviato',
         'already_member' => 'Questa persona è già nel locale come :role: non è partito nessun invito. Il ruolo si cambia con «Modifica» sulla sua riga.',
         'already_invited' => 'Questa persona ha già un invito da accettare come :role: non è partito un secondo messaggio. Per entrare deve accettarlo dal collegamento che ha ricevuto.',

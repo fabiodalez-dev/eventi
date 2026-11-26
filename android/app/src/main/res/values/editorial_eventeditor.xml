@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R3 — il modulo evento e le date della redazione. -->
+<resources>
+    <string name="editorial_ee_new_title">Nuovo evento</string>
+    <string name="editorial_ee_edit_title">Modifica evento</string>
+    <string name="editorial_ee_create">Crea evento</string>
+    <string name="editorial_ee_save">Salva</string>
+    <string name="editorial_ee_fix">Controlla i campi segnati in rosso.</string>
+    <string name="editorial_ee_open_dates">Gestisci le date</string>
+    <string name="editorial_ee_edit">Modifica</string>
+    <string name="editorial_ee_new_event">Nuovo evento</string>
+    <string name="editorial_ee_social">Anteprima grafica social (sul sito)</string>
+    <string name="editorial_ee_create_feature">Crea caratteristica</string>
+    <string name="editorial_ee_create_feature_help">Apre il modulo della caratteristica nel catalogo. Dopo il salvataggio torni qui e la caratteristica nuova è già scelta.</string>
+
+    <!-- Schede -->
+    <string name="editorial_ee_tab_what">Cosa</string>
+    <string name="editorial_ee_tab_when">Quando</string>
+    <string name="editorial_ee_tab_where">Dove</string>
+    <string name="editorial_ee_tab_tickets">Biglietti</string>
+    <string name="editorial_ee_tab_before_going">Prima di andare</string>
+    <string name="editorial_ee_tab_content">Contenuti e SEO</string>
+    <string name="editorial_ee_tab_extra">Extra</string>
+    <string name="editorial_ee_tab_publish">Pubblicazione</string>
+
+    <!-- Cosa -->
+    <string name="editorial_ee_title">Titolo</string>
+    <string name="editorial_ee_subtitle">Sottotitolo</string>
+    <string name="editorial_ee_slug">Indirizzo nel sito</string>
+    <string name="editorial_ee_slug_hint">Vuoto: si ricava dal titolo.</string>
+    <string name="editorial_ee_short_description">Descrizione breve</string>
+    <string name="editorial_ee_short_description_hint">Compare nelle card e nelle anteprime. Al massimo %1$d caratteri.</string>
+    <string name="editorial_ee_description">Descrizione</string>
+    <string name="editorial_ee_category">Categoria</string>
+    <string name="editorial_ee_age_restriction">Limite di età</string>
+    <string name="editorial_ee_language">Lingua</string>
+    <string name="editorial_ee_language_hint">Codice di due lettere, per esempio it o en.</string>
+    <string name="editorial_ee_media">Immagini e video</string>
+    <string name="editorial_ee_poster">Locandina</string>
+    <string name="editorial_ee_poster_pick">Scegli la locandina</string>
+    <string name="editorial_ee_poster_replace">Sostituisci la locandina</string>
+    <string name="editorial_ee_poster_remove">Togli la locandina</string>
+    <string name="editorial_ee_poster_description">La locandina dell\'evento</string>
+    <string name="editorial_ee_gallery">Galleria</string>
+    <string name="editorial_ee_gallery_add">Aggiungi una foto</string>
+    <string name="editorial_ee_gallery_remove">Togli la foto</string>
+    <string name="editorial_ee_gallery_up">Sposta prima</string>
+    <string name="editorial_ee_gallery_down">Sposta dopo</string>
+    <string name="editorial_ee_gallery_photo">Foto %1$d della galleria</string>
+    <string name="editorial_ee_images_after_create">Locandina e galleria si caricano dopo aver creato l\'evento.</string>
+    <string name="editorial_ee_video_url">Video</string>
+    <string name="editorial_ee_video_url_hint">Un indirizzo di YouTube o Vimeo.</string>
+
+    <!-- Quando -->
+    <string name="editorial_ee_dates">Date</string>
+    <string name="editorial_ee_dates_hint">Inserisci una o più date: si salvano con l\'evento. Gli orari sono nell\'ora di %1$s.</string>
+    <string name="editorial_ee_date_add">Aggiungi una data</string>
+    <string name="editorial_ee_starts_at">Inizio</string>
+    <string name="editorial_ee_ends_at">Fine</string>
+    <string name="editorial_ee_doors_at">Apertura porte</string>
+    <string name="editorial_ee_all_day">Tutto il giorno</string>
+    <string name="editorial_ee_dates_after_create">Dopo la creazione le date si modificano dall\'elenco delle date, dove si sceglie se cambiare una data sola o tutta la serie.</string>
+    <string name="editorial_ee_recurrences">Ricorrenze</string>
+    <string name="editorial_ee_recurrences_hint">Una regola RRULE per ogni serie, per esempio FREQ=WEEKLY;BYDAY=TH. Le date si creano con «Genera date».</string>
+    <string name="editorial_ee_recurrence_add">Aggiungi una ricorrenza</string>
+    <string name="editorial_ee_rrule">Regola (RRULE)</string>
+    <string name="editorial_ee_until">Fino al</string>
+    <string name="editorial_ee_exdates">Date escluse</string>
+    <string name="editorial_ee_exdates_hint">Una data per riga, per esempio 2026-12-25.</string>
+    <string name="editorial_ee_generated_until">Generate fino al %1$s</string>
+    <string name="editorial_ee_generate">Genera date</string>
+    <string name="editorial_ee_generate_confirm">Creo le date delle ricorrenze che mancano. Le date già presenti o modificate a mano non cambiano.</string>
+
+    <!-- Dove -->
+    <string name="editorial_ee_city">Città</string>
+    <string name="editorial_ee_venue">Locale</string>
+    <string name="editorial_ee_venue_hint">I locali della città scelta. Senza locale si indica il luogo qui sotto.</string>
+    <string name="editorial_ee_place">Luogo che non è un locale</string>
+    <string name="editorial_ee_place_name">Nome del luogo</string>
+    <string name="editorial_ee_place_address">Indirizzo</string>
+    <string name="editorial_ee_lat">Latitudine</string>
+    <string name="editorial_ee_lng">Longitudine</string>
+    <string name="editorial_ee_outdoor">All\'aperto</string>
+    <string name="editorial_ee_organizer_section">Organizzazione</string>
+    <string name="editorial_ee_organizer">Organizzatore registrato</string>
+    <string name="editorial_ee_organizer_hint">Se vuoto, il locale ospitante è anche l\'organizzatore.</string>
+    <string name="editorial_ee_co_organizers">Co-organizzatori</string>
+    <string name="editorial_ee_co_organizers_hint">Le organizzazioni che curano l\'evento insieme a quella principale.</string>
+    <string name="editorial_ee_co_organizer_add">Aggiungi un co-organizzatore</string>
+    <string name="editorial_ee_remove">Togli %1$s</string>
+    <string name="editorial_ee_organizer_name">Nome dell\'organizzatore</string>
+    <string name="editorial_ee_organizer_url">Sito dell\'organizzatore</string>
+
+    <!-- Biglietti -->
+    <string name="editorial_ee_price_type">Tipo di prezzo</string>
+    <string name="editorial_ee_price_min">Prezzo minimo</string>
+    <string name="editorial_ee_price_max">Prezzo massimo</string>
+    <string name="editorial_ee_price_notes">Note sul prezzo</string>
+    <string name="editorial_ee_currency">Valuta</string>
+    <string name="editorial_ee_ticket_url">Acquisto biglietti su sito esterno</string>
+    <string name="editorial_ee_booking_required">Prenotazione obbligatoria</string>
+    <string name="editorial_ee_booking_url">Link per prenotare</string>
+    <string name="editorial_ee_booking_phone">Telefono per prenotare</string>
+    <string name="editorial_ee_ticketing">Ticketing inCittà</string>
+    <string name="editorial_ee_ticketing_hint">Biglietti gratuiti o pagamento all\'ingresso, senza incassi online. Si attiva data per data dalla gestione biglietti.</string>
+    <string name="editorial_ee_ticketing_disabled">Il locale deve essere abilitato al ticketing dalla redazione (scheda del locale, «Ticketing»).</string>
+    <string name="editorial_ee_ticketing_manage">%1$s — Gestisci biglietti</string>
+    <string name="editorial_ee_ticketing_no_dates">Salva l\'evento e aggiungi almeno una data per configurare il ticketing.</string>
+    <string name="editorial_ee_tiers">Listino</string>
+    <string name="editorial_ee_tiers_hint">Le voci del listino dell\'evento. Il listino di una sola data si compila dalla data.</string>
+
+    <!-- Contenuti e SEO, Extra -->
+    <string name="editorial_ee_information">Informazioni utili</string>
+    <string name="editorial_ee_seo">Impostazioni SEO</string>
+    <string name="editorial_ee_seo_title">Titolo per i motori di ricerca</string>
+    <string name="editorial_ee_seo_description">Descrizione per i motori di ricerca</string>
+    <string name="editorial_ee_seo_image">Immagine per la condivisione (indirizzo)</string>
+    <string name="editorial_ee_seo_indexing">Indicizzazione</string>
+    <string name="editorial_ee_demo">Contenuto dimostrativo</string>
+    <string name="editorial_ee_demo_hint">Visibile sul sito con il suo avviso, ma fuori da avvisi, riepiloghi e social.</string>
+    <string name="editorial_ee_facts">Scheda tecnica</string>
+    <string name="editorial_ee_facts_hint">Al massimo %1$d voci, per esempio «Durata: 90 minuti».</string>
+    <string name="editorial_ee_links">Collegamenti esterni</string>
+    <string name="editorial_ee_links_hint">Al massimo %1$d collegamenti.</string>
+
+    <!-- Pubblicazione -->
+    <string name="editorial_ee_status">Stato</string>
+    <string name="editorial_ee_scheduled">Pubblicazione prevista: %1$s.</string>
+    <string name="editorial_ee_scheduled_pending">In attesa di approvazione della redazione. L\'orario scelto non sostituisce l\'approvazione.</string>
+    <string name="editorial_ee_not_scheduled">Nessuna pubblicazione programmata.</string>
+    <string name="editorial_ee_schedule">Programma pubblicazione</string>
+    <string name="editorial_ee_schedule_at">Data e ora di pubblicazione</string>
+    <string name="editorial_ee_schedule_hint">L\'evento uscirà all\'orario scelto solo se autorizzato alla pubblicazione.</string>
+    <string name="editorial_ee_schedule_confirm">Programma</string>
+    <string name="editorial_ee_unschedule">Annulla programmazione</string>
+    <string name="editorial_ee_source">Provenienza</string>
+    <string name="editorial_ee_verification">Verifica</string>
+    <string name="editorial_ee_verification_hint">Confermato dal locale deriva dalla verifica del locale. Solo la redazione può impostare Verificato dalla redazione.</string>
+    <string name="editorial_ee_score">Punteggio editoriale</string>
+    <string name="editorial_ee_score_hint">Da 0 a 100: più alto, più in evidenza nelle liste.</string>
+    <string name="editorial_ee_featured">In evidenza</string>
+    <string name="editorial_ee_featured_until">In evidenza fino al</string>
+    <string name="editorial_ee_featured_locked">Solo admin e super admin mettono in evidenza.</string>
+    <string name="editorial_ee_rejection_reason">Motivo del rifiuto</string>
+    <string name="editorial_ee_cancel">Annulla</string>
+    <string name="editorial_ee_close">Chiudi</string>
+
+    <!-- Date -->
+    <string name="editorial_dates_title">Date</string>
+    <string name="editorial_dates_empty">Nessuna data per questo evento.</string>
+    <string name="editorial_dates_add">Aggiungi data</string>
+    <string name="editorial_dates_new_title">Nuova data</string>
+    <string name="editorial_dates_edit_title">Modifica data</string>
+    <string name="editorial_dates_timezone">Orari nell\'ora di %1$s.</string>
+    <string name="editorial_dates_series">Serie</string>
+    <string name="editorial_dates_exception">Modificata a mano</string>
+    <string name="editorial_dates_lineups">%1$d in lineup</string>
+    <string name="editorial_dates_actions">Altre azioni sulla data del %1$s</string>
+    <string name="editorial_dates_shift">Sposta</string>
+    <string name="editorial_dates_shift_minutes">Minuti di spostamento</string>
+    <string name="editorial_dates_shift_hint">In avanti (per esempio 30) o indietro (per esempio -30). Porte e fine si spostano insieme.</string>
+    <string name="editorial_dates_cancel">Annulla la data</string>
+    <string name="editorial_dates_cancel_note">Avviso al pubblico</string>
+    <string name="editorial_dates_sold_out">Tutto esaurito</string>
+    <string name="editorial_dates_back_on_sale">Rimetti in programma</string>
+    <string name="editorial_dates_sold_out_confirm">Cambio lo stato di questa data soltanto.</string>
+    <string name="editorial_dates_delete">Elimina</string>
+    <string name="editorial_dates_delete_confirm">La data va nel cestino e sparisce dal sito.</string>
+    <string name="editorial_dates_tickets">Gestisci biglietti</string>
+    <string name="editorial_dates_scope">Applica a</string>
+    <string name="editorial_dates_no_series">Questa data non appartiene a una ricorrenza: la modifica vale solo per lei.</string>
+    <string name="editorial_dates_confirm">Conferma</string>
+    <string name="editorial_dates_read_only">Le date si modificano con il permesso di modificare l\'evento.</string>
+    <string name="editorial_dates_venue">Locale di questa data</string>
+    <string name="editorial_dates_venue_hint">Vuoto: il locale principale dell\'evento.</string>
+    <string name="editorial_dates_status">Stato della data</string>
+    <string name="editorial_dates_capacity">Capienza di questa sera</string>
+    <string name="editorial_dates_capacity_hint">Vuota: quella del locale.</string>
+    <string name="editorial_dates_capacity_left">Posti rimasti</string>
+    <string name="editorial_dates_highlight">Evidenza</string>
+    <string name="editorial_dates_highlight_hint">Una parola breve sulla card, per esempio «Ultimi posti».</string>
+    <string name="editorial_dates_status_note">Avviso al pubblico</string>
+    <string name="editorial_dates_practical">Informazioni pratiche di questa data</string>
+    <string name="editorial_dates_practical_hint">Vuote: valgono quelle dell\'evento e del locale.</string>
+    <string name="editorial_dates_accessibility">Accessibilità</string>
+    <string name="editorial_dates_accessible">Accessibile</string>
+    <string name="editorial_dates_not_accessible">Non accessibile</string>
+    <string name="editorial_dates_unknown">Non so</string>
+    <string name="editorial_dates_membership">Tessera</string>
+    <string name="editorial_dates_entrance_notes">Ingresso</string>
+    <string name="editorial_dates_membership_notes">Dettagli tessera</string>
+    <string name="editorial_dates_parking_notes">Parcheggio</string>
+    <string name="editorial_dates_transit_notes">Mezzi pubblici</string>
+    <string name="editorial_dates_food_notes">Cibo e bevande</string>
+    <string name="editorial_dates_start_notes">Note sull\'inizio</string>
+    <string name="editorial_dates_costs">Costi dichiarati (%1$s)</string>
+    <string name="editorial_dates_costs_hint">Quanto spende chi partecipa, voce per voce.</string>
+    <string name="editorial_dates_cost_admission">Ingresso</string>
+    <string name="editorial_dates_cost_drink">Consumazione obbligatoria</string>
+    <string name="editorial_dates_cost_membership">Tessera associativa</string>
+    <string name="editorial_dates_cost_other">Altri costi obbligatori</string>
+    <string name="editorial_dates_tiers">Listino di questa data</string>
+    <string name="editorial_dates_tiers_hint">Sostituisce il listino dell\'evento per questa sera.</string>
+    <string name="editorial_dates_lineup">Lineup</string>
+    <string name="editorial_dates_lineup_add">Aggiungi un artista</string>
+    <string name="editorial_dates_lineup_name">Nome</string>
+    <string name="editorial_dates_lineup_role">Ruolo</string>
+    <string name="editorial_dates_lineup_starts">Ora d\'inizio</string>
+    <string name="editorial_dates_lineup_url">Collegamento</string>
+    <string name="editorial_dates_tier_add">Aggiungi una voce</string>
+    <string name="editorial_dates_tier_name">Nome</string>
+    <string name="editorial_dates_tier_price">Prezzo</string>
+    <string name="editorial_dates_tier_status">Disponibilità</string>
+    <string name="editorial_dates_tier_url">Collegamento</string>
+    <string name="editorial_dates_tier_note">Nota</string>
+    <string name="editorial_dates_save">Salva la data</string>
+</resources>

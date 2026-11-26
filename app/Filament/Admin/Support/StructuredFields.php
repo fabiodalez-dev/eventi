@@ -76,47 +76,6 @@ final class StructuredFields
     }
 
     /**
-     * `cities.settings` è una mappa di interruttori `{"nome": true}` (D24):
-     * il pannello la mostra come righe nome/acceso.
-     *
-     * @param  mixed  $map
-     * @return list<array{key: string, enabled: bool}>
-     */
-    public static function flagsToRows($map): array
-    {
-        $rows = [];
-
-        foreach (is_array($map) ? $map : [] as $key => $value) {
-            if (is_array($value)) {
-                continue;
-            }
-
-            $rows[] = ['key' => (string) $key, 'enabled' => (bool) $value];
-        }
-
-        return $rows;
-    }
-
-    /**
-     * @param  mixed  $rows
-     * @return array<string, bool>|null
-     */
-    public static function flagsToMap($rows): ?array
-    {
-        $map = [];
-
-        foreach (is_array($rows) ? $rows : [] as $row) {
-            if (! is_array($row) || blank($row['key'] ?? null)) {
-                continue;
-            }
-
-            $map[(string) $row['key']] = (bool) ($row['enabled'] ?? false);
-        }
-
-        return $map === [] ? null : $map;
-    }
-
-    /**
      * `event_recurrences.exdates` è un elenco JSON di date; nel modulo è un
      * testo con una data per riga.
      *
