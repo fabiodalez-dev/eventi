@@ -1,10 +1,10 @@
 package it.fabiodalez.incitta.management
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.ApiClient
 import it.fabiodalez.incitta.data.Session
@@ -27,7 +27,7 @@ import org.junit.Test
  * cambio di periodo. I testi si leggono dalle risorse.
  */
 class AnalyticsUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val paths = CopyOnWriteArrayList<String>()
     private fun text(id: Int, vararg args: Any): String = compose.activity.getString(id, *args)
 

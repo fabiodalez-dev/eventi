@@ -1,16 +1,16 @@
 package it.fabiodalez.incitta.ui
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import it.fabiodalez.incitta.MainActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
 class ContentModeSelectorTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun labelChangesSelectionAndDisabledRowsCannotChangeIt() {
         var mode by mutableStateOf("all")

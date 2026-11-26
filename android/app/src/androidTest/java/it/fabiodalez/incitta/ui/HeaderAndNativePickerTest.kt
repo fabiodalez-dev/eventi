@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta.ui
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -8,16 +9,15 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import it.fabiodalez.incitta.AppTab
-import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.MainViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
 class HeaderAndNativePickerTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun quickThemeIsInEveryTabAndDoesNotChangeTheDefault() {
+    @Test fun quickThemeIsInEveryTabAndSavesTheChoiceLikeTheWebsite() {
         lateinit var model: MainViewModel
         compose.runOnIdle {
             model = MainViewModel(compose.activity.application)
@@ -30,7 +30,8 @@ class HeaderAndNativePickerTest {
         for (tab in listOf(AppTab.HOME, AppTab.EVENTS, AppTab.SEARCH, AppTab.SAVED, AppTab.ACCOUNT, AppTab.CALENDAR, AppTab.VENUES, AppTab.MAP)) {
             compose.runOnIdle { model.selectTab(tab) }
             compose.onNodeWithContentDescription(if (other == "dark") "Passa al tema chiaro" else "Passa al tema scuro").assertIsDisplayed()
-            assertEquals(default, model.state.value.defaultAppearance)
+            // Dal 19/09 il pulsante salva la scelta nel profilo, come sul sito.
+            assertEquals(other, model.state.value.defaultAppearance)
             assertEquals(other, model.state.value.appearance)
         }
     }

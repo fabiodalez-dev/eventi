@@ -33,6 +33,6 @@ fun AppearancePicker(appearance: String, saving: Boolean, authenticated: Boolean
             }
         }
         Text(if (saving) "Salvataggio…" else if (authenticated) "Salvato nel profilo, anche sul sito e sugli altri dispositivi." else "La scelta resta salvata su questo dispositivo.", color = Muted, style = MaterialTheme.typography.bodyMedium)
-        Text("Lo switch nell’header cambia il tema in uso senza modificare questa preferenza.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+        Text("Anche il pulsante del tema in alto cambia questa scelta.", color = Muted, style = MaterialTheme.typography.bodyMedium)
     }
 }

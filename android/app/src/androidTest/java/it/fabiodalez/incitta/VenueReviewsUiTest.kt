@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -16,7 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class VenueReviewsUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun registeredUserCanChooseStarsSubmitAndDelete() {
         var own: OwnVenueReview? = null
@@ -25,7 +26,7 @@ class VenueReviewsUiTest {
                 InCittaTheme {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         VenueReviewsSection("locale", 1, {},
-                            load = { VenueReviewPage(myReview = own) },
+                            load = { VenueReviewPage(canReview = true, verified = true, myReview = own) },
                             submit = { stars, text, revision -> own = OwnVenueReview(stars, text, "pending", revision = revision + 1) },
                             delete = { own = null })
                     }

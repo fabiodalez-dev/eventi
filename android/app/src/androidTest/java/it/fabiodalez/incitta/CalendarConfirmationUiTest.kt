@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,7 +17,7 @@ import org.junit.Test
 import org.junit.Assert.assertFalse
 
 class CalendarConfirmationUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun asksBeforeAddingAndCancelDoesNotConnectAnything() {
         val store = LocalStore(compose.activity)

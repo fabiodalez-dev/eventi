@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta.ui
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
@@ -7,14 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import it.fabiodalez.incitta.MainActivity
 import it.fabiodalez.incitta.AppUiState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
 class FilterInteractionTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private var applied: Map<String, String>? = null
 
     private fun screen(filters: Map<String, String>, collapsible: Boolean = false, onCollapse: () -> Unit = {}) {

@@ -47,6 +47,8 @@ data class AppUiState(
     val cardLayout: String = "full",
     /* Il giorno scelto nel Calendario (`yyyy-MM-dd`); null vuol dire oggi. */
     val calendarDay: String? = null,
+    /* Il banner «Crea un calendario personalizzato» apre il Calendario con le opzioni già aperte. */
+    val calendarSetup: Boolean = false,
     val bookings: List<it.fabiodalez.incitta.data.Booking> = emptyList(),
     /* Prenotazioni recenti a cui la persona non si è presentata (`meta.no_shows`). */
     val noShows: Int = 0,
@@ -331,6 +333,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         try { repository.refreshProfile() }
         catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { /* Cached profile remains available offline. */ }
+    }
+
+    fun openCalendarSetup() {
+        selectTab(AppTab.CALENDAR)
+        if (_state.value.tab == AppTab.CALENDAR) _state.value = _state.value.copy(calendarSetup = true)
+    }
+
+    fun calendarSetupShown() {
+        _state.value = _state.value.copy(calendarSetup = false)
     }
 
     fun selectTab(tab: AppTab) {

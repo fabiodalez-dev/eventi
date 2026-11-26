@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.*
@@ -13,7 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class SavedAgendaUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val futureDate = OffsetDateTime.now().plusDays(2)
     private fun event(id: Long, title: String, start: OffsetDateTime) = Occurrence(
         occurrenceId = id, eventId = id, eventSlug = "event-$id", title = title,

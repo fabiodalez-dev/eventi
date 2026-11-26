@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.*
@@ -25,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * l'area si comporta come fino alla 1.23.0 e si atterra sull'elenco delle date.
  */
 class ManagementUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val bodies = CopyOnWriteArrayList<String>()
     private fun text(id: Int, vararg args: Any): String = compose.activity.getString(id, *args)
 

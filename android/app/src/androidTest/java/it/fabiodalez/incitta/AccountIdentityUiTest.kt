@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
@@ -19,7 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class AccountIdentityUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun emailIsVisibleWithNoNameAndLargeFontsOnANarrowPhone() {
         var changed = false

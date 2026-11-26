@@ -16,10 +16,10 @@ class LoginFeedbackTest {
         if (compose.onAllNodesWithText("RIFIUTA").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("RIFIUTA").performClick()
         }
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("IN PROGRAMMA").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Esplora", substring = true).fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText("PROFILO") and hasClickAction()).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNode(hasText("PROFILO") and hasClickAction()).performClick()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasContentDescription("Profilo") and hasClickAction()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasContentDescription("Profilo") and hasClickAction()).performClick()
     }
 
     private fun submit() = compose.onAllNodes(hasText("ACCEDI") and hasClickAction()).onLast().performScrollTo().performClick()

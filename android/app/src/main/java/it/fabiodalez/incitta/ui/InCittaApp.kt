@@ -448,6 +448,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onEvents = { viewModel.selectTab(AppTab.EVENTS) },
                         onMap = { viewModel.selectTab(AppTab.MAP) },
                         onCalendarDay = viewModel::openCalendarDay,
+                        onCalendarSetup = viewModel::openCalendarSetup,
                         onPreset = viewModel::openEventsPreset,
                         onRegister = { path -> openDestination(it.fabiodalez.incitta.BuildConfig.API_BASE_URL.substringBefore("/api/") + "/" + path) },
                         onLogin = { viewModel.selectTab(AppTab.ACCOUNT) },
@@ -516,7 +517,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onCarpool = { carpoolRoute = "me" }, onCarpoolMessages = { carpoolRoute = "chats" }, onCommunityInbox = { carpoolRoute = "inbox" }, communityTotal = communityTotal,
                         onAttended = { viewModel.selectTab(AppTab.ATTENDED) },
                     )
-                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved, { viewModel.selectTab(AppTab.HOME) }, viewModel::selectCalendarDay)
+                    AppTab.CALENDAR -> CalendarScreen(state, padding, viewModel::open, viewModel::toggleSaved, { viewModel.selectTab(AppTab.HOME) }, viewModel::selectCalendarDay, viewModel::calendarSetupShown)
                     AppTab.VENUES -> VenuesScreen(state, padding, viewModel::openVenue, viewModel::setVenuesOpenNow, viewModel::loadOpenNowVenues) { viewModel.selectTab(AppTab.HOME) }
                     AppTab.TICKETS -> TicketsScreen(state, padding, viewModel::cancelBooking, viewModel::loadBookings, viewModel::resendBooking, viewModel::addToWallet, viewModel::consumeWalletLink, viewModel::sendTicket, onResendVerification = viewModel::resendEmailVerification, onEmailConfirmed = viewModel::emailConfirmed) { viewModel.selectTab(AppTab.ACCOUNT) }
                     AppTab.ATTENDED -> AttendedScreen(

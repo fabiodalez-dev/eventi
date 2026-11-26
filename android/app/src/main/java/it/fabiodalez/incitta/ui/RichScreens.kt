@@ -115,6 +115,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -738,7 +739,7 @@ private fun VenueTypeFilter(label: String, selected: Boolean, onClick: () -> Uni
  * oggi, oppure sul giorno toccato nel calendario della home.
  */
 @Composable
-fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onBack: () -> Unit, onSelectDay: (java.time.LocalDate) -> Unit = {}) {
+fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrence) -> Unit, onSave: (Long) -> Unit, onBack: () -> Unit, onSelectDay: (java.time.LocalDate) -> Unit = {}, onSetupShown: () -> Unit = {}) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val api = remember { it.fabiodalez.incitta.data.ApiClient(it.fabiodalez.incitta.data.LocalStore(context).installationId) }
     val token = state.session?.token
@@ -761,7 +762,17 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
         }
     }
     val firstMonth = java.time.YearMonth.from(today)
-    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    var setupOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    /* Dal banner della home: si scende alle opzioni del calendario e le si apre. */
+    LaunchedEffect(state.calendarSetup) {
+        if (!state.calendarSetup) return@LaunchedEffect
+        setupOpen = true
+        onSetupShown()
+        val count = androidx.compose.runtime.snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
+        listState.scrollToItem(count - 1)
+    }
+    LazyColumn(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding()), state = listState) {
         item { ScreenHeader("CALENDARIO", "LE DATE IN CITTÀ, GIORNO PER GIORNO", onBack) }
         item(key = "calendar-month") {
             Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp)) {
@@ -796,7 +807,7 @@ fun CalendarScreen(state: AppUiState, padding: PaddingValues, onOpen: (Occurrenc
                 eventCards(events, state.cardLayout, state.savedIds, onOpen, onSave)
             }
         }
-        item(key = "calendar-subscribe") { CalendarSubscriptionPanel(initiallyExpanded = false) }
+        item(key = "calendar-subscribe") { androidx.compose.runtime.key(setupOpen) { CalendarSubscriptionPanel(initiallyExpanded = setupOpen) } }
     }
 }
 

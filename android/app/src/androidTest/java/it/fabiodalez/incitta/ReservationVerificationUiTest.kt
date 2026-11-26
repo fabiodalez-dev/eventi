@@ -1,5 +1,6 @@
 package it.fabiodalez.incitta
 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.*
@@ -18,7 +19,7 @@ import org.junit.Test
  * potrà inviare, ma trova subito l'invito a confermarla.
  */
 class ReservationVerificationUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun screen(verified: Boolean) {
         val state = AppUiState(
