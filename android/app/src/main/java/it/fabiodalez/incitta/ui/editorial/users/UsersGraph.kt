@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
+import it.fabiodalez.incitta.ui.editorial.common.EditorialListHandoff
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
@@ -21,8 +22,9 @@ import kotlinx.serialization.Serializable
  * eliminazione definitiva, conferimento di admin e super admin, email e
  * password di un'altra persona.
  */
+/* `tab` e `filter` (`chiave:valore,…`): l'elenco aperto già filtrato dal riepilogo; dal menu senza argomenti, su «Tutti». */
 @Serializable
-internal data object UsersRoute
+internal data class UsersRoute(val tab: String = "", val filter: String = "")
 
 @Serializable
 internal data class UserDetailRoute(val id: Long)
@@ -30,7 +32,13 @@ internal data class UserDetailRoute(val id: Long)
 @Serializable
 internal data object UserCreateRoute
 
+/** L'elenco degli utenti si apre già sulla scheda del riepilogo («Solo in attesa», «Tutti gli utenti»): `ListHandoff`. */
+internal fun acceptUsersLists() {
+    EditorialListHandoff.accept(UsersListViewModel.LIST, { it.usersView }) { target -> UsersRoute(target.tab.orEmpty(), target.filterParam) }
+}
+
 internal fun NavGraphBuilder.usersGraph(context: EditorialGraphContext) {
+    acceptUsersLists()
     composable<UsersRoute> { entry ->
         val repository = context.repository
         val viewModel = editorialViewModel { saved -> UsersListViewModel(repository, usersSource(repository), saved) }

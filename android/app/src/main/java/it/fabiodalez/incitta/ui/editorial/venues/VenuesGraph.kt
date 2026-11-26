@@ -13,6 +13,9 @@ import it.fabiodalez.incitta.data.editorial.EditorialVenuesApi
 import it.fabiodalez.incitta.data.editorial.EditorialVenuesSource
 import it.fabiodalez.incitta.ui.Muted
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
+import it.fabiodalez.incitta.ui.editorial.common.EditorialListHandoff
+import it.fabiodalez.incitta.ui.editorial.common.EditorialListTarget
+import it.fabiodalez.incitta.ui.editorial.common.encodeEditorialFilterParam
 import it.fabiodalez.incitta.ui.editorial.applications.ApplicationDetailScreen
 import it.fabiodalez.incitta.ui.editorial.applications.ApplicationDetailViewModel
 import it.fabiodalez.incitta.ui.editorial.applications.ApplicationListScreen
@@ -37,7 +40,8 @@ import kotlinx.serialization.Serializable
  * la chiusura dell'app da parte del sistema.
  */
 @Serializable internal data object VenuesRoute
-@Serializable internal data object VenueListRoute
+/* `tab` e `filter` (`chiave:valore,…`): l'elenco aperto già filtrato da un riquadro del riepilogo. */
+@Serializable internal data class VenueListRoute(val tab: String = "", val filter: String = "")
 @Serializable internal data object VenueCreateRoute
 @Serializable internal data class VenueDetailRoute(val venueId: Long)
 @Serializable internal data class VenueEditRoute(val venueId: Long)
@@ -47,7 +51,7 @@ import kotlinx.serialization.Serializable
 @Serializable internal data class VenueMembersRoute(val venueId: Long)
 @Serializable internal data class VenueEventsRoute(val venueId: Long)
 @Serializable internal data class VenueActivityRoute(val venueId: Long)
-@Serializable internal data object ApplicationListRoute
+@Serializable internal data class ApplicationListRoute(val tab: String = "", val filter: String = "")
 @Serializable internal data class ApplicationDetailRoute(val applicationId: Long)
 @Serializable internal data object OrganizerListRoute
 /* `organizerId` 0 = nuovo organizzatore. */
@@ -57,7 +61,31 @@ import kotlinx.serialization.Serializable
 internal fun EditorialRepository.venuesApi(): EditorialVenuesSource =
     EditorialVenuesApi(client ?: throw IllegalStateException("Redazione non disponibile"), token)
 
+/**
+ * Gli elenchi dell'area che i riquadri del riepilogo aprono già filtrati
+ * (`ListHandoff`): locali in attesa e senza eventi recenti, richieste in
+ * attesa.
+ */
+internal fun acceptVenuesLists() {
+    EditorialListHandoff.accept(VenueListViewModel.LIST, { it.venuesView || it.venuesEdit }) { target -> VenueListRoute(target.tab.orEmpty(), target.filterParam) }
+    EditorialListHandoff.accept(ApplicationListViewModel.LIST, { it.applicationsReview }, ::applicationListRoute)
+}
+
+/**
+ * Le richieste nel pannello non hanno un filtro di stato: lo stato è la
+ * scheda («In attesa», «Approvate», «Rifiutate», «Tutte»). Il riquadro
+ * «Richieste in attesa» porta `filter[status]=pending`, che il pannello
+ * ignora aprendo la sua scheda predefinita, «In attesa»: qui lo stato
+ * diventa la scheda, e gli altri filtri (`kind`, `type`) restano filtri.
+ */
+internal fun applicationListRoute(target: EditorialListTarget): ApplicationListRoute =
+    ApplicationListRoute(
+        tab = (target.tab ?: target.filters["status"]).orEmpty(),
+        filter = encodeEditorialFilterParam(target.filters - "status"),
+    )
+
 internal fun NavGraphBuilder.venuesGraph(context: EditorialGraphContext) {
+    acceptVenuesLists()
     composable<VenuesRoute> { VenuesHubScreen(context) }
     composable<VenueListRoute> {
         val model = editorialViewModel { VenueListViewModel(context.repository, context.repository.venuesApi(), it) }
@@ -144,10 +172,10 @@ internal fun VenuesHubScreen(context: EditorialGraphContext) {
             return@ManagementScaffold
         }
         if (can.venuesView || can.venuesEdit) {
-            ManagementRow(stringResource(R.string.editorial_venues_list_title), badgeText(desk?.badge("venues_pending"), R.string.editorial_venues_list_help), { context.navController.navigate(VenueListRoute) })
+            ManagementRow(stringResource(R.string.editorial_venues_list_title), badgeText(desk?.badge("venues_pending"), R.string.editorial_venues_list_help), { context.navController.navigate(VenueListRoute()) })
         }
         if (can.applicationsReview) {
-            ManagementRow(stringResource(R.string.editorial_applications_title), badgeText(desk?.badge("venue_applications_pending"), R.string.editorial_applications_help), { context.navController.navigate(ApplicationListRoute) })
+            ManagementRow(stringResource(R.string.editorial_applications_title), badgeText(desk?.badge("venue_applications_pending"), R.string.editorial_applications_help), { context.navController.navigate(ApplicationListRoute()) })
         }
         if (can.organizersManage) {
             ManagementRow(stringResource(R.string.editorial_organizers_title), stringResource(R.string.editorial_organizers_help), { context.navController.navigate(OrganizerListRoute) })

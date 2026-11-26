@@ -21,6 +21,7 @@ import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.ui.editorial.common.ListQuery
 import it.fabiodalez.incitta.ui.editorial.common.PagedListController
 import it.fabiodalez.incitta.ui.editorial.common.PagedState
+import it.fabiodalez.incitta.ui.editorial.common.parseEditorialFilterParam
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.RichText
@@ -197,12 +198,8 @@ internal class EventsQueueViewModel(
     companion object {
         const val MAX_BULK = 50
 
-        /** `status:pending,missing_poster:1`: i filtri iniziali di una rotta. */
-        fun parseFilterParam(value: String): Map<String, String> = value.split(',').mapNotNull { pair ->
-            val key = pair.substringBefore(':', "").trim()
-            val item = pair.substringAfter(':', "").trim()
-            if (key.isEmpty() || item.isEmpty()) null else key to item
-        }.toMap()
+        /** `status:pending,missing_poster:1`: i filtri iniziali di una rotta (la forma comune di `ListHandoff`). */
+        fun parseFilterParam(value: String): Map<String, String> = parseEditorialFilterParam(value)
     }
 }
 

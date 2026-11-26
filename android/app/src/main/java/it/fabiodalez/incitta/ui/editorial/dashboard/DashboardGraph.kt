@@ -6,7 +6,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import it.fabiodalez.incitta.data.editorial.DashboardApi
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
-import it.fabiodalez.incitta.ui.editorial.common.openEditorialList
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
 import kotlinx.serialization.Serializable
 
@@ -42,7 +41,7 @@ internal fun NavGraphBuilder.dashboardGraph(context: EditorialGraphContext) {
             onCity = model::selectCity,
             onTarget = { target ->
                 when (val destination = dashboardDestination(target, desk?.can)) {
-                    is DashboardDestination.Native -> context.navController.openEditorialList(destination.area.entry, destination.target)
+                    is DashboardDestination.Native -> context.navController.navigate(destination.route)
                     is DashboardDestination.Web -> context.openWeb(destination.path)
                     null -> Unit
                 }

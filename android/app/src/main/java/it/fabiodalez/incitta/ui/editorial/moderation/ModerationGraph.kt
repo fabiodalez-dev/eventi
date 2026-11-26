@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import it.fabiodalez.incitta.data.editorial.moderationApi
 import it.fabiodalez.incitta.ui.editorial.EditorialArea
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
+import it.fabiodalez.incitta.ui.editorial.common.EditorialListHandoff
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
@@ -28,29 +29,42 @@ import kotlinx.serialization.Serializable
 internal data object ModerationRoute
 
 @Serializable
-internal data object ModerationReportsRoute
+internal data class ModerationReportsRoute(val tab: String = "", val filter: String = "")
 
 @Serializable
 internal data class ModerationReportRoute(val id: Long)
 
 @Serializable
-internal data object ModerationReviewsRoute
+internal data class ModerationReviewsRoute(val tab: String = "", val filter: String = "")
 
 @Serializable
-internal data object ModerationCommentsRoute
+internal data class ModerationCommentsRoute(val tab: String = "", val filter: String = "")
 
 /* Il dettaglio di una segnalazione lo scrive nella voce dell'elenco quando salva o elimina: l'elenco si ricarica. */
 private const val KEY_REPORTS_CHANGED = "moderation_reports_changed"
 
+/**
+ * I tre elenchi dell'area si aprono già filtrati da un riquadro del
+ * riepilogo (`ListHandoff`; oggi «Segnalazioni aperte»): i filtri finiscono
+ * nell'argomento `filter` della rotta, l'elenco li prende una volta sola.
+ * Le schede non ci sono: il pannello non ne ha su queste tabelle.
+ */
+internal fun acceptModerationLists() {
+    EditorialListHandoff.accept(ReportsViewModel.LIST, { it.reportsResolve }) { target -> ModerationReportsRoute(filter = target.filterParam) }
+    EditorialListHandoff.accept(ReviewsViewModel.LIST, { it.reviewsModerate }) { target -> ModerationReviewsRoute(filter = target.filterParam) }
+    EditorialListHandoff.accept(CommentsViewModel.LIST, { it.commentsModerate }) { target -> ModerationCommentsRoute(filter = target.filterParam) }
+}
+
 internal fun NavGraphBuilder.moderationGraph(context: EditorialGraphContext) {
+    acceptModerationLists()
     composable<ModerationRoute> {
         val viewModel = editorialViewModel { ModerationHubViewModel(context.repository) }
         ModerationHubScreen(viewModel, stringResource(EditorialArea.Moderation.title), context.padding, onBack = context::back, onOpen = { section ->
             context.navController.navigate(
                 when (section) {
-                    ModerationSection.Reports -> ModerationReportsRoute
-                    ModerationSection.Reviews -> ModerationReviewsRoute
-                    ModerationSection.Comments -> ModerationCommentsRoute
+                    ModerationSection.Reports -> ModerationReportsRoute()
+                    ModerationSection.Reviews -> ModerationReviewsRoute()
+                    ModerationSection.Comments -> ModerationCommentsRoute()
                 },
             )
         })

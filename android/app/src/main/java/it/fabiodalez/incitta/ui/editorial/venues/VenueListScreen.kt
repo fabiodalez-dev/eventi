@@ -38,6 +38,9 @@ import it.fabiodalez.incitta.ui.editorial.common.PagedListController
 import it.fabiodalez.incitta.ui.editorial.common.PagedListScreen
 import it.fabiodalez.incitta.ui.editorial.common.PagedState
 import it.fabiodalez.incitta.ui.editorial.common.abilitiesOf
+import it.fabiodalez.incitta.ui.editorial.common.encodeEditorialFilterParam
+import it.fabiodalez.incitta.ui.editorial.common.parseEditorialFilterParam
+import it.fabiodalez.incitta.ui.editorial.common.takeEditorialListTarget
 import it.fabiodalez.incitta.ui.management.common.SharedFiles
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -70,7 +73,15 @@ internal class VenueListViewModel(
     private val source: EditorialVenuesSource,
     private val saved: SavedStateHandle,
 ) : ViewModel() {
-    val list = PagedListController(viewModelScope, ListQuery(tab = saved[KEY_TAB], sort = saved[KEY_SORT])) { query, page ->
+    /* Aperto da un riquadro del riepilogo (`ListHandoff`): la scheda e i filtri diventano i criteri salvati, una volta sola. */
+    private val start: ListQuery = run {
+        saved.takeEditorialListTarget(LIST)?.let { target ->
+            saved[KEY_TAB] = target.tab
+            saved[KEY_FILTERS] = target.filterParam
+        }
+        ListQuery(tab = saved.get<String>(KEY_TAB)?.takeIf { it.isNotBlank() }, filters = parseEditorialFilterParam(saved[KEY_FILTERS]), sort = saved[KEY_SORT])
+    }
+    val list = PagedListController(viewModelScope, start) { query, page ->
         repository.call { source.venues(query.params(page)) }
     }
     private val state = MutableStateFlow(VenueListUiState())
@@ -92,6 +103,7 @@ internal class VenueListViewModel(
     }
 
     fun selectTab(tab: String?) { saved[KEY_TAB] = tab; list.selectTab(tab) }
+    fun applyFilters(filters: Map<String, String>) { saved[KEY_FILTERS] = encodeEditorialFilterParam(filters); list.applyFilters(filters) }
     fun sortBy(sort: String?) { saved[KEY_SORT] = sort; list.sortBy(sort) }
 
     fun ask(row: EditorialVenueRow, action: VenueAction) =
@@ -134,8 +146,11 @@ internal class VenueListViewModel(
     fun exportHandled() = state.update { it.copy(exported = null) }
 
     companion object {
+        /* Il nome dell'elenco per il riepilogo (`target.area`). */
+        const val LIST = "venues"
         const val KEY_TAB = "tab"
         const val KEY_SORT = "sort"
+        const val KEY_FILTERS = "venue_filters"
     }
 }
 
@@ -163,7 +178,7 @@ internal fun VenueListScreen(model: VenueListViewModel, context: EditorialGraphC
         onBack = context::back,
         onSearch = model.list::search,
         onTab = model::selectTab,
-        onFilters = model.list::applyFilters,
+        onFilters = model::applyFilters,
         onSort = model::sortBy,
         onLoadMore = model.list::loadMore,
         onRetry = model.list::retry,

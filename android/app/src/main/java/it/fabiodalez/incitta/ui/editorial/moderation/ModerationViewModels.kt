@@ -19,6 +19,7 @@ import it.fabiodalez.incitta.data.management.ManagementOptions
 import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.ui.editorial.common.ListQuery
 import it.fabiodalez.incitta.ui.editorial.common.PagedListController
+import it.fabiodalez.incitta.ui.editorial.common.takeEditorialListTarget
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.UiText
@@ -70,11 +71,19 @@ internal fun decodeFilters(raw: String?, allowed: Set<String>): Map<String, Stri
     if (key in allowed && value.isNotEmpty()) key to value else null
 }.toMap()
 
-private fun initialQuery(saved: SavedStateHandle, filterKeys: Set<String>, sorts: Set<String>): ListQuery = ListQuery(
-    q = saved.get<String>(KEY_QUERY).orEmpty(),
-    filters = decodeFilters(saved[KEY_FILTERS], filterKeys),
-    sort = saved.get<String>(KEY_SORT)?.takeIf { it in sorts },
-)
+/**
+ * I criteri di partenza di un elenco: quelli salvati, oppure, la prima
+ * volta, i filtri della destinazione con cui un riquadro del riepilogo l'ha
+ * aperto (`ListHandoff`), che da lì diventano i criteri salvati.
+ */
+private fun initialQuery(saved: SavedStateHandle, list: String, filterKeys: Set<String>, sorts: Set<String>): ListQuery {
+    saved.takeEditorialListTarget(list)?.let { target -> saved[KEY_FILTERS] = encodeFilters(target.filters.filterKeys { it in filterKeys }) }
+    return ListQuery(
+        q = saved.get<String>(KEY_QUERY).orEmpty(),
+        filters = decodeFilters(saved[KEY_FILTERS], filterKeys),
+        sort = saved.get<String>(KEY_SORT)?.takeIf { it in sorts },
+    )
+}
 
 private const val KEY_QUERY = "q"
 private const val KEY_FILTERS = "filters"
@@ -109,7 +118,7 @@ internal class ReportsViewModel(
     private val saved: SavedStateHandle,
 ) : ViewModel() {
     /* Senza ricerca: la tabella del pannello non ne ha una. */
-    val list = PagedListController(viewModelScope, initialQuery(saved, FILTERS, SORTS).copy(q = "")) { query, page ->
+    val list = PagedListController(viewModelScope, initialQuery(saved, LIST, FILTERS, SORTS).copy(q = "")) { query, page ->
         repository.call { source.reports(query.params(page)) }
     }
     private val optionsState = MutableStateFlow<ManagementOptions?>(null)
@@ -131,6 +140,8 @@ internal class ReportsViewModel(
     }
 
     companion object {
+        /* Il nome dell'elenco per il riepilogo (`target.area`). */
+        const val LIST = "reports"
         const val FILTER_STATUS = "status"
         const val FILTER_REASON = "reason"
         const val FILTER_OPEN = "open"
@@ -273,7 +284,7 @@ internal class ReviewsViewModel(
     private val source: ModerationSource,
     private val saved: SavedStateHandle,
 ) : ViewModel() {
-    val list = PagedListController(viewModelScope, initialQuery(saved, FILTERS, SORTS)) { query, page ->
+    val list = PagedListController(viewModelScope, initialQuery(saved, LIST, FILTERS, SORTS)) { query, page ->
         repository.call { source.reviews(query.params(page)) }
     }
     private val state = MutableStateFlow(ReviewsUiState())
@@ -340,6 +351,7 @@ internal class ReviewsViewModel(
     }
 
     companion object {
+        const val LIST = "reviews"
         const val FIELD_NOTE = "note"
         const val FILTER_TYPE = "type"
         const val FILTER_STATUS = "status"
@@ -383,7 +395,7 @@ internal class CommentsViewModel(
     private val source: ModerationSource,
     private val saved: SavedStateHandle,
 ) : ViewModel() {
-    val list = PagedListController(viewModelScope, initialQuery(saved, FILTERS, SORTS)) { query, page ->
+    val list = PagedListController(viewModelScope, initialQuery(saved, LIST, FILTERS, SORTS)) { query, page ->
         repository.call { source.comments(query.params(page)) }
     }
     private val state = MutableStateFlow(CommentsUiState())
@@ -467,6 +479,7 @@ internal class CommentsViewModel(
     }
 
     companion object {
+        const val LIST = "comments"
         const val FIELD_NOTE = "note"
         const val FILTER_STATUS = "status"
         val FILTERS = setOf(FILTER_STATUS)

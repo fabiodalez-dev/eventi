@@ -18,6 +18,7 @@ import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.ui.editorial.common.ListQuery
 import it.fabiodalez.incitta.ui.editorial.common.PagedListController
 import it.fabiodalez.incitta.ui.editorial.common.PagedState
+import it.fabiodalez.incitta.ui.editorial.common.takeEditorialListTarget
 import it.fabiodalez.incitta.ui.management.common.FormErrors
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import it.fabiodalez.incitta.ui.management.common.UiText
@@ -167,10 +168,15 @@ internal class UsersListViewModel(
     private val api: EditorialUsersSource,
     private val saved: SavedStateHandle,
 ) : ViewModel() {
-    val list = PagedListController(
-        viewModelScope,
-        ListQuery(q = saved[KEY_Q] ?: "", tab = saved[KEY_TAB], filters = savedFilters(saved)),
-    ) { query, page -> repository.call { api.list(query.params(page)) } }
+    /* Aperto da «Solo in attesa» o «Tutti gli utenti» del riepilogo (`ListHandoff`): scheda e filtri diventano i criteri salvati, una volta sola. */
+    private val start: ListQuery = run {
+        saved.takeEditorialListTarget(LIST)?.let { target ->
+            saved[KEY_TAB] = target.tab
+            saved[KEY_FILTERS] = ArrayList(target.filters.filterValues { it.isNotBlank() }.map { "${it.key}=${it.value}" })
+        }
+        ListQuery(q = saved[KEY_Q] ?: "", tab = saved[KEY_TAB], filters = savedFilters(saved))
+    }
+    val list = PagedListController(viewModelScope, start) { query, page -> repository.call { api.list(query.params(page)) } }
     val rows: StateFlow<PagedState<EditorialPerson>> = list.current
 
     private val optionsState = MutableStateFlow<Loadable<UsersOptions>>(Loadable.Loading)
@@ -214,6 +220,8 @@ internal class UsersListViewModel(
     fun refresh() = list.refresh()
 
     companion object {
+        /* Il nome dell'elenco per il riepilogo (`target.area`). */
+        const val LIST = "users"
         private const val KEY_Q = "users_q"
         private const val KEY_TAB = "users_tab"
         private const val KEY_FILTERS = "users_filters"

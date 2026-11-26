@@ -100,6 +100,22 @@ class UsersViewModelsTest {
         assertTrue(again.options.value is Loadable.Ready)
     }
 
+    @Test fun theSummaryOpensTheListOnThePendingTabAndTheMenuOnAll() {
+        val api = FakeUsers()
+        /* «Solo in attesa» del riepilogo: `UsersRoute(tab = "pending")`. */
+        val saved = SavedStateHandle(mapOf("tab" to "pending", "filter" to ""))
+        val vm = UsersListViewModel(repository(), api, saved)
+        assertEquals("pending", vm.rows.value.query.tab)
+        assertTrue(api.calls.last(), api.calls.last().startsWith("list:") && api.calls.last().contains("tab=pending"))
+        vm.selectTab("staff")
+        /* Riaperta dal sistema: la scheda scelta, non quella del riquadro. */
+        assertEquals("staff", UsersListViewModel(repository(), api, saved).rows.value.query.tab)
+        /* «Tutti gli utenti» e la voce del menu: `UsersRoute()`, nessuna scheda. */
+        val all = UsersListViewModel(repository(), api, SavedStateHandle(mapOf("tab" to "", "filter" to "")))
+        assertNull(all.rows.value.query.tab)
+        assertFalse(api.calls.last().contains("tab="))
+    }
+
     @Test fun onlyAllowedActionsRunAndTheRowFollowsTheResult() {
         val api = FakeUsers()
         val vm = UsersListViewModel(repository(), api, SavedStateHandle())

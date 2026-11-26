@@ -82,13 +82,26 @@ it('dà a ogni ruolo i permessi del pannello', function (): void {
         'sponsorships_manage' => false, 'social_use' => false, 'analytics_view' => false, 'search_misses_manage' => true,
         'catalog_manage' => false, 'pages_manage' => false, 'imports_manage' => false,
         'notifications_view' => true, 'notifications_cancel' => false,
-        'system_view' => false, 'system_manage' => false, 'mail_manage' => false,
+        'system_view' => false, 'system_manage' => false, 'mail_manage' => false, 'organizers_manage' => false,
     ]);
 
     // L'admin ha tutto tranne la posta, che è del solo super admin.
     expect(collect($admin)->except('mail_manage')->every(fn (bool $value): bool => $value))->toBeTrue()
         ->and($admin['mail_manage'])->toBeFalse()
         ->and(collect($super)->every(fn (bool $value): bool => $value))->toBeTrue();
+});
+
+it('ha nell’app le stesse chiavi dei permessi, nello stesso ordine', function (): void {
+    // `EditorialPermissions` dell'app: una proprietà `allows("chiave")` per chiave del server.
+    $kotlin = (string) file_get_contents(base_path('android/app/src/main/java/it/fabiodalez/incitta/data/editorial/EditorialModels.kt'));
+    $start = strpos($kotlin, 'internal class EditorialPermissions');
+    expect($start)->not->toBeFalse();
+    $body = substr($kotlin, (int) $start, (int) strpos($kotlin, 'fun any(', (int) $start) - (int) $start);
+    preg_match_all('/get\(\) = allows\("([a-z_]+)"\)/', $body, $matches);
+
+    expect($matches[1])->toBe(EditorialPermissions::KEYS)
+        ->and(EditorialPermissions::KEYS)->toHaveCount(35)
+        ->and(array_keys(app(EditorialPermissions::class)->for($this->s->admin)))->toBe(EditorialPermissions::KEYS);
 });
 
 it('nasconde al moderatore i contatori delle voci che non vede', function (): void {

@@ -57,6 +57,44 @@ class VenuesViewModelsTest {
         assertEquals(2, source.listParams.size) // l'elenco si rilegge
     }
 
+    @Test fun theSummaryTilesOpenTheVenueListWithTheirFilterOnce() = runTest(dispatcher) {
+        /* «Locali in attesa»: `VenueListRoute(filter = "status:pending")`, sulla scheda «Tutti» come il pannello. */
+        val saved = SavedStateHandle(mapOf("tab" to "", "filter" to "status:pending"))
+        val model = VenueListViewModel(repository, source, saved)
+        advanceUntilIdle()
+        assertEquals(listOf("page" to "1", "per_page" to "20", "filter[status]" to "pending"), source.listParams.last())
+        model.applyFilters(mapOf("inactive" to "1"))
+        advanceUntilIdle()
+        /* Riaperta dal sistema: i filtri scelti, non quelli del riquadro. */
+        VenueListViewModel(repository, source, saved)
+        advanceUntilIdle()
+        assertEquals(listOf("page" to "1", "per_page" to "20", "filter[inactive]" to "1"), source.listParams.last())
+        /* Dal menu dell'area: nessun filtro, nessuna scheda (il server parte da «Tutti»). */
+        VenueListViewModel(repository, source, SavedStateHandle(mapOf("tab" to "", "filter" to "")))
+        advanceUntilIdle()
+        assertEquals(listOf("page" to "1", "per_page" to "20"), source.listParams.last())
+    }
+
+    @Test fun thePendingApplicationsTileOpensThePendingTabAndTheMenuToo() = runTest(dispatcher) {
+        /* `ApplicationListRoute(tab = "pending")` dal riepilogo, `ApplicationListRoute()` dal menu: tutte e due «In attesa». */
+        ApplicationListViewModel(repository, source, SavedStateHandle(mapOf("tab" to "pending", "filter" to "kind:claim")))
+        advanceUntilIdle()
+        assertEquals(listOf("page" to "1", "per_page" to "20", "tab" to "pending", "filter[kind]" to "claim"), source.applicationParams.last())
+        val fromMenu = ApplicationListViewModel(repository, source, SavedStateHandle(mapOf("tab" to "", "filter" to "")))
+        advanceUntilIdle()
+        assertEquals(listOf("page" to "1", "per_page" to "20", "tab" to "pending"), source.applicationParams.last())
+        fromMenu.selectTab(null)
+        advanceUntilIdle()
+        assertTrue(("tab" to "all") in source.applicationParams.last())
+    }
+
+    @Test fun theEventsOfAVenueOpenTheNativeEventRecord() {
+        val visible = VenueEventRow(id = 41, abilities = buildJsonObject { put("view", true); put("update", false) })
+        assertEquals(it.fabiodalez.incitta.ui.editorial.events.EditorialEventRoute(41), venueEventRoute(visible))
+        assertNull(venueEventRoute(VenueEventRow(id = 42, abilities = buildJsonObject { put("view", false) })))
+        assertNull(venueEventRoute(VenueEventRow(id = 43)))
+    }
+
     @Test fun aFailedActionKeepsTheDialogOpenWithTheServerMessage() = runTest(dispatcher) {
         source.failNext = ApiException(409, ApiProblem(code = "CONFLICT", message = "Già approvato"))
         val model = VenueDetailViewModel(repository, source, SavedStateHandle(mapOf(VenueDetailViewModel.KEY_VENUE to 4L)))

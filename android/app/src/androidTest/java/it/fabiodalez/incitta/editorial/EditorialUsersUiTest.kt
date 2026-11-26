@@ -67,7 +67,12 @@ class EditorialUsersUiTest {
         val opened = CopyOnWriteArrayList<Long>()
         show { UsersListScreen(vm, PaddingValues(), canCreate = true, zone = zone, onBack = {}, onOpen = { opened += it.id }, onCreate = {}) }
         compose.waitUntil(5000) { compose.onAllNodesWithText("Marta Rossi").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText(text(R.string.editorial_list_tab_count, text(R.string.editorial_users_tab_staff), 1)).assertExists()
+        // Le schede stanno in una fila che scorre: quelle fuori schermo non sono ancora disegnate.
+        val staffTab = text(R.string.editorial_list_tab_count, text(R.string.editorial_users_tab_staff), 1)
+        compose.onAllNodes(hasScrollToNodeAction()).fetchSemanticsNodes().indices.forEach { index ->
+            runCatching { compose.onAllNodes(hasScrollToNodeAction())[index].performScrollToNode(hasText(staffTab)) }
+        }
+        compose.onNodeWithText(staffTab).assertExists()
         compose.onNodeWithText(text(R.string.editorial_users_new)).assertExists()
 
         compose.onNodeWithContentDescription(text(R.string.editorial_actions_for, "Marta Rossi")).performClick()

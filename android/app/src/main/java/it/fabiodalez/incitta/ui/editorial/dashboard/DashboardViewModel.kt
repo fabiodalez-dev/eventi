@@ -65,8 +65,8 @@ internal class DashboardViewModel(
 
 /** Dove porta il tocco su un riquadro. */
 internal sealed interface DashboardDestination {
-    /** L'elenco nativo dell'area, già filtrato. */
-    data class Native(val area: EditorialArea, val target: EditorialListTarget) : DashboardDestination
+    /** L'elenco nativo, già filtrato: la rotta dell'elenco con scheda e filtri (`EditorialListHandoff`). */
+    data class Native(val route: Any) : DashboardDestination
     /** La pagina del pannello già filtrata (`admin/events?filters[status][value]=pending`), nel browser. */
     data class Web(val path: String) : DashboardDestination
 }
@@ -76,7 +76,7 @@ internal fun dashboardArea(list: String): EditorialArea? = when (list) {
     "events" -> EditorialArea.Events
     /* Locali e richieste dei locali stanno nella stessa area. */
     "venues", "applications" -> EditorialArea.Venues
-    "reports" -> EditorialArea.Moderation
+    "reports", "comments", "reviews" -> EditorialArea.Moderation
     "import_sources" -> EditorialArea.System
     "users" -> EditorialArea.Users
     else -> null
@@ -84,18 +84,18 @@ internal fun dashboardArea(list: String): EditorialArea? = when (list) {
 
 /**
  * Nativo quando l'area è già nell'app, la persona la apre e il suo elenco sa
- * ricevere il filtro; altrimenti la pagina del pannello già filtrata, come
- * il collegamento del riquadro sul sito (anche quando la persona lì non
- * entra: il pannello fa così). `null` se non c'è dove andare.
+ * ricevere la scheda e i filtri; altrimenti la pagina del pannello già
+ * filtrata, come il collegamento del riquadro sul sito (anche quando la
+ * persona lì non entra: il pannello fa così). `null` se non c'è dove andare.
  */
 internal fun dashboardDestination(
     target: DashboardTarget,
     can: EditorialPermissions?,
-    accepts: (String) -> Boolean = EditorialListHandoff::accepts,
+    routeFor: (EditorialListTarget, EditorialPermissions) -> Any? = EditorialListHandoff::route,
 ): DashboardDestination? {
     val area = dashboardArea(target.area)
-    if (area != null && area.native && can != null && area.allowedFor(can) && accepts(target.area)) {
-        return DashboardDestination.Native(area, EditorialListTarget(target.area, target.tab, target.filterMap))
+    if (area != null && area.native && can != null && area.allowedFor(can)) {
+        routeFor(EditorialListTarget(target.area, target.tab, target.filterMap), can)?.let { return DashboardDestination.Native(it) }
     }
     return target.webPath.takeIf { it.isNotBlank() }?.let { DashboardDestination.Web(it) }
 }
