@@ -9,6 +9,8 @@ import androidx.navigation.toRoute
 import it.fabiodalez.incitta.data.management.OptionChoice
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
+import it.fabiodalez.incitta.ui.editorial.eventeditor.EditorialEventDatesRoute
+import it.fabiodalez.incitta.ui.editorial.eventeditor.EditorialEventEditorRoute
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
@@ -53,6 +55,8 @@ internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
             onPreview = { id -> nav.navigate(EditorialEventPreviewRoute(id)) },
             onActivity = { id -> nav.navigate(EditorialEventActivityRoute(id, zone)) },
             onOpenWeb = context::openWeb,
+            onEdit = { id -> nav.navigate(EditorialEventEditorRoute(id)) },
+            onDates = { id -> nav.navigate(EditorialEventDatesRoute(id)) },
         )
     }
     composable<EditorialEventActivityRoute> { entry ->
@@ -89,5 +93,7 @@ private fun EventsQueueDestination(context: EditorialGraphContext) {
         onOpen = { id -> nav.navigate(EditorialEventRoute(id)) },
         onMerge = { id -> nav.navigate(EditorialEventRoute(id, merge = true)) },
         onSubmissions = { nav.navigate(EditorialSubmissionsRoute()) },
+        // «Nuovo evento» (R3) per chi crea eventi (`EventPolicy::create`: admin e super admin).
+        onCreate = if (desk?.can?.eventsEdit == true) { { nav.navigate(EditorialEventEditorRoute()) } } else null,
     )
 }

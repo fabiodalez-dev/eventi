@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalUriHandler
@@ -51,6 +52,8 @@ internal class EditorialGraphContext(
     private val paddingState: State<PaddingValues>,
     private val exitState: State<() -> Unit>,
     private val webState: State<(String) -> Unit>,
+    /* L'apertura nell'app di un indirizzo del sito (R3, la biglietteria di una data); `null`: il browser. */
+    private val inAppState: State<((String) -> Unit)?> = mutableStateOf<((String) -> Unit)?>(null),
 ) {
     val padding: PaddingValues get() = paddingState.value
     fun exit() = exitState.value()
@@ -58,6 +61,15 @@ internal class EditorialGraphContext(
     fun back() { if (!navController.popBackStack()) exit() }
     /** Apre nel browser una pagina del pannello (`admin/events`): il ripiego per quello che l'app non fa ancora. */
     fun openWeb(path: String) = webState.value(path)
+    /**
+     * Apre una pagina del sito che l'app sa mostrare da sé (per esempio
+     * `gestione-biglietti/{data}`, la biglietteria nativa); se l'app non la
+     * conosce, il browser come `openWeb`.
+     */
+    fun openInApp(path: String) {
+        val open = inAppState.value
+        if (open != null) open(editorialWebUrl(path)) else openWeb(path)
+    }
     /** Apre un'area dal menu. */
     fun open(area: EditorialArea) = navController.navigate(area.entry)
 }
@@ -77,6 +89,7 @@ internal fun EditorialNavHost(
     session: Session,
     padding: PaddingValues,
     onExit: () -> Unit,
+    onOpenInApp: ((String) -> Unit)? = null,
 ) {
     val navController = rememberNavController()
     val uriHandler = LocalUriHandler.current
@@ -84,7 +97,8 @@ internal fun EditorialNavHost(
     val exitState = rememberUpdatedState(onExit)
     val openWeb: (String) -> Unit = { path -> runCatching { uriHandler.openUri(editorialWebUrl(path)) } }
     val webState = rememberUpdatedState(openWeb)
-    val context = remember(navController, repository) { EditorialGraphContext(navController, repository, session, paddingState, exitState, webState) }
+    val inAppState = rememberUpdatedState(onOpenInApp)
+    val context = remember(navController, repository) { EditorialGraphContext(navController, repository, session, paddingState, exitState, webState, inAppState) }
     val entry by navController.currentBackStackEntryAsState()
     BackHandler(enabled = entry != null && navController.previousBackStackEntry == null) { onExit() }
     NavHost(navController = navController, startDestination = EditorialHomeRoute) {

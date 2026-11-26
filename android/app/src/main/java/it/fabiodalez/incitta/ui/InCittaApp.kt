@@ -360,7 +360,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     )
                 }
                 managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
-                editorialOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.editorial.EditorialScreen(state.session, padding) { editorialOpen = false; viewModel.refreshProfile() } }
+                editorialOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.editorial.EditorialScreen(state.session, padding, onOpenInApp = { url -> openDestination(url) }) { editorialOpen = false; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
                     onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },

@@ -35,6 +35,8 @@ internal fun EditorialScreen(
     session: Session?,
     padding: PaddingValues,
     client: ApiClient? = null,
+    /* Apre nell'app un indirizzo del sito che l'app sa mostrare (la biglietteria di una data); senza, il browser. */
+    onOpenInApp: ((String) -> Unit)? = null,
     onBack: () -> Unit,
 ) {
     if (session == null) { LaunchedEffect(Unit) { onBack() }; return }
@@ -72,6 +74,6 @@ internal fun EditorialScreen(
         return
     }
     UnlockGate(repository, onLockedBack = onBack) {
-        EditorialNavHost(repository, session, padding, onBack)
+        EditorialNavHost(repository, session, padding, onBack, onOpenInApp)
     }
 }
