@@ -128,10 +128,34 @@
     <string name="register_organizer_message">Che cosa organizzi</string>
     <string name="register_organizer_message_hint">Che tipo di eventi organizzi, dove e ogni quanto: diventa la presentazione dell’organizzazione, che poi cambi dal pannello.</string>
 
+    <!-- Da ospite (Q2, W-AP-02): l’account si crea in fondo al modulo, come sul sito -->
+    <string name="application_login_title">Hai già un account?</string>
+    <string name="application_login_description">Accedi e torna qui: quello che hai scritto resta nel modulo.</string>
+    <string name="application_login_action">Accedi e torna qui</string>
+    <string name="application_guest_email_hint">È anche l’indirizzo del tuo account: ti scrivo lì per confermarlo.</string>
+    <string name="application_account_title">Il tuo account</string>
+    <string name="application_account_description">Scegli una password: creo il tuo account e ti scrivo per confermare l’email. La richiesta parte dopo la conferma, e quando è approvata entri nel pannello con questo account.</string>
+    <string name="application_password">Password</string>
+    <string name="application_password_hint">Almeno %1$d caratteri.</string>
+    <string name="application_password_confirmation">Ripeti la password</string>
+    <string name="application_guest_submit">Crea l’account e invia</string>
+    <string name="application_next_confirm">Confermi l’email aprendo da questo telefono il collegamento che ti scrivo: la richiesta parte da sola.</string>
+    <string name="application_required">Questo campo è obbligatorio.</string>
+    <string name="application_email_invalid">Scrivi un indirizzo email valido.</string>
+    <string name="application_password_short">La password deve avere almeno %2$d caratteri.</string>
+    <string name="application_password_mismatch">Le due password non coincidono.</string>
+    <string name="claim_message_short">Scrivi almeno %1$d caratteri: servono a verificare che il locale è tuo.</string>
+    <string name="application_check_email_title">Controlla la posta</string>
+    <string name="application_check_email_body">Ti ho scritto a %1$s. Apri il collegamento che trovi nel messaggio: se l’account è nuovo confermi l’indirizzo e la richiesta parte da sola; se con questo indirizzo avevi già un account, entri e ritrovi il modulo compilato, pronto da inviare.</string>
+    <string name="application_check_email_phone">Apri il collegamento da questo telefono: quello che hai scritto resta qui finché non entri.</string>
+    <string name="application_check_email_resend">Mandami di nuovo il collegamento</string>
+    <string name="application_check_email_resent">Ti ho scritto di nuovo.</string>
+    <string name="application_check_email_no_resend">Per un collegamento nuovo correggi i dati e scrivi di nuovo la password: sul telefono non la conservo.</string>
+    <string name="application_check_email_edit">Correggi i dati</string>
+    <string name="application_auto_sending">Email confermata: mando la richiesta…</string>
+
     <!-- Fuori dalla gestione: scheda del locale e home -->
     <string name="claim_card_title">Gestisci questo locale?</string>
     <string name="claim_card_description">Se %1$s è tuo, chiedi le chiavi della sua pagina: aggiorni orari e contatti e pubblichi i tuoi eventi.</string>
     <string name="claim_card_action">Rivendica il locale</string>
-    <string name="claim_card_login">Accedi per rivendicarlo</string>
-    <string name="organize_login_hint">Per registrare un locale o un’organizzazione dall’app accedi prima con il tuo account.</string>
 </resources>

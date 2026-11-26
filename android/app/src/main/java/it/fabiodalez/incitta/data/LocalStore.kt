@@ -195,6 +195,18 @@ class LocalStore(private val context: Context) {
         prefs.edit { putBoolean(KEY_PRIVACY_CONSENT, accepted) }
     }
 
+    /*
+     * Q2: le bozze dei moduli «Registra il tuo locale», della rivendicazione e
+     * di «Registra la tua organizzazione», scritte anche da ospite. Cifrate
+     * come la sessione; mai la password, che non arriva fin qui
+     * (`ApplicationDrafts`).
+     */
+    internal fun readApplicationDrafts(): String? = prefs.getString(KEY_APPLICATION_DRAFTS, null)?.let { runCatching { decrypt(it) }.getOrNull() }
+
+    internal fun writeApplicationDrafts(value: String?) {
+        prefs.edit { if (value == null) remove(KEY_APPLICATION_DRAFTS) else putString(KEY_APPLICATION_DRAFTS, encrypt(value)) }
+    }
+
     private fun encrypt(value: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey())
@@ -250,6 +262,7 @@ class LocalStore(private val context: Context) {
         const val KEY_INSTALLATION = "installation_id"
         const val KEY_SESSION = "session"
         const val KEY_GUEST_SAVED = "guest_saved"
+        const val KEY_APPLICATION_DRAFTS = "application_drafts"
         const val KEY_OCCURRENCES = "occurrences"
         const val KEY_PRIVACY_CONSENT = "privacy_consent"
         const val KEY_BOOKINGS = "bookings_offline"

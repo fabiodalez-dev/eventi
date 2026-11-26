@@ -45,8 +45,8 @@ function venueApplicationFields(array $override = []): array
     ];
 }
 
-it('chiede l’accesso con l’email confermata a tutte le rotte', function (): void {
-    $this->getJson('/api/v1/me/venue-applications/options')->assertUnauthorized();
+it('chiede l’accesso con l’email confermata a tutte le rotte che scrivono', function (): void {
+    /* Le letture del modulo sono pubbliche (Q2): le prova `GuestApplicationsTest`. */
     $this->postJson('/api/v1/me/venue-applications', venueApplicationFields())->assertUnauthorized();
 
     Sanctum::actingAs(User::factory()->unverified()->create());

@@ -8423,9 +8423,6 @@
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "429": {
                         "description": "Troppe richieste.",
                         "content": {
@@ -8438,6 +8435,7 @@
                     }
                 },
                 "security": [
+                    {},
                     {
                         "http": []
                     }
@@ -8447,7 +8445,13 @@
         "/me/venue-applications/options": {
             "get": {
                 "operationId": "v1.me.venue-applications.options",
-                "description": "`types[]` `{value, label}` (il tipo di locale, facoltativo),\n`municipality` (il comune proposto, quello della citt\u00e0), `account_email`\n(a cui risponde la richiesta) e i tetti del modulo.",
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ],
+                "description": "`types[]` `{value, label}` (il tipo di locale, facoltativo),\n`municipality` (il comune proposto, quello della citt\u00e0), `account_email`\n(a cui risponde la richiesta; `null` per un ospite, che la scrive nel\nmodulo) e i tetti del modulo. Pubblica, come la pagina del sito: un\nospite compila il modulo prima di avere l'account.",
                 "summary": "Gli elenchi dei moduli",
                 "tags": [
                     "Application"
@@ -8474,7 +8478,10 @@
                                                     ]
                                                 },
                                                 "account_email": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "limits": {
                                                     "type": "object",
@@ -8535,9 +8542,6 @@
                                 }
                             }
                         }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     },
                     "429": {
                         "description": "Troppe richieste.",
@@ -9719,9 +9723,6 @@
                             }
                         }
                     },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
                     "429": {
                         "description": "Troppe richieste.",
                         "content": {
@@ -9734,6 +9735,7 @@
                     }
                 },
                 "security": [
+                    {},
                     {
                         "http": []
                     }
@@ -56360,6 +56362,10 @@
                                                 "token_type": {
                                                     "type": "string",
                                                     "const": "Bearer"
+                                                },
+                                                "registration": {
+                                                    "type": "boolean",
+                                                    "description": "Vero quando il collegamento chiude la registrazione fatta da questa installazione: l'app manda allora da sola la richiesta di un modulo compilato da ospite (Q2). Falso per un accesso a un account che c'era gi\u00e0."
                                                 },
                                                 "user": {
                                                     "type": "object",

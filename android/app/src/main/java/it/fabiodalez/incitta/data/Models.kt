@@ -239,6 +239,8 @@ data class AuthPayload(
     @SerialName("expires_at") val expiresAt: String? = null,
     val user: User,
     val message: String? = null,
+    /* Solo dallo scambio del collegamento: vero quando chiude la registrazione chiesta da questo telefono (Q2). */
+    val registration: Boolean = false,
 )
 
 @Serializable

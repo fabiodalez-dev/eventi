@@ -58,18 +58,25 @@ final class MagicLinkExchangeController extends Controller
             $issued = $tokens->issue($user, $request->validated('device_name'));
             $user->forceFill(['last_active_at' => CarbonImmutable::now()])->save();
 
-            return [$user, $issued];
+            return [$user, $issued, (bool) $challenge->keeps_password];
         });
 
         if ($result === null) {
             throw new ApiException(ApiErrorCode::InvalidToken);
         }
 
-        [$user, $issued] = $result;
+        [$user, $issued, $registration] = $result;
 
         return ApiResponse::item([
             ...$issued,
             'token_type' => 'Bearer',
+            /* Vero quando il collegamento chiude la registrazione fatta da
+               questa installazione (`RegistrationLink`, password scelta qui):
+               l'app manda allora da sola la richiesta di un modulo compilato
+               da ospite. Falso per un accesso a un account che c'era già. Lo
+               legge solo chi ha sia la casella sia il verificatore, cioè chi
+               ha già il messaggio: non dice niente a chi prova indirizzi. */
+            'registration' => $registration,
             'user' => UserResource::toArray($user),
             'message' => __('api.auth.logged_in'),
         ]);

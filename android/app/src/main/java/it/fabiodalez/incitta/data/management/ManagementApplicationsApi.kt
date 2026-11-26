@@ -73,7 +73,8 @@ internal data class MyApplicationsPage(val data: List<MyApplication> = emptyList
 internal data class ApplicationOptions(
     val types: List<ApplicationChoice> = emptyList(),
     val municipality: String? = null,
-    @SerialName("account_email") val accountEmail: String = "",
+    /* `null` per un ospite (Q2): l'email la scrive nel modulo. */
+    @SerialName("account_email") val accountEmail: String? = null,
     val limits: ApplicationLimits = ApplicationLimits(),
 )
 
@@ -205,7 +206,11 @@ internal interface ManagementApplicationsSource {
     suspend fun discard(id: Long): String
 }
 
-internal class ManagementApplicationsApi(private val api: ApiClient, private val token: String) : ManagementApplicationsSource {
+/**
+ * Con `token` nullo è l'ospite (Q2): valgono solo le letture del modulo
+ * (`options`, `lookup`, `claimTarget`), pubbliche come le pagine del sito.
+ */
+internal class ManagementApplicationsApi(private val api: ApiClient, private val token: String?) : ManagementApplicationsSource {
     override suspend fun applications(page: Int): MyApplicationsPage = api.get("me/venue-applications?page=$page", token)
 
     override suspend fun options(): ApplicationOptions =
@@ -220,7 +225,7 @@ internal class ManagementApplicationsApi(private val api: ApiClient, private val
     /* Con l'immagine il modulo parte in multipart, come dal sito; senza, in JSON. */
     override suspend fun submitVenue(draft: VenueApplicationDraft, image: PreparedImage?): ApplicationSent {
         if (image == null) return api.post<ApiEnvelope<ApplicationSent>, JsonObject>("me/venue-applications", applicationBody(draft.fields()), token).data
-        val payload = api.upload("me/venue-applications", token, IMAGE_FIELD, image.bytes, image.mime, image.fileName, draft.fields())
+        val payload = api.upload("me/venue-applications", signedIn(), IMAGE_FIELD, image.bytes, image.mime, image.fileName, draft.fields())
         return try {
             api.json.decodeFromJsonElement(ApiEnvelope.serializer(ApplicationSent.serializer()), payload).data
         } catch (error: SerializationException) {
@@ -240,9 +245,12 @@ internal class ManagementApplicationsApi(private val api: ApiClient, private val
         api.post<ApiEnvelope<ApplicationNotice>, JsonObject>("me/venue-applications/$id/confirm", buildJsonObject {}, token).data.message
 
     override suspend fun discard(id: Long): String =
-        api.delete<ApiEnvelope<ApplicationNotice>>("me/venue-applications/$id", token).data.message
+        api.delete<ApiEnvelope<ApplicationNotice>>("me/venue-applications/$id", signedIn()).data.message
 
     private fun encodeSlug(slug: String) = URLEncoder.encode(slug, "UTF-8")
+
+    /* Le scritture vogliono il token: un ospite non arriva mai fin qui, ma se succede il server non va nemmeno chiamato. */
+    private fun signedIn(): String = token ?: throw IllegalStateException("Accedi per mandare la richiesta.")
 
     companion object {
         const val IMAGE_FIELD = "image"

@@ -42,6 +42,8 @@ data class AppUiState(
     val communityDestination: String? = null,
     /* «Proponi un evento» (Q1), aperto sopra la scheda corrente; cambiando scheda si chiude. */
     val submissionOpen: Boolean = false,
+    /* Q2: il modulo di registrazione da riaprire nella gestione dopo l'accesso (con la bozza del telefono), come nome della bozza (`DraftScopes`). */
+    val applicationScope: String? = null,
     val appearance: String = "dark",
     val defaultAppearance: String = "dark",
     val appearanceSaving: Boolean = false,
@@ -158,6 +160,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val repository = AppRepository(application)
+    /* Q2: le bozze dei moduli di registrazione scritte anche da ospite; si cancellano all'uscita dall'account. */
+    private val applicationDrafts = it.fabiodalez.incitta.data.management.ApplicationDrafts.of(application)
     private val _state = MutableStateFlow(
         AppUiState(
             appearance = repository.appearance(),
@@ -877,6 +881,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         selectTab(AppTab.ACCOUNT)
         commentLoginSlug = slug
     }
+
+    /**
+     * «Ho già un account» da un modulo di registrazione (Q2), o «Le mie
+     * richieste» aperta da ospite: si accede e poi si torna al modulo, con la
+     * bozza che resta sul telefono. Il ritorno è scritto con la bozza, così
+     * vale anche per un accesso finito dal collegamento spedito per posta.
+     */
+    internal fun loginForApplication(destination: it.fabiodalez.incitta.data.management.ManagementDestination.Registration) {
+        applicationDrafts.returnAfterSignIn(it.fabiodalez.incitta.data.management.DraftScopes.of(destination))
+        selectTab(AppTab.ACCOUNT)
+    }
+
+    /**
+     * «Crea l'account e invia» da ospite (Q2): la registrazione di sempre
+     * (D64, la risposta è la stessa per un indirizzo nuovo o già usato), con
+     * il verificatore PKCE in questo telefono. Il nome è quello del referente.
+     */
+    suspend fun signUpForApplication(name: String, email: String, password: String) {
+        repository.register(name, "", email, password)
+    }
+
+    fun applicationScopeOpened() {
+        _state.value = _state.value.copy(applicationScope = null)
+    }
     suspend fun eventComments(slug: String, page: Int, thread: Long?, repliesPage: Int) = repository.eventComments(slug, page, thread, repliesPage)
     suspend fun postComment(slug: String, body: String, parentId: Long?) = repository.postComment(slug, body, parentId)
     suspend fun reactComment(slug: String, id: Long, type: String) = repository.reactComment(slug, id, type)
@@ -1145,6 +1173,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logout() {
         viewModelScope.launch {
+            applicationDrafts.clear()
             repository.logout()
             _state.value = _state.value.copy(savedOccurrences = emptyList(), communityDestination = null, message = "Sessione chiusa")
         }
@@ -1155,6 +1184,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.value = _state.value.copy(isAuthenticating = true, message = null)
             runCatching { repository.deleteAccount(password) }
                 .onSuccess {
+                    applicationDrafts.clear()
                     _state.value = _state.value.copy(
                         isAuthenticating = false,
                         savedOccurrences = emptyList(),
@@ -1233,13 +1263,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isAuthenticating = true, message = null, authError = null)
             runCatching { action() }
-                .onSuccess {
+                .onSuccess { outcome ->
                     resendConfirmation = null
                     _state.value = _state.value.copy(
                         isAuthenticating = false,
                         authError = null,
                         pendingEmailConfirmation = null,
                         message = "Accesso eseguito. I salvati del dispositivo sono stati sincronizzati.",
+                        applicationScope = applicationAfterSignIn(outcome),
                     )
                     commentLoginSlug?.let { slug ->
                         commentLoginSlug = null
@@ -1262,6 +1293,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
         }
+    }
+
+    /*
+     * Q2: dopo un accesso, il modulo di registrazione da riaprire. Con la
+     * sessione nata dalla registrazione chiesta dal modulo la bozza parte da
+     * sola; con un account che c'era già il modulo torna precompilato.
+     */
+    private fun applicationAfterSignIn(outcome: Any?): String? {
+        val user = repository.session.value?.user ?: return null
+        val registration = (outcome as? it.fabiodalez.incitta.data.MagicSignIn)?.registration == true
+        return applicationDrafts.afterSignIn(user.email, user.emailVerified, registration) ?: _state.value.applicationScope
     }
 
     private fun userMessage(error: Throwable): String = requestFailureMessage(error)
