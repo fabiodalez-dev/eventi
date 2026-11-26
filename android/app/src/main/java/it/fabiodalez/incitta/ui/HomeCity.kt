@@ -318,7 +318,9 @@ internal fun OrganizeCta(signedIn: Boolean = false, onRegister: ((String) -> Uni
         Text("PARTECIPA AL PROGETTO", color = Acid, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold)
         Text("Organizzi eventi?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
         Text("Organizzi qualcosa in città? Proponi la data e finisce in questo elenco. Gestisci un locale? Prenditi la tua pagina e pubblica da solo, senza passare da nessuno.", color = Muted)
-        Button(onClick = { open("proponi-evento") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Proponi un evento") }
+        /* Q1: la proposta si scrive nell'app, anche da ospite (`EventSubmissionScreen`); senza chi la apre (anteprime, test) resta il sito. */
+        val propose = it.fabiodalez.incitta.ui.submission.LocalProposeEvent.current
+        Button(onClick = { propose?.invoke() ?: open("proponi-evento") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Proponi un evento") }
         OutlinedButton(onClick = { register("registra-il-tuo-locale") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Registra il tuo locale") }
         OutlinedButton(onClick = { register("registra-la-tua-organizzazione") }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Registra la tua organizzazione") }
         if (onRegister != null && !signedIn) Text(androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.organize_login_hint), color = Muted, style = MaterialTheme.typography.bodySmall)

@@ -33,6 +33,8 @@ class AppLinksTest {
             "locali/rivendica",
             "organizzatori/aurora",
             "mappa",
+            /* Q1: la proposta di un evento ha la sua schermata nell'app. */
+            "proponi-evento",
         ).forEach { assertFalse(it, isWebOnlyLink(it.split("/"))) }
     }
 

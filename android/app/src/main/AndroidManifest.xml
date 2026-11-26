@@ -104,6 +104,8 @@
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/mappa" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/calendario" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/biglietti" />
+                <!-- «Proponi un evento» (Q1): il modulo è nativo, per tutti. -->
+                <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/proponi-evento" />
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/app/auth/magic" />
                 <!-- Il ritorno da Stripe di una sponsorizzazione pagata dall'app (P6). -->
                 <data android:scheme="https" android:host="eventi.fabiodalez.it" android:path="/app/sponsorizzazioni/ritorno" />

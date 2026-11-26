@@ -74,7 +74,7 @@ import it.fabiodalez.incitta.data.offersPresence
 fun InCittaApp(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     InCittaTheme(light = state.appearance == "light") {
-    androidx.compose.runtime.CompositionLocalProvider(LocalCardLayout provides state.cardLayout, LocalCardLayoutChange provides viewModel::setCardLayout) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalCardLayout provides state.cardLayout, LocalCardLayoutChange provides viewModel::setCardLayout, it.fabiodalez.incitta.ui.submission.LocalProposeEvent provides viewModel::openSubmission) {
         /* Salvato: una rotazione o la chiusura dell'app da parte del sistema riportano nella gestione, non nel profilo. */
         var managementOpen by androidx.compose.runtime.saveable.rememberSaveable(state.session?.token) { mutableStateOf(false) }
         var managementDestination by remember(state.session?.token) { mutableStateOf<it.fabiodalez.incitta.data.management.ManagementDestination?>(null) }
@@ -90,6 +90,8 @@ fun InCittaApp(viewModel: MainViewModel) {
         val appContext = androidx.compose.ui.platform.LocalContext.current
         val appUri = androidx.compose.ui.platform.LocalUriHandler.current
         fun openDestination(url: String) {
+            /* Q1: `/proponi-evento` è la schermata nativa, da ospiti e da collegati. */
+            if (it.fabiodalez.incitta.data.isEventSubmissionLink(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)) { viewModel.openSubmission(); return }
             val target = it.fabiodalez.incitta.data.CommunityDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
             val management = if (target == null && state.session != null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
             if (management != null) {
@@ -113,6 +115,22 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         var tonightOpen by remember { mutableStateOf(false) }
+        /*
+         * «Proponi un evento» si apre sopra quello che c'è (la scheda di un
+         * evento, la community…) e tornando indietro lo si ritrova. Se invece
+         * mentre è aperta si va altrove (le icone in alto, un avviso, un'altra
+         * scheda), la proposta si chiude: la bozza resta nel suo ViewModel.
+         */
+        val submissionOverlays = listOf(managementOpen, collectionsOpen, tonightOpen, organizerSlug, communityRoute, carpoolRoute,
+            state.selected?.slug, state.selectedVenue?.slug, state.bookingDate?.occurrenceId, state.sharedCollectionToken, state.tab).joinToString("|")
+        var submissionBase by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(state.submissionOpen, submissionOverlays) {
+            when {
+                !state.submissionOpen -> submissionBase = null
+                submissionBase == null -> submissionBase = submissionOverlays
+                submissionBase != submissionOverlays -> viewModel.closeSubmission()
+            }
+        }
         val whatsappCode by it.fabiodalez.incitta.community.WhatsappAutofill.received.collectAsStateWithLifecycle()
         val tonightState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
         LaunchedEffect(state.tab) { tonightOpen = false; communityRoute = null; carpoolRoute = null }
@@ -176,7 +194,7 @@ fun InCittaApp(viewModel: MainViewModel) {
             }
         }
         var lastBannerImpression by remember { mutableStateOf<Long?>(null) }
-        val eventList = carpoolRoute == null && communityRoute == null && !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null
+        val eventList = carpoolRoute == null && communityRoute == null && !tonightOpen && organizerSlug == null && state.tab == AppTab.HOME && state.selected == null && state.selectedVenue == null && !state.submissionOpen
         var navigationRevealed by remember(state.tab, state.selected?.slug, state.selectedVenue?.slug, organizerSlug, tonightOpen) { mutableStateOf(false) }
         val threshold = with(LocalDensity.current) { 96.dp.toPx() }
         val navigationRequired = !tonightOpen && !eventList && state.selected == null && state.selectedVenue == null
@@ -308,6 +326,7 @@ fun InCittaApp(viewModel: MainViewModel) {
             val selected = state.selected
 
             when {
+                state.submissionOpen -> it.fabiodalez.incitta.ui.submission.EventSubmissionRoute(state.session, padding, onBack = viewModel::closeSubmission)
                 managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },

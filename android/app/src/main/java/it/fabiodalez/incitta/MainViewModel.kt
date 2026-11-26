@@ -40,6 +40,8 @@ internal fun navigationTarget(tab: AppTab, authenticated: Boolean): AppTab =
 
 data class AppUiState(
     val communityDestination: String? = null,
+    /* «Proponi un evento» (Q1), aperto sopra la scheda corrente; cambiando scheda si chiude. */
+    val submissionOpen: Boolean = false,
     val appearance: String = "dark",
     val defaultAppearance: String = "dark",
     val appearanceSaving: Boolean = false,
@@ -175,6 +177,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun closeSharedCollection() {
         _state.value = _state.value.copy(sharedCollectionToken = null)
+    }
+    fun openSubmission() {
+        _state.value = _state.value.copy(submissionOpen = true)
+    }
+    fun closeSubmission() {
+        _state.value = _state.value.copy(submissionOpen = false)
     }
     fun consumeCommunityDestination(url: String) {
         if(_state.value.communityDestination == url) _state.value = _state.value.copy(communityDestination = null)
@@ -351,7 +359,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.value = _state.value.copy(message = getApplication<Application>().getString(R.string.saved_login_required))
             return
         }
-        _state.value = _state.value.copy(bookingDate = null, bookingAvailability = null)
+        _state.value = _state.value.copy(bookingDate = null, bookingAvailability = null, submissionOpen = false)
         detailHistory.clear()
         _state.value = _state.value.copy(tab = tab, selected = null, selectedVenue = null, mapPreviewEvents = emptyList(), mapPreviewTotal = 0, message = null, sharedCollectionToken = null)
         if (tab == AppTab.SAVED) loadSaved()
