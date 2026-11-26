@@ -139,8 +139,13 @@ class EditorialEventEditorUiTest {
 
         // «Pubblicazione»: provenienza, verifica e «Programma pubblicazione».
         compose.onNodeWithTag("editor-tab-Publish").performClick()
-        compose.onNodeWithText(text(R.string.editorial_ee_schedule)).assertExists()
-        compose.onNodeWithText(text(R.string.editorial_ee_verification)).assertExists()
+        // La scheda è un elenco che disegna solo ciò che è a schermo: si scende fino al pulsante.
+        listOf(R.string.editorial_ee_verification, R.string.editorial_ee_schedule).forEach { id ->
+            compose.onAllNodes(hasScrollToNodeAction()).fetchSemanticsNodes().indices.forEach { index ->
+                runCatching { compose.onAllNodes(hasScrollToNodeAction())[index].performScrollToNode(hasText(text(id))) }
+            }
+            compose.onNodeWithText(text(id), useUnmergedTree = true).assertExists()
+        }
 
         compose.onNodeWithTag("editor-save").performScrollTo().performClick()
         compose.waitUntil(5_000) { source.calls.contains("update:41") }
