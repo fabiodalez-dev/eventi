@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\DTOs\NotificationMessage;
+use App\Enums\NotificationType;
 use App\Enums\VenueStatus;
+use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\Concerns\AlsoInTheApp;
+use App\Services\Management\ManagementNoticeTarget;
 use Filament\Facades\Filament;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -26,9 +31,16 @@ use Illuminate\Notifications\Notification;
  *
  * I testi passano tutti da `notifications.venue_*`, quindi si riscrivono dal
  * pannello senza toccare questo file.
+ *
+ * **Nell'app (Q3)** arriva anche in casella e in push. Porta alla pagina del
+ * locale nella gestione solo se la persona ci entra ancora: un locale
+ * rifiutato o sospeso non si apre, come il pannello, e l'avviso resta da
+ * leggere senza un bersaglio.
  */
 class VenueModerated extends Notification
 {
+    use AlsoInTheApp;
+
     public function __construct(
         private readonly Venue $venue,
         private readonly VenueStatus $esito,
@@ -40,7 +52,7 @@ class VenueModerated extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->channelsWithApp($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -71,6 +83,34 @@ class VenueModerated extends Notification
         }
 
         return $messaggio->line(__($gruppo.'.why'));
+    }
+
+    protected function appMessage(User $user): NotificationMessage
+    {
+        $gruppo = 'notifications.'.$this->gruppo();
+        $vars = ['venue' => $this->venue->name, 'product' => (string) config('app.name')];
+        $motivo = trim((string) $this->motivo);
+
+        return new NotificationMessage(
+            type: NotificationType::VenueModerated,
+            subject: __($gruppo.'.subject', $vars),
+            heading: __($gruppo.'.subject', $vars),
+            lines: array_values(array_filter([
+                __($gruppo.'.line', $vars),
+                $motivo === '' ? null : __('notifications.common.reason', ['reason' => $motivo]),
+            ])),
+            actionLabel: __('notifications.actions.open_panel'),
+            /* Il pannello solo quando ci si entra, come il pulsante dell'email: un locale rifiutato o sospeso non ha una pagina da offrire. */
+            url: $this->esito === VenueStatus::Approved ? Filament::getPanel('venue')->getUrl() ?? url('/') : url('/'),
+            venueId: (int) $this->venue->getKey(),
+        );
+    }
+
+    protected function appTarget(User $user): ?array
+    {
+        return $this->esito === VenueStatus::Approved
+            ? app(ManagementNoticeTarget::class)->subject($user, $this->venue, ManagementNoticeTarget::AREA_HOME)
+            : null;
     }
 
     private function gruppo(): string

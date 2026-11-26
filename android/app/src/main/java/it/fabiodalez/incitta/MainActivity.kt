@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
         if (intent?.hasExtra("notification_user_id") == true &&
             intent.getLongExtra("notification_user_id", -1) != it.fabiodalez.incitta.data.LocalStore(this).readSession()?.user?.id) return
         val uri = intent?.data ?: return
-        /* L'indirizzo interno degli avvisi a chi gestisce (P12) arriva solo dalle notifiche dell'app, mai da fuori. */
+        /* L'indirizzo interno degli avvisi a chi gestisce (P12) e delle schermate dell'account (Q3, `incitta://gestione/me/…`) arriva solo dalle notifiche dell'app, mai da fuori. */
         if (uri.scheme == it.fabiodalez.incitta.data.management.NOTICE_SCHEME && uri.host == it.fabiodalez.incitta.data.management.NOTICE_HOST &&
             !intent.hasExtra("notification_user_id")) return
         /* Un avviso o un collegamento della gestione apre la schermata nativa invece del browser. */

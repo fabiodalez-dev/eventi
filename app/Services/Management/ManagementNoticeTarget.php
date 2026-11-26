@@ -32,9 +32,36 @@ use App\Models\Venue;
  * Le aree: `event` (la scheda dell'evento, con lo stato e il motivo del
  * rifiuto), `comments` (i commenti di quell'evento da moderare), `home` (la
  * pagina del locale).
+ *
+ * Q3 aggiunge gli avvisi che erano solo email, con le loro aree:
+ * `sponsorships` (la pagina delle sponsorizzazioni, `id` l'ordine deciso),
+ * `sponsorship_stats` (le statistiche delle sponsorizzazioni, `id` la
+ * campagna del riepilogo), `statistics` (le statistiche del locale, per il
+ * rapporto mensile) e `home` per il locale moderato, l'accesso a
+ * un'organizzazione e la richiesta accolta. Sempre con la stessa barriera:
+ * se la persona non entra in quel soggetto, il campo manca.
+ *
+ * Due avvisi non hanno un soggetto che la persona gestisce già — la
+ * richiesta rifiutata e l'invito ancora da accettare — e portano a una
+ * schermata dell'account: `subject_type` `account`, `subject_id` la persona
+ * stessa, area `applications` («Le mie richieste») o `invitations` («I tuoi
+ * inviti»). Lì il permesso non serve: sono le proprie righe, e l'API le
+ * legge sempre dall'account collegato.
  */
 final class ManagementNoticeTarget
 {
+    public const AREA_HOME = 'home';
+
+    public const AREA_SPONSORSHIPS = 'sponsorships';
+
+    public const AREA_SPONSORSHIP_STATS = 'sponsorship_stats';
+
+    public const AREA_STATISTICS = 'statistics';
+
+    public const AREA_APPLICATIONS = 'applications';
+
+    public const AREA_INVITATIONS = 'invitations';
+
     /**
      * @return array{subject_type: string, subject_id: int, area: string, id: int|null}|null
      */
@@ -46,6 +73,34 @@ final class ManagementNoticeTarget
             NotificationType::VenueInactive => $this->venue($user, $venueId),
             default => null,
         };
+    }
+
+    /**
+     * Un'area di un locale o di un'organizzazione, se la persona ci entra
+     * adesso (`canAccessTenant`, lo stesso controllo del pannello). La
+     * memoria dei locali della persona si svuota prima: l'avviso parte spesso
+     * nella stessa richiesta che le ha appena dato (o tolto) l'accesso.
+     *
+     * @return array{subject_type: string, subject_id: int, area: string, id: int|null}|null
+     */
+    public function subject(User $user, Venue|Organizer|null $subject, string $area, ?int $id = null): ?array
+    {
+        if ($subject === null || ! $subject->exists) {
+            return null;
+        }
+        $user->forgetVenueMemberships();
+
+        return $user->canAccessTenant($subject) ? $this->target($subject, $area, $id) : null;
+    }
+
+    /**
+     * Una schermata dell'account, per gli avvisi senza un soggetto gestito.
+     *
+     * @return array{subject_type: string, subject_id: int, area: string, id: int|null}
+     */
+    public function account(User $user, string $area): array
+    {
+        return ['subject_type' => 'account', 'subject_id' => (int) $user->getKey(), 'area' => $area, 'id' => null];
     }
 
     /**

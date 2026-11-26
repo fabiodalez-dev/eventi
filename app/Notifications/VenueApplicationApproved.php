@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\DTOs\NotificationMessage;
 use App\Enums\ApplicationKind;
+use App\Enums\NotificationType;
+use App\Models\User;
 use App\Models\Venue;
+use App\Notifications\Concerns\AlsoInTheApp;
+use App\Services\Management\ManagementNoticeTarget;
 use Filament\Facades\Filament;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -18,9 +23,14 @@ use Illuminate\Notifications\Notification;
  * Un locale nuovo nasce in bozza, e il messaggio lo dice: si completa la
  * scheda, poi la redazione la pubblica. Una rivendicazione consegna un locale
  * già online.
+ *
+ * Nell'app (Q3) arriva anche in casella e in push, e porta alla pagina del
+ * locale nella gestione.
  */
 class VenueApplicationApproved extends Notification
 {
+    use AlsoInTheApp;
+
     public function __construct(
         private readonly Venue $venue,
         private readonly ApplicationKind $kind,
@@ -29,7 +39,7 @@ class VenueApplicationApproved extends Notification
     /** @return array<int, string> */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return $this->channelsWithApp($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -45,5 +55,24 @@ class VenueApplicationApproved extends Notification
                 Filament::getPanel('venue')->getUrl($this->venue) ?? url('/gestione'),
             )
             ->line(__('venue_applications.mail.approved_help'));
+    }
+
+    protected function appMessage(User $user): NotificationMessage
+    {
+        $vars = ['venue' => $this->venue->name, 'product' => (string) config('app.name')];
+
+        return new NotificationMessage(
+            type: NotificationType::VenueApplicationApproved,
+            subject: __('venue_applications.mail.approved_subject', $vars),
+            heading: __('venue_applications.mail.approved_subject', $vars),
+            lines: [__($this->kind === ApplicationKind::Claim ? 'venue_applications.mail.approved_claim' : 'venue_applications.mail.approved_venue', $vars)],
+            actionLabel: __('venue_applications.mail.approved_action'),
+            url: Filament::getPanel('venue')->getUrl($this->venue) ?? url('/gestione'),
+        );
+    }
+
+    protected function appTarget(User $user): ?array
+    {
+        return app(ManagementNoticeTarget::class)->subject($user, $this->venue, ManagementNoticeTarget::AREA_HOME);
     }
 }

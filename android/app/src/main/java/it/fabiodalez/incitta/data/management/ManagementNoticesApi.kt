@@ -22,22 +22,32 @@ import kotlinx.serialization.json.put
  */
 @Serializable
 data class ManagementNoticeTarget(
+    /* `venue`, `organizer` o (Q3) `account` per le schermate dell'account senza un soggetto gestito. */
     @SerialName("subject_type") val subjectType: String = "",
     @SerialName("subject_id") val subjectId: Long = 0,
-    /* `event` (scheda dell'evento), `comments` (commenti dell'evento), `home` (pagina del soggetto). */
+    /*
+     * `event` (scheda dell'evento), `comments` (commenti dell'evento), `home`
+     * (pagina del soggetto); con Q3 `sponsorships` (l'ordine deciso),
+     * `sponsorship_stats` (la campagna del riepilogo), `statistics` (rapporto
+     * mensile) e, per l'account, `applications` e `invitations`.
+     */
     val area: String = "",
     val id: Long? = null,
 ) {
     /**
      * L'indirizzo interno con cui l'avviso arriva a `MainActivity` e poi a
-     * `ManagementDestination.parse`: `incitta://gestione/venue/12/event/34`.
+     * `ManagementDestination.parse`: `incitta://gestione/venue/12/event/34`,
+     * oppure `incitta://gestione/me/applications` per l'account.
      * `null` se i dati non bastano: allora vale l'`url` dell'avviso.
      */
     fun uri(): String? {
+        if (subjectType.equals(NOTICE_ACCOUNT, ignoreCase = true)) {
+            return if (area in NOTICE_ACCOUNT_AREAS) "$NOTICE_SCHEME://$NOTICE_HOST/$NOTICE_ME/$area" else null
+        }
         val kind = SubjectKind.entries.firstOrNull { it.name.equals(subjectType, ignoreCase = true) } ?: return null
         if (subjectId <= 0 || area !in NOTICE_AREAS) return null
         val target = id?.takeIf { it > 0 }
-        if (area != NOTICE_HOME && target == null) return null
+        if (area in NOTICE_AREAS_WITH_ID && target == null) return null
         return "$NOTICE_SCHEME://$NOTICE_HOST/${kind.name.lowercase()}/$subjectId/$area" + (target?.let { "/$it" } ?: "")
     }
 
@@ -60,7 +70,18 @@ internal const val NOTICE_HOST = "gestione"
 internal const val NOTICE_EVENT = "event"
 internal const val NOTICE_COMMENTS = "comments"
 internal const val NOTICE_HOME = "home"
-private val NOTICE_AREAS = setOf(NOTICE_EVENT, NOTICE_COMMENTS, NOTICE_HOME)
+/* Q3: gli avvisi che erano solo email. */
+internal const val NOTICE_SPONSORSHIPS = "sponsorships"
+internal const val NOTICE_SPONSORSHIP_STATS = "sponsorship_stats"
+internal const val NOTICE_STATISTICS = "statistics"
+internal const val NOTICE_ACCOUNT = "account"
+internal const val NOTICE_ME = "me"
+internal const val NOTICE_APPLICATIONS = "applications"
+internal const val NOTICE_INVITATIONS = "invitations"
+/* Le aree di un soggetto, e quelle che vogliono un id (l'evento, l'ordine, la campagna). */
+private val NOTICE_AREAS_WITH_ID = setOf(NOTICE_EVENT, NOTICE_COMMENTS, NOTICE_SPONSORSHIPS, NOTICE_SPONSORSHIP_STATS)
+private val NOTICE_AREAS = NOTICE_AREAS_WITH_ID + setOf(NOTICE_HOME, NOTICE_STATISTICS)
+private val NOTICE_ACCOUNT_AREAS = setOf(NOTICE_APPLICATIONS, NOTICE_INVITATIONS)
 
 /** Dove si apre un avviso: dentro la gestione se il server l'ha detto, altrimenti il suo `url`. */
 internal fun noticeTarget(management: ManagementNoticeTarget?, url: String): String = management?.uri() ?: url
