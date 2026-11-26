@@ -161,6 +161,37 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
         ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
 
+    // R8 della redazione (26/11/2026): campagne, nuova sponsorizzazione, ordini, abilitazioni, listino, banner, statistiche.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/sponsorships',
+        '/editorial/sponsorships/export',
+        '/editorial/sponsorships/sponsors',
+        '/editorial/sponsorships/events',
+        '/editorial/sponsorships/prefill',
+        '/editorial/sponsorships/estimate',
+        '/editorial/sponsorships/bulk-destroy',
+        '/editorial/sponsorships/analytics',
+        '/editorial/sponsorships/analytics/clicks',
+        '/editorial/sponsorships/analytics/campaigns',
+        '/editorial/sponsorships/analytics/campaigns/{campaign}',
+        '/editorial/sponsorships/{sponsorship}',
+        '/editorial/sponsorships/{sponsorship}/toggle',
+        '/editorial/sponsorship-orders',
+        '/editorial/sponsorship-orders/{order}/approve',
+        '/editorial/sponsorship-orders/{order}/reject',
+        '/editorial/sponsorship-grants',
+        '/editorial/sponsorship-grants/{grant}',
+        '/editorial/sponsorship-prices',
+        '/editorial/sponsorship-prices/{price}',
+        '/editorial/sponsorship-banners',
+    ])
+        ->and($document['paths']['/editorial/sponsorships'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/sponsorships/{sponsorship}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/sponsorship-grants/{grant}'])->toHaveKeys(['get', 'patch'])
+        ->and($document['paths']['/editorial/sponsorship-grants/{grant}'])->not->toHaveKey('delete')
+        ->and($document['paths']['/editorial/sponsorship-prices/{price}'])->toHaveKeys(['patch', 'delete'])
+        ->and($document['paths']['/editorial/sponsorship-banners'])->toHaveKeys(['get', 'put']);
+
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/members',

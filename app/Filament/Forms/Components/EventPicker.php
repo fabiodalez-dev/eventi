@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Forms\Components;
 
-use App\Enums\OccurrenceStatus;
 use App\Models\Event;
+use App\Support\Sponsorship\SponsorableEventChoices;
 use App\Support\Sponsorship\SponsorableEvents;
 use Carbon\CarbonImmutable;
 use Closure;
 use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Il selettore dell'evento da sponsorizzare, nel pannello della redazione.
@@ -41,9 +39,9 @@ use Illuminate\Support\Facades\DB;
  */
 final class EventPicker
 {
-    public const LIST_LIMIT = 50;
+    public const LIST_LIMIT = SponsorableEventChoices::LIST_LIMIT;
 
-    public const SEARCH_LIMIT = 30;
+    public const SEARCH_LIMIT = SponsorableEventChoices::SEARCH_LIMIT;
 
     /**
      * @param  Closure  $events  la query di partenza (`Builder<Event>` o null), valutata con le dipendenze del campo (`Get`, il record)
@@ -69,31 +67,15 @@ final class EventPicker
 
     /**
      * Le voci della query, dalla prossima data. La query è già ristretta
-     * (`sponsorable()`): qui si aggiungono solo ricerca, ordine e righe.
+     * (`sponsorable()`): ricerca, ordine e righe stanno in
+     * `SponsorableEventChoices`, la stessa lettura dell'API dell'app.
      *
      * @param  Builder<Event>  $events
      * @return array<int|string, string>
      */
     public static function options(Builder $events, ?string $search = null, ?CarbonImmutable $now = null): array
     {
-        $search = trim((string) $search);
-        $query = self::withDates($events, $now);
-
-        if ($search !== '') {
-            $like = '%'.addcslashes($search, '%_\\').'%';
-            $query->where(fn (Builder $match) => $match
-                ->where('events.title', 'like', $like)
-                ->orWhereExists(DB::table('venues')
-                    ->whereColumn('venues.id', 'events.venue_id')
-                    ->where('venues.name', 'like', $like)));
-        }
-
-        $rows = $query
-            ->orderByRaw('next_starts_at is null')
-            ->orderBy('next_starts_at')
-            ->orderByDesc('events.id')
-            ->limit($search !== '' ? self::SEARCH_LIMIT : self::LIST_LIMIT)
-            ->get();
+        $rows = SponsorableEventChoices::rows($events, $search, $now);
 
         $sponsored = array_flip(SponsorableEvents::alreadySponsored(array_map('intval', $rows->modelKeys()), $now));
         $labels = [];
@@ -113,11 +95,7 @@ final class EventPicker
      */
     public static function labelFor(Builder $events, mixed $value, ?CarbonImmutable $now = null): ?string
     {
-        if (blank($value) || ! is_scalar($value)) {
-            return null;
-        }
-
-        $event = self::withDates($events, $now)->whereKey($value)->first();
+        $event = SponsorableEventChoices::find($events, $value, $now);
 
         if (! $event instanceof Event) {
             return null;
@@ -137,7 +115,7 @@ final class EventPicker
      */
     public static function count(Builder $events, ?CarbonImmutable $now = null): int
     {
-        return SponsorableEvents::scope(clone $events, $now)->count();
+        return SponsorableEventChoices::count($events, $now);
     }
 
     /**
@@ -149,12 +127,7 @@ final class EventPicker
      */
     public static function preview(Builder $events, int $limit = 5, ?CarbonImmutable $now = null): array
     {
-        return array_values(self::withDates(self::sponsorable($events, null, $now), $now)
-            ->orderBy('next_starts_at')
-            ->orderByDesc('events.id')
-            ->limit($limit)
-            ->get()
-            ->all());
+        return SponsorableEventChoices::preview($events, $limit, $now);
     }
 
     /**
@@ -185,47 +158,7 @@ final class EventPicker
      */
     public static function sponsorable(Builder $events, ?int $keep = null, ?CarbonImmutable $now = null): Builder
     {
-        /* `select()` sulla query di base toglie anche la sotto-query della
-           prossima data che `scope()` aggiunge: resta la sola colonna degli id. */
-        $ids = SponsorableEvents::scope(clone $events, $now)->toBase()->select('events.id');
-
-        return Event::query()->where(fn (Builder $either) => $either
-            ->whereIn('events.id', $ids)
-            ->when($keep !== null, fn (Builder $q) => $q->orWhere('events.id', $keep)));
-    }
-
-    /**
-     * Prossima data, quante date restano, locandina, locale e fuso, tutto
-     * nella stessa lettura: il numero di query non cambia con le voci.
-     *
-     * @param  Builder<Event>  $events
-     * @return Builder<Event>
-     */
-    private static function withDates(Builder $events, ?CarbonImmutable $now): Builder
-    {
-        $now ??= CarbonImmutable::now('UTC');
-        $query = clone $events;
-
-        if ($query->getQuery()->columns === null) {
-            $query->select('events.*');
-        }
-
-        return $query
-            ->addSelect([
-                'next_starts_at' => self::validDates($now)->selectRaw('min(event_occurrences.starts_at)'),
-                'upcoming_count' => self::validDates($now)->selectRaw('count(*)'),
-            ])
-            ->with(['media', 'venue:id,name', 'city:id,timezone']);
-    }
-
-    /** Le date ancora da fare (o in corso) di un evento, con la regola di `SponsorableEvents`. */
-    private static function validDates(CarbonImmutable $now): QueryBuilder
-    {
-        return DB::table('event_occurrences')
-            ->whereColumn('event_occurrences.event_id', 'events.id')
-            ->whereNull('event_occurrences.deleted_at')
-            ->whereIn('event_occurrences.status', [OccurrenceStatus::Scheduled->value, OccurrenceStatus::SoldOut->value])
-            ->where('event_occurrences.effective_ends_at', '>', $now);
+        return SponsorableEventChoices::sponsorable($events, $keep, $now);
     }
 
     private static function render(Event $event, bool $alreadySponsored): string

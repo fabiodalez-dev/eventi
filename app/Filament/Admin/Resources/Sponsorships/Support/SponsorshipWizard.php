@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Sponsorships\Support;
 
-use App\Enums\PromotionMode;
 use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
 use App\Enums\SponsorshipStatus;
-use App\Enums\VenueStatus;
 use App\Filament\Forms\Components\EventPicker;
 use App\Models\City;
 use App\Models\Event;
@@ -17,9 +15,7 @@ use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
 use App\Models\SponsorshipPrice;
 use App\Models\Venue;
-use App\Services\Sponsorship\GrantCampaigns;
-use App\Services\Sponsorship\GrantPayment;
-use App\Support\Sponsorship\SponsorableEvents;
+use App\Services\Sponsorship\Editorial\CampaignBuilder;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use Closure;
@@ -39,9 +35,6 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Il percorso in quattro passi di `/admin/sponsorships/create`.
@@ -68,22 +61,22 @@ use Illuminate\Validation\ValidationException;
  */
 final class SponsorshipWizard
 {
-    public const SPONSOR_VENUE = 'venue';
+    public const SPONSOR_VENUE = CampaignBuilder::SPONSOR_VENUE;
 
-    public const SPONSOR_ORGANIZER = 'organizer';
+    public const SPONSOR_ORGANIZER = CampaignBuilder::SPONSOR_ORGANIZER;
 
-    public const SPONSOR_EXTERNAL = 'external';
+    public const SPONSOR_EXTERNAL = CampaignBuilder::SPONSOR_EXTERNAL;
 
-    public const SCOPE_EVENT = 'event';
+    public const SCOPE_EVENT = CampaignBuilder::SCOPE_EVENT;
 
-    public const SCOPE_ALL = 'all';
+    public const SCOPE_ALL = CampaignBuilder::SCOPE_ALL;
 
-    public const PRODUCT_PERIOD = 'period';
+    public const PRODUCT_PERIOD = CampaignBuilder::PRODUCT_PERIOD;
 
-    public const PRODUCT_VIEWS = 'views';
+    public const PRODUCT_VIEWS = CampaignBuilder::PRODUCT_VIEWS;
 
     /** @var list<int> */
-    public const MONTHS = [1, 2, 3, 6, 12];
+    public const MONTHS = CampaignBuilder::MONTHS;
 
     /** @return list<Step> */
     public static function steps(): array
@@ -98,84 +91,14 @@ final class SponsorshipWizard
 
     /**
      * Salva ciò che il percorso ha raccolto: una campagna singola oppure
-     * un'abilitazione automatica con le sue righe.
+     * un'abilitazione automatica con le sue righe. La regola sta in
+     * `CampaignBuilder`, la stessa dell'API dell'app.
      *
      * @param  array<string, mixed>  $data
      */
     public static function save(array $data, ?int $userId): Sponsorship|SponsorshipGrant
     {
-        $type = (string) ($data['sponsor_type'] ?? self::SPONSOR_EXTERNAL);
-        $scope = $type === self::SPONSOR_EXTERNAL ? self::SCOPE_EVENT : (string) ($data['scope'] ?? self::SCOPE_EVENT);
-        $views = ($data['product'] ?? self::PRODUCT_PERIOD) === self::PRODUCT_VIEWS;
-        $complimentary = (bool) ($data['complimentary'] ?? false);
-        $active = ($data['status'] ?? SponsorshipStatus::Active->value) === SponsorshipStatus::Active->value;
-        $placement = SponsorshipPlacement::from((string) $data['placement']);
-        $sponsor = self::sponsor($type, $data['venue_id'] ?? null, $data['organizer_id'] ?? null);
-
-        $delivery = [
-            'priority' => self::intOr($data['priority'] ?? null, 0),
-            'weight' => self::intOr($data['weight'] ?? null, 1),
-            'impressions_goal' => $views ? self::intOr($data['impressions_goal'] ?? null, 0) : null,
-            'pacing' => $views ? (string) ($data['pacing'] ?? SponsorshipPacing::Even->value) : SponsorshipPacing::Even->value,
-        ];
-
-        if ($scope === self::SCOPE_ALL) {
-            if ($sponsor === null) {
-                throw ValidationException::withMessages(['data.venue_id' => __('sponsorships.wizard.validation.sponsor_required')]);
-            }
-
-            Gate::authorize('create', SponsorshipGrant::class);
-
-            return DB::transaction(function () use ($data, $sponsor, $placement, $complimentary, $active, $delivery, $userId): SponsorshipGrant {
-                $grant = SponsorshipGrant::query()->create(app(GrantPayment::class)->normalize([
-                    'venue_id' => $sponsor instanceof Venue ? $sponsor->getKey() : null,
-                    'organizer_id' => $sponsor instanceof Organizer ? $sponsor->getKey() : null,
-                    'created_by' => $userId,
-                    'mode' => PromotionMode::Automatic,
-                    'placement' => $placement,
-                    'enabled' => $active,
-                    'complimentary' => $complimentary,
-                    'starts_at' => $data['starts_at'],
-                    'ends_at' => $data['ends_at'],
-                    'amount_cents' => $complimentary ? null : ($data['amount_cents'] ?? null),
-                    'paid_at' => $complimentary ? null : ($data['paid_at'] ?? null),
-                    'payment_method' => $complimentary ? null : ($data['payment_method'] ?? null),
-                    'payment_reference' => $complimentary ? null : ($data['payment_reference'] ?? null),
-                    'notes' => $data['notes'] ?? null,
-                    ...$delivery,
-                ]));
-
-                app(GrantCampaigns::class)->sync($grant);
-
-                return $grant;
-            });
-        }
-
-        $event = Event::query()->find($data['event_id'] ?? null);
-
-        /* Il selettore accetta già solo eventi sponsorizzabili del committente;
-           lo ricontrollo qui perché il salvataggio non deve fidarsi della pagina. */
-        if (! $event instanceof Event || ! SponsorableEvents::isSponsorable($event) || ($sponsor !== null && ! SponsorableEvents::belongsTo($event, $sponsor))) {
-            throw ValidationException::withMessages(['data.event_id' => __('sponsorships.wizard.validation.event_not_sponsorable')]);
-        }
-
-        return Sponsorship::query()->create([
-            'event_id' => $event->getKey(),
-            'city_id' => $event->city_id,
-            'placement' => $placement,
-            'status' => $active ? SponsorshipStatus::Active : SponsorshipStatus::Draft,
-            'starts_at' => $data['starts_at'],
-            'ends_at' => $data['ends_at'],
-            'advertiser_name' => $data['advertiser_name'],
-            'advertiser_email' => $data['advertiser_email'] ?? null,
-            'advertiser_url' => $data['advertiser_url'] ?? null,
-            'amount_cents' => $complimentary ? null : ($data['amount_cents'] ?? null),
-            'currency' => 'EUR',
-            'invoice_reference' => $complimentary ? null : ($data['invoice_reference'] ?? null),
-            'notes' => $data['notes'] ?? null,
-            'created_by' => $userId,
-            ...$delivery,
-        ]);
+        return CampaignBuilder::save($data, $userId);
     }
 
     // ───────────────────────────── Passo 1 ─────────────────────────────
@@ -556,10 +479,7 @@ final class SponsorshipWizard
     /** @return array<string, string> */
     public static function pacingOptions(): array
     {
-        return [
-            SponsorshipPacing::Even->value => __('sponsorships.pacing.even'),
-            SponsorshipPacing::Asap->value => __('sponsorships.pacing.asap'),
-        ];
+        return CampaignBuilder::pacingOptions();
     }
 
     /**
@@ -570,46 +490,13 @@ final class SponsorshipWizard
      */
     public static function venueOptions(?string $search = null, mixed $value = null, bool $approvedOnly = true): array
     {
-        $query = Venue::query()
-            ->when($approvedOnly, fn (Builder $q) => $q->where('status', VenueStatus::Approved))
-            ->with('city:id,name')
-            ->orderBy('name');
-
-        if ($value !== null) {
-            if (blank($value) || ! is_scalar($value)) {
-                return [];
-            }
-
-            $query->whereKey($value);
-        } elseif (filled($search)) {
-            $query->where('name', 'like', '%'.addcslashes(trim((string) $search), '%_\\').'%');
-        }
-
-        $multipleCities = City::timezones()->count() > 1;
-
-        return $query->limit(50)->get(['id', 'name', 'city_id'])
-            ->mapWithKeys(fn (Venue $venue): array => [$venue->getKey() => $multipleCities && $venue->city !== null
-                ? $venue->name.' · '.$venue->city->name
-                : (string) $venue->name])
-            ->all();
+        return CampaignBuilder::venueOptions($search, $value, $approvedOnly);
     }
 
     /** @return array<int|string, string> */
     public static function organizerOptions(?string $search = null, mixed $value = null): array
     {
-        $query = Organizer::query()->where('is_active', true)->orderBy('name');
-
-        if ($value !== null) {
-            if (blank($value) || ! is_scalar($value)) {
-                return [];
-            }
-
-            $query->whereKey($value);
-        } elseif (filled($search)) {
-            $query->where('name', 'like', '%'.addcslashes(trim((string) $search), '%_\\').'%');
-        }
-
-        return $query->limit(50)->pluck('name', 'id')->map(fn (mixed $name): string => (string) $name)->all();
+        return CampaignBuilder::organizerOptions($search, $value);
     }
 
     /**
@@ -618,21 +505,13 @@ final class SponsorshipWizard
      */
     public static function periodOnlyMessage(mixed $placement): ?string
     {
-        $placement = $placement instanceof SponsorshipPlacement ? $placement : SponsorshipPlacement::tryFrom(is_string($placement) ? $placement : '');
-
-        return match ($placement) {
-            SponsorshipPlacement::HomeHero => __('sponsorships.wizard.help.hero_period_only'),
-            SponsorshipPlacement::MapSheet => __('sponsorships.wizard.help.map_period_only'),
-            default => null,
-        };
+        return CampaignBuilder::periodOnlyMessage($placement);
     }
 
     /** Il fuso della città scelta, per i selettori di data. */
     public static function timezone(mixed $cityId): string
     {
-        $timezone = is_numeric($cityId) ? City::query()->whereKey((int) $cityId)->value('timezone') : null;
-
-        return is_string($timezone) && $timezone !== '' ? $timezone : config()->string('app.timezone');
+        return CampaignBuilder::timezone($cityId);
     }
 
     /**
@@ -657,40 +536,23 @@ final class SponsorshipWizard
     /** @return array{views: int, days: int, provisional: bool}|null */
     public static function estimateFor(Get $get): ?array
     {
-        $placement = SponsorshipPlacement::tryFrom((string) $get('placement'));
-        $city = is_numeric($get('city_id')) ? City::query()->find((int) $get('city_id')) : null;
-
-        /* Per «un evento» la stima si ferma alla sua ultima data, come il motore. */
-        $lastCovered = self::scope($get) === self::SCOPE_EVENT && is_numeric($get('event_id'))
-            ? SponsorshipCapacity::lastCoveredFor((int) $get('event_id'), $placement)
-            : null;
-
-        return app(SponsorshipCapacity::class)->estimate($city, $placement, self::instant($get('starts_at')), self::instant($get('ends_at')), lastCovered: $lastCovered);
+        return app(CampaignBuilder::class)->estimate($get('city_id'), $get('placement'), self::instant($get('starts_at')), self::instant($get('ends_at')), self::scope($get), $get('event_id'));
     }
 
     private static function scope(Get $get): string
     {
-        return $get('sponsor_type') === self::SPONSOR_EXTERNAL ? self::SCOPE_EVENT : (string) ($get('scope') ?? self::SCOPE_EVENT);
+        return CampaignBuilder::scopeOf($get('sponsor_type'), $get('scope'));
     }
 
     /** @return Builder<Event>|null */
     private static function eventsQuery(Get $get): ?Builder
     {
-        return match ($get('sponsor_type')) {
-            self::SPONSOR_VENUE => filled($get('venue_id')) ? Event::query()->where('events.venue_id', $get('venue_id')) : null,
-            self::SPONSOR_ORGANIZER => filled($get('organizer_id')) ? Event::query()->where('events.organizer_id', $get('organizer_id')) : null,
-            self::SPONSOR_EXTERNAL => Event::query()->when(filled($get('venue_filter')), fn (Builder $q) => $q->where('events.venue_id', $get('venue_filter'))),
-            default => null,
-        };
+        return CampaignBuilder::eventsQuery($get('sponsor_type'), $get('venue_id'), $get('organizer_id'), $get('venue_filter'));
     }
 
     private static function sponsor(string $type, mixed $venueId, mixed $organizerId): Venue|Organizer|null
     {
-        return match ($type) {
-            self::SPONSOR_VENUE => is_numeric($venueId) ? Venue::query()->find((int) $venueId) : null,
-            self::SPONSOR_ORGANIZER => is_numeric($organizerId) ? Organizer::query()->find((int) $organizerId) : null,
-            default => null,
-        };
+        return CampaignBuilder::sponsor($type, $venueId, $organizerId);
     }
 
     private static function sponsorFromState(Get $get): Venue|Organizer|null
@@ -700,13 +562,7 @@ final class SponsorshipWizard
 
     private static function sponsorEmail(Venue|Organizer|null $sponsor): ?string
     {
-        if ($sponsor === null) {
-            return null;
-        }
-
-        $email = $sponsor->email ?: $sponsor->contact_email;
-
-        return is_string($email) && $email !== '' ? $email : null;
+        return CampaignBuilder::sponsorEmail($sponsor);
     }
 
     /** Nome e contatti del committente si compilano dal locale o dall'organizzatore scelto. */
@@ -735,13 +591,7 @@ final class SponsorshipWizard
      */
     private static function syncCity(Get $get, Set $set): void
     {
-        if (self::scope($get) === self::SCOPE_EVENT) {
-            $cityId = filled($get('event_id')) ? Event::query()->whereKey($get('event_id'))->value('city_id') : null;
-        } else {
-            $cityId = self::sponsorFromState($get)?->city_id;
-        }
-
-        $cityId = $cityId === null ? null : (int) $cityId;
+        $cityId = CampaignBuilder::cityIdFor(self::scope($get), $get('event_id'), self::sponsorFromState($get));
 
         if ($cityId === (is_numeric($get('city_id')) ? (int) $get('city_id') : null)) {
             return;
@@ -770,24 +620,16 @@ final class SponsorshipWizard
             return;
         }
 
-        /* I mesi si contano nel fuso della città: il 31 gennaio più un mese è
-           il 28 febbraio lì, non in UTC. `Set` vuole l'ora dell'applicazione. */
-        $set('ends_at', $start->setTimezone($timezone)
-            ->addMonthsNoOverflow($months)
-            ->setTimezone(config()->string('app.timezone'))
+        /* I mesi si contano nel fuso della città (`CampaignBuilder`). `Set`
+           vuole l'ora dell'applicazione. */
+        $set('ends_at', CampaignBuilder::endAfterMonths($start, $months, $timezone)
+            ?->setTimezone(config()->string('app.timezone'))
             ->format('Y-m-d H:i:s'));
     }
 
     private static function listPrice(Get $get): ?SponsorshipPrice
     {
-        $placement = SponsorshipPlacement::tryFrom((string) $get('placement'));
-        $months = filter_var($get('months'), FILTER_VALIDATE_INT);
-
-        if ($placement === null || $months === false) {
-            return null;
-        }
-
-        return SponsorshipPrice::query()->active()->where('placement', $placement)->where('months', $months)->first();
+        return CampaignBuilder::listPrice($get('placement'), $get('months'));
     }
 
     /** L'importo proposto dal listino quando cambiano collocazione o durata. */
@@ -802,13 +644,7 @@ final class SponsorshipWizard
 
     private static function priceHint(Get $get): string
     {
-        $price = self::listPrice($get);
-
-        if ($price !== null) {
-            return __('sponsorships.wizard.help.price_from_list', ['price' => $price->formattedAmount(), 'months' => trans_choice('sponsorships.wizard.months', $price->months, ['count' => $price->months])]);
-        }
-
-        return __('sponsorships.wizard.help.price_none');
+        return CampaignBuilder::priceHint(self::listPrice($get));
     }
 
     /** La regola dell'obiettivo: oltre l'80% della stima (`quota_max`) non si salva. */
@@ -819,21 +655,10 @@ final class SponsorshipWizard
                 return;
             }
 
-            $periodOnly = self::periodOnlyMessage($get('placement'));
+            $problem = CampaignBuilder::goalProblem($get('placement'), (int) $value, self::periodOnlyMessage($get('placement')) === null ? self::estimateFor($get) : null);
 
-            if ($periodOnly !== null) {
-                $fail($periodOnly);
-
-                return;
-            }
-
-            $estimate = self::estimateFor($get);
-
-            if ($estimate !== null && SponsorshipCapacity::verdict((int) $value, $estimate['views']) === 'blocked') {
-                $fail(__('sponsorships.wizard.validation.goal_blocked', [
-                    'estimate' => number_format($estimate['views'], 0, ',', '.'),
-                    'max' => number_format((int) floor($estimate['views'] * SponsorshipCapacity::blockShare()), 0, ',', '.'),
-                ]));
+            if ($problem !== null) {
+                $fail($problem);
             }
         };
     }
@@ -842,11 +667,7 @@ final class SponsorshipWizard
     {
         $estimate = self::estimateFor($get);
 
-        if ($estimate === null) {
-            return null;
-        }
-
-        return __('sponsorships.wizard.estimate.heading', ['views' => number_format($estimate['views'], 0, ',', '.')]);
+        return $estimate === null ? null : CampaignBuilder::estimateHeading($estimate);
     }
 
     private static function estimateDescription(Get $get): ?string
@@ -857,41 +678,16 @@ final class SponsorshipWizard
             return null;
         }
 
-        $parts = [$estimate['days'] > 0
-            ? trans_choice('sponsorships.wizard.estimate.days', $estimate['days'], ['count' => $estimate['days']])
-            : __('sponsorships.wizard.estimate.no_data')];
-
-        if ($estimate['provisional']) {
-            $parts[] = __('sponsorships.wizard.estimate.provisional');
-        }
-
         $goal = $get('product') === self::PRODUCT_VIEWS && is_numeric($get('impressions_goal')) ? (int) $get('impressions_goal') : null;
 
-        if ($goal !== null) {
-            $parts[] = match (SponsorshipCapacity::verdict($goal, $estimate['views'])) {
-                'blocked' => __('sponsorships.wizard.estimate.blocked'),
-                'warning' => __('sponsorships.wizard.estimate.warning', ['share' => number_format($estimate['views'] > 0 ? $goal / $estimate['views'] * 100 : 0, 0, ',', '.')]),
-                default => __('sponsorships.wizard.estimate.ok'),
-            };
-        }
-
-        return implode(' ', $parts);
+        return CampaignBuilder::estimateDescription($estimate, $goal);
     }
 
     private static function estimateStatus(Get $get): string
     {
-        $estimate = self::estimateFor($get);
         $goal = is_numeric($get('impressions_goal')) ? (int) $get('impressions_goal') : null;
 
-        if ($estimate === null || $goal === null || $get('product') !== self::PRODUCT_VIEWS) {
-            return 'info';
-        }
-
-        return match (SponsorshipCapacity::verdict($goal, $estimate['views'])) {
-            'blocked' => 'danger',
-            'warning' => 'warning',
-            default => 'success',
-        };
+        return CampaignBuilder::estimateStatus(self::estimateFor($get), $goal, $get('product') === self::PRODUCT_VIEWS);
     }
 
     /** @return array<string, mixed> */
@@ -906,7 +702,7 @@ final class SponsorshipWizard
             'ready' => $placement !== null && $city !== null && $start !== null && $end !== null,
             'placement' => $placement,
             'timezone' => self::timezone($get('city_id')),
-            'occupants' => app(SponsorshipCapacity::class)->occupants($city, $placement, $start, $end),
+            'occupants' => app(CampaignBuilder::class)->occupants($city?->getKey(), $placement?->value, $start, $end),
         ];
     }
 
@@ -956,11 +752,6 @@ final class SponsorshipWizard
             'priority' => (int) ($get('priority') ?? 0),
             'weight' => (int) ($get('weight') ?? 1),
         ];
-    }
-
-    private static function intOr(mixed $value, int $default): int
-    {
-        return is_numeric($value) ? (int) $value : $default;
     }
 
     // ─────────────────── Arrivo da «Sponsorizza questo evento» ───────────────────
