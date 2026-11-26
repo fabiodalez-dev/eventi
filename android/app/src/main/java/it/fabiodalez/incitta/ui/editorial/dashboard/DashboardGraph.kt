@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import it.fabiodalez.incitta.data.editorial.DashboardApi
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
+import it.fabiodalez.incitta.ui.editorial.social.EditorialSocialTodayRoute
 import kotlinx.serialization.Serializable
 
 /*
@@ -42,11 +43,14 @@ internal fun NavGraphBuilder.dashboardGraph(context: EditorialGraphContext) {
             onTarget = { target ->
                 when (val destination = dashboardDestination(target, desk?.can)) {
                     is DashboardDestination.Native -> context.navController.navigate(destination.route)
-                    is DashboardDestination.Web -> context.openWeb(destination.path)
+                    /* Un elenco che l'area non sa ricevere filtrato: la pagina del pannello, nell'app se c'è (R14). */
+                    is DashboardDestination.Web -> context.openPanel(destination.path)
                     null -> Unit
                 }
             },
-            onRegistration = { row -> row.webPath?.let(context::openWeb) },
+            /* `admin/users/{id}/edit`: la scheda nativa della persona (R5). */
+            onRegistration = { row -> row.webPath?.let { context.openPanel(it) } },
+            onSocialToday = if (desk?.can?.socialUse == true) { { context.navController.navigate(EditorialSocialTodayRoute) } } else null,
         )
     }
 }

@@ -71,18 +71,11 @@ class EditorialFoundationsTest {
         }
     }
 
-    @Test fun theNativeAreasOfTheTwoWavesOpenTheirOwnScreens() {
-        val native = EditorialArea.entries.filter { it.native }
-        assertEquals(
-            listOf(
-                EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.EventEditor, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation,
-                EditorialArea.Community, EditorialArea.Promotion, EditorialArea.Social, EditorialArea.Analytics, EditorialArea.Catalog,
-                EditorialArea.System, EditorialArea.Settings,
-            ),
-            native,
-        )
-        /* Resta sul sito finché il suo pacchetto non arriva: il calendario (R14). */
-        assertEquals(listOf(EditorialArea.Calendar), EditorialArea.entries.filterNot { it.native })
+    @Test fun everyAreaOfTheEditorialDeskIsNativeAndOpensItsOwnScreen() {
+        /* Con R14 tutte le aree della redazione sono nell'app: nessuna voce del menu dice più «sul sito». */
+        assertEquals(EditorialArea.entries.toList(), EditorialArea.entries.filter { it.native })
+        assertEquals(emptyList<EditorialArea>(), EditorialArea.entries.filterNot { it.native })
+        assertEquals(it.fabiodalez.incitta.ui.editorial.calendar.CalendarRoute, EditorialArea.Calendar.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.settings.SettingsRoute, EditorialArea.Settings.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.dashboard.DashboardRoute, EditorialArea.Dashboard.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.events.EventsRoute, EditorialArea.Events.entry)

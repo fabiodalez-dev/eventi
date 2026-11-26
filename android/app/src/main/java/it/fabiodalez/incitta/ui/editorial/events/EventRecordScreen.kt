@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,8 +36,8 @@ import java.time.ZoneId
  * La scheda di un evento in sola lettura (R-EV-07): locandina, stato, data
  * che conta, informazioni, descrizione, date nel fuso della città e il
  * riquadro «Redazione», con le decisioni permesse (R-EV-08…14, 17), le
- * pagine collegate (statistiche e sponsorizzazione nell'app, R10 e R8; le
- * grafiche social sul sito finché l'app non le ha; la scheda pubblica),
+ * pagine collegate (statistiche, sponsorizzazione e grafiche social
+ * nell'app, R10, R8 e R9; la scheda pubblica),
  * l'anteprima e la cronologia.
  */
 @Composable
@@ -55,6 +56,8 @@ internal fun EventRecordScreen(
     /* «Statistiche» (R10) e «Sponsorizza» (R8, R-EV-15) nell'app; `null`: la pagina del pannello di `links`. */
     onStatistics: ((Long) -> Unit)? = null,
     onSponsor: ((Long) -> Unit)? = null,
+    /* «Grafiche social» nello studio social dell'app con l'evento (R9, R14); `null`: la pagina del pannello di `links`. */
+    onSocial: ((Long) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val action by viewModel.action.collectAsStateWithLifecycle()
@@ -84,6 +87,7 @@ internal fun EventRecordScreen(
                 onDates = onDates?.let { dates -> { dates(event.id) } },
                 onStatistics = onStatistics?.let { open -> { open(event.id) } },
                 onSponsor = onSponsor?.let { open -> { open(event.id) } },
+                onSocial = onSocial?.let { open -> { open(event.id) } },
             )
         }
     }
@@ -123,6 +127,7 @@ internal fun EventRecordContent(
     onDates: (() -> Unit)? = null,
     onStatistics: (() -> Unit)? = null,
     onSponsor: (() -> Unit)? = null,
+    onSocial: (() -> Unit)? = null,
 ) {
     val zone = event.city.zone
     val can = event.can
@@ -174,7 +179,9 @@ internal fun EventRecordContent(
             event.links.statistics?.let { path ->
                 LinkButton(stringResource(R.string.editorial_events_action_statistics), if (onStatistics != null) Icons.Outlined.BarChart else Icons.AutoMirrored.Outlined.OpenInNew) { if (onStatistics != null) onStatistics() else onOpenWeb(path) }
             }
-            event.links.social?.let { path -> LinkButton(stringResource(R.string.editorial_events_action_social), Icons.AutoMirrored.Outlined.OpenInNew) { onOpenWeb(path) } }
+            event.links.social?.let { path ->
+                LinkButton(stringResource(R.string.editorial_events_action_social), if (onSocial != null) Icons.Outlined.PhotoLibrary else Icons.AutoMirrored.Outlined.OpenInNew) { if (onSocial != null) onSocial() else onOpenWeb(path) }
+            }
             event.links.sponsor?.let { path ->
                 LinkButton(stringResource(R.string.editorial_events_action_sponsor), if (onSponsor != null) Icons.Outlined.Campaign else Icons.AutoMirrored.Outlined.OpenInNew) { if (onSponsor != null) onSponsor() else onOpenWeb(path) }
             }

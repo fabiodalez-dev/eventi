@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import it.fabiodalez.incitta.R
 import it.fabiodalez.incitta.data.ApiClient
 import it.fabiodalez.incitta.data.Session
+import it.fabiodalez.incitta.data.editorial.EditorialDestination
 import it.fabiodalez.incitta.data.editorial.EditorialGraph
 import it.fabiodalez.incitta.data.requestFailureMessage
 import it.fabiodalez.incitta.ui.SecureWindow
@@ -37,6 +38,9 @@ internal fun EditorialScreen(
     client: ApiClient? = null,
     /* Apre nell'app un indirizzo del sito che l'app sa mostrare (la biglietteria di una data); senza, il browser. */
     onOpenInApp: ((String) -> Unit)? = null,
+    /* Un indirizzo `/admin/…` arrivato da un avviso o da un collegamento dell'app (R14): si apre dopo lo sblocco. */
+    destination: EditorialDestination? = null,
+    onDestinationOpened: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     if (session == null) { LaunchedEffect(Unit) { onBack() }; return }
@@ -63,7 +67,8 @@ internal fun EditorialScreen(
     LaunchedEffect(enabled) {
         if (enabled == false) {
             Toast.makeText(context, disabledText, Toast.LENGTH_SHORT).show()
-            runCatching { uriHandler.openUri(editorialWebUrl("admin")) }
+            /* Con l'interruttore spento un indirizzo del pannello si apre nel browser, dov'era. */
+            runCatching { uriHandler.openUri(editorialWebUrl(destination?.let(::editorialDestinationPath) ?: "admin")) }
             onBack()
         }
     }
@@ -74,6 +79,6 @@ internal fun EditorialScreen(
         return
     }
     UnlockGate(repository, onLockedBack = onBack) {
-        EditorialNavHost(repository, session, padding, onBack, onOpenInApp)
+        EditorialNavHost(repository, session, padding, onBack, onOpenInApp, destination, onDestinationOpened)
     }
 }

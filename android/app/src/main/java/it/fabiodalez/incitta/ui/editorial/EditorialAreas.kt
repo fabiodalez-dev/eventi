@@ -55,7 +55,7 @@ internal enum class EditorialArea(
     Catalog(R.string.editorial_area_catalog, R.string.editorial_area_catalog_help, "admin/categories", CatalogRoute, native = true),
     System(R.string.editorial_area_system, R.string.editorial_area_system_help, "admin/scheduled-notifications", SystemRoute, native = true, badges = listOf("scheduled_notifications_due")),
     Settings(R.string.editorial_area_settings, R.string.editorial_area_settings_help, "admin/cache-performance", SettingsRoute, native = true),
-    Calendar(R.string.editorial_area_calendar, R.string.editorial_area_calendar_help, "admin/calendario", CalendarRoute);
+    Calendar(R.string.editorial_area_calendar, R.string.editorial_area_calendar_help, "admin/calendario", CalendarRoute, native = true);
 
     /**
      * Se la persona, secondo i `permissions` del banco, apre quest'area: la

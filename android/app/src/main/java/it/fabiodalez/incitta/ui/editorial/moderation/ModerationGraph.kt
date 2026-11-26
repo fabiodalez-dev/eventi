@@ -90,7 +90,7 @@ internal fun NavGraphBuilder.moderationGraph(context: EditorialGraphContext) {
             when {
                 subject == null -> Unit
                 desk?.can?.communityManage == true -> context.navController.navigate(communityRouteForReport(subject.type))
-                else -> context.openWeb(EditorialArea.Community.webPath)
+                else -> context.openPanel(EditorialArea.Community.webPath)
             }
         })
     }

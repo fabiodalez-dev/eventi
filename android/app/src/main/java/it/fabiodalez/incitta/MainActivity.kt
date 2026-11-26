@@ -57,6 +57,17 @@ class MainActivity : FragmentActivity() {
          */
         if (!it.fabiodalez.incitta.notifications.NotificationLinkProof.accepts(this, intent)) return
         val uri = intent.data ?: return
+        /*
+         * R14: una pagina del pannello della redazione (`/admin/…`) si apre
+         * nell'area nativa solo da una notifica di questa app per la persona
+         * collegata; da un'altra app (un intent esplicito, il manifest non
+         * dichiara `/admin`) va nel browser, con l'accesso del sito.
+         */
+        if (it.fabiodalez.incitta.data.editorial.EditorialDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null) {
+            if (it.fabiodalez.incitta.notifications.NotificationLinkProof.proven(this, intent)) viewModel.openCommunityDestination(uri.toString())
+            else openInBrowser(uri)
+            return
+        }
         /* Un avviso o un collegamento della gestione apre la schermata nativa invece del browser. */
         if(it.fabiodalez.incitta.data.CommunityDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null ||
             it.fabiodalez.incitta.data.management.ManagementDestination.parse(uri.toString(), BuildConfig.API_BASE_URL) != null) {

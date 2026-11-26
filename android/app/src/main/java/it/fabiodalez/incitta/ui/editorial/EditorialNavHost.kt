@@ -7,7 +7,9 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -21,7 +23,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import it.fabiodalez.incitta.BuildConfig
 import it.fabiodalez.incitta.data.Session
+import it.fabiodalez.incitta.data.editorial.EditorialDestination
 import it.fabiodalez.incitta.data.editorial.EditorialRepository
+import it.fabiodalez.incitta.data.editorial.calendarApi
 import it.fabiodalez.incitta.ui.editorial.analytics.analyticsGraph
 import it.fabiodalez.incitta.ui.editorial.calendar.calendarGraph
 import it.fabiodalez.incitta.ui.editorial.catalog.catalogGraph
@@ -38,6 +42,11 @@ import it.fabiodalez.incitta.ui.editorial.social.socialGraph
 import it.fabiodalez.incitta.ui.editorial.system.systemGraph
 import it.fabiodalez.incitta.ui.editorial.users.usersGraph
 import it.fabiodalez.incitta.ui.editorial.venues.venuesGraph
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 /**
  * Quello che ogni area della redazione riceve per dichiarare le sue
@@ -54,6 +63,8 @@ internal class EditorialGraphContext(
     private val webState: State<(String) -> Unit>,
     /* L'apertura nell'app di un indirizzo del sito (R3, la biglietteria di una data); `null`: il browser. */
     private val inAppState: State<((String) -> Unit)?> = mutableStateOf<((String) -> Unit)?>(null),
+    /* Per tradurre lo slug di un indirizzo del pannello nell'id (R14); `null` nei test senza server. */
+    private val scope: CoroutineScope? = null,
 ) {
     val padding: PaddingValues get() = paddingState.value
     fun exit() = exitState.value()
@@ -72,6 +83,57 @@ internal class EditorialGraphContext(
     }
     /** Apre un'area dal menu. */
     fun open(area: EditorialArea) = navController.navigate(area.entry)
+
+    /**
+     * Un indirizzo del pannello (`admin/social?event=41`, `/admin/users/7/edit`,
+     * `https://<sito>/admin/sponsorships`) nella schermata nativa che fa la
+     * stessa cosa (`EditorialDestination`), con i permessi del banco; se
+     * l'app non ce l'ha, il browser come `openWeb`. Vero se l'ha aperto
+     * nell'app (o lo sta aprendo, dopo aver chiesto l'id al server).
+     *
+     * Non sostituisce `openWeb` dove la pagina del sito serve proprio
+     * (le scritture che restano solo sul web, come i segreti): lì resta
+     * `openWeb`.
+     */
+    fun openPanel(path: String): Boolean {
+        val destination = EditorialDestination.fromPath(editorialPanelPath(path))
+        val can = repository.current.value?.can
+        val target = if (destination != null && can != null) editorialRouteFor(destination, can) else null
+        if (target == null) { openWeb(path); return false }
+        navigateTo(target, fallback = { openWeb(path) })
+        return true
+    }
+
+    /** Apre la schermata di un indirizzo già tradotto; `fallback` se lo slug non porta più a niente. */
+    fun navigateTo(target: EditorialRouteTarget, fallback: () -> Unit = {}) {
+        when (target) {
+            EditorialRouteTarget.Home -> navController.popBackStack(EditorialHomeRoute, inclusive = false)
+            is EditorialRouteTarget.Native -> navController.navigate(target.route)
+            is EditorialRouteTarget.Resolve -> {
+                val launcher = scope ?: return fallback()
+                launcher.launch {
+                    val found = try {
+                        repository.call { repository.calendarApi().resolve(target.type, target.slug) }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (found != null && found.id > 0) navController.navigate(target.route(found.id)) else fallback()
+                }
+            }
+        }
+    }
+}
+
+/** `https://<sito>/admin/…` e `admin/…` diventano `/admin/…`; un indirizzo di un altro sito resta com'è (e non si traduce). */
+internal fun editorialPanelPath(path: String, apiBase: String = BuildConfig.API_BASE_URL): String {
+    val origin = apiBase.substringBefore("/api/").trimEnd('/')
+    return when {
+        path.startsWith("$origin/") -> path.removePrefix(origin)
+        path.startsWith("http://") || path.startsWith("https://") -> path
+        else -> "/" + path.trimStart('/')
+    }
 }
 
 /** L'indirizzo web di una pagina del pannello: `https://<sito>/admin/...`. */
@@ -90,15 +152,22 @@ internal fun EditorialNavHost(
     padding: PaddingValues,
     onExit: () -> Unit,
     onOpenInApp: ((String) -> Unit)? = null,
+    /* Un indirizzo `/admin/…` da aprire appena l'area è pronta (un avviso, un collegamento dell'app); poi `onDestinationOpened`. */
+    destination: EditorialDestination? = null,
+    onDestinationOpened: () -> Unit = {},
 ) {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val paddingState = rememberUpdatedState(padding)
     val exitState = rememberUpdatedState(onExit)
-    val openWeb: (String) -> Unit = { path -> runCatching { uriHandler.openUri(editorialWebUrl(path)) } }
+    /* Un percorso del pannello (`admin/…`) sul sito; un indirizzo intero (una notifica della campanella) così com'è. */
+    val openWeb: (String) -> Unit = { path ->
+        runCatching { uriHandler.openUri(if (path.startsWith("https://") || path.startsWith("http://")) path else editorialWebUrl(path)) }
+    }
     val webState = rememberUpdatedState(openWeb)
     val inAppState = rememberUpdatedState(onOpenInApp)
-    val context = remember(navController, repository) { EditorialGraphContext(navController, repository, session, paddingState, exitState, webState, inAppState) }
+    val context = remember(navController, repository) { EditorialGraphContext(navController, repository, session, paddingState, exitState, webState, inAppState, scope) }
     val entry by navController.currentBackStackEntryAsState()
     BackHandler(enabled = entry != null && navController.previousBackStackEntry == null) { onExit() }
     NavHost(navController = navController, startDestination = EditorialHomeRoute) {
@@ -117,6 +186,17 @@ internal fun EditorialNavHost(
         systemGraph(context)
         settingsGraph(context)
         calendarGraph(context)
+    }
+    /*
+     * Il banco serve per i permessi: si aspetta che la prima pagina lo
+     * carichi. Un indirizzo che l'app non apre lascia l'area sulla prima
+     * pagina (il pannello direbbe di no allo stesso modo).
+     */
+    LaunchedEffect(destination) {
+        val wanted = destination ?: return@LaunchedEffect
+        val can = repository.current.filterNotNull().first().can
+        editorialRouteFor(wanted, can)?.let { context.navigateTo(it) }
+        onDestinationOpened()
     }
 }
 
