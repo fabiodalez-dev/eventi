@@ -1,36 +1,34 @@
 package it.fabiodalez.incitta.ui.editorial.common
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.navigation.NavHostController
+import it.fabiodalez.incitta.data.editorial.EditorialPermissions
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 
 /*
  * Aprire un elenco della redazione già filtrato da un'altra schermata: i
  * riquadri del riepilogo (R1) portano a «eventi in attesa», «segnalazioni
  * aperte», «iscrizioni in attesa», come i collegamenti del pannello.
  *
- * Chi apre l'elenco naviga sulla destinazione dell'area e lascia nella sua
- * voce di navigazione il nome dell'elenco, la scheda e i filtri
- * (`openEditorialList`). L'elenco li prende una volta sola
- * (`takeEditorialListTarget`) e parte da lì:
+ * Ogni area dichiara nel suo grafo, una volta, gli elenchi che sa ricevere:
+ * il nome dell'elenco (quello di `target.area` del riepilogo), chi lo apre
+ * e la rotta dell'elenco con la scheda e i filtri nei suoi argomenti
+ * (`tab`, `filter` = `chiave:valore,chiave:valore`):
  *
- *     EditorialListHandoff.accept("events")          // nel grafo dell'area, una volta
- *     composable<EventsRoute> { entry ->
- *         val target = remember(entry) { entry.savedStateHandle.takeEditorialListTarget() }
- *         val initial = target?.applyTo(ListQuery()) ?: ListQuery()
- *         …
+ *     EditorialListHandoff.accept("events", { it.eventsView }) { target ->
+ *         EditorialEventsListRoute(target.tab.orEmpty(), target.filterParam)
  *     }
  *
- * Un elenco che non chiama `accept` non riceve niente: chi apre ricade sulla
+ * L'elenco legge la destinazione dal suo stato salvato una volta sola
+ * (`takeEditorialListTarget`) e parte da lì; dopo valgono i criteri che la
+ * persona sceglie, anche quando il sistema chiude e riapre l'app.
+ *
+ * Un elenco che non è dichiarato non riceve niente: chi apre ricade sulla
  * pagina del pannello già filtrata, che è quello che il riepilogo fa finché
  * l'elenco non è nativo. Così nessun riquadro apre un elenco senza il suo
  * filtro.
  */
 
-/** Nome dell'elenco (`events`, `venues`, `applications`, `reports`, `import_sources`, `users`), scheda e filtri. */
+/** Nome dell'elenco (`events`, `venues`, `applications`, `reports`, `comments`, `reviews`, `users`, …), scheda e filtri. */
 internal data class EditorialListTarget(
     val list: String,
     val tab: String? = null,
@@ -41,46 +39,61 @@ internal data class EditorialListTarget(
         tab = tab ?: query.tab,
         filters = (query.filters + filters).filterValues { it.isNotBlank() },
     )
+
+    /** I filtri nell'argomento `filter` della rotta dell'elenco. */
+    val filterParam: String get() = encodeEditorialFilterParam(filters)
 }
+
+/** `status:pending,missing_poster:1`, chiavi in ordine: l'argomento `filter` delle rotte degli elenchi. */
+internal fun encodeEditorialFilterParam(filters: Map<String, String>): String =
+    filters.filterValues { it.isNotBlank() }.toSortedMap().entries.joinToString(",") { "${it.key}:${it.value}" }
+
+/** Il contrario di `encodeEditorialFilterParam`; le parti senza chiave o senza valore si scartano. */
+internal fun parseEditorialFilterParam(value: String?): Map<String, String> = value.orEmpty().split(',').mapNotNull { pair ->
+    val key = pair.substringBefore(':', "").trim()
+    val item = pair.substringAfter(':', "").trim()
+    if (key.isEmpty() || item.isEmpty()) null else key to item
+}.toMap()
 
 /** Gli elenchi che sanno ricevere una destinazione: li dichiarano i grafi delle aree. */
 internal object EditorialListHandoff {
-    private val lists = ConcurrentHashMap.newKeySet<String>()
+    private class Entry(val allowed: (EditorialPermissions) -> Boolean, val route: (EditorialListTarget) -> Any)
 
-    /** Da chiamare nel grafo dell'area per ogni elenco che legge `takeEditorialListTarget`. */
-    fun accept(list: String) { lists += list }
+    private val lists = ConcurrentHashMap<String, Entry>()
 
-    fun accepts(list: String): Boolean = list in lists
+    /**
+     * Da chiamare nel grafo dell'area per ogni elenco che legge
+     * `takeEditorialListTarget`: `allowed` è il permesso che apre l'elenco,
+     * `route` la sua rotta con scheda e filtri.
+     */
+    fun accept(list: String, allowed: (EditorialPermissions) -> Boolean, route: (EditorialListTarget) -> Any) {
+        lists[list] = Entry(allowed, route)
+    }
 
-    internal const val KEY_LIST = "editorial.list.name"
-    internal const val KEY_TAB = "editorial.list.tab"
-    internal const val KEY_FILTERS = "editorial.list.filters"
+    fun accepts(list: String): Boolean = lists.containsKey(list)
 
-    private val filtersSerializer = MapSerializer(String.serializer(), String.serializer())
+    /** La rotta dell'elenco già filtrato; `null` se l'elenco non è nativo o la persona non lo apre. */
+    fun route(target: EditorialListTarget, can: EditorialPermissions): Any? =
+        lists[target.list]?.takeIf { it.allowed(can) }?.route?.invoke(target)
 
-    internal fun encodeFilters(filters: Map<String, String>): String = Json.encodeToString(filtersSerializer, filters)
-
-    internal fun decodeFilters(value: String?): Map<String, String> =
-        value?.let { runCatching { Json.decodeFromString(filtersSerializer, it) }.getOrNull() } ?: emptyMap()
+    /* Gli argomenti delle rotte degli elenchi e il segno «già letta» nello stato salvato. */
+    internal const val ARG_TAB = "tab"
+    internal const val ARG_FILTER = "filter"
+    internal const val KEY_TAKEN = "editorial.list.taken"
 }
 
-/** Scrive la destinazione nella voce di navigazione di un elenco. */
-internal fun SavedStateHandle.putEditorialListTarget(target: EditorialListTarget) {
-    this[EditorialListHandoff.KEY_LIST] = target.list
-    this[EditorialListHandoff.KEY_TAB] = target.tab
-    this[EditorialListHandoff.KEY_FILTERS] = EditorialListHandoff.encodeFilters(target.filters)
-}
-
-/** La destinazione lasciata da chi ha aperto l'elenco, una volta sola: dopo la lettura non c'è più. */
-internal fun SavedStateHandle.takeEditorialListTarget(): EditorialListTarget? {
-    val list = remove<String>(EditorialListHandoff.KEY_LIST) ?: return null
-    val tab = remove<String>(EditorialListHandoff.KEY_TAB)
-    val filters = EditorialListHandoff.decodeFilters(remove<String>(EditorialListHandoff.KEY_FILTERS))
+/**
+ * La destinazione scritta negli argomenti della rotta dell'elenco (`tab`,
+ * `filter`), una volta sola: la seconda lettura, anche dopo che il sistema
+ * ha chiuso e riaperto l'app, dà `null`, così restano i criteri che la
+ * persona ha scelto nel frattempo. `null` anche se la rotta non porta né
+ * scheda né filtri (l'elenco aperto dal menu).
+ */
+internal fun SavedStateHandle.takeEditorialListTarget(list: String): EditorialListTarget? {
+    if (get<Boolean>(EditorialListHandoff.KEY_TAKEN) == true) return null
+    this[EditorialListHandoff.KEY_TAKEN] = true
+    val tab = get<String>(EditorialListHandoff.ARG_TAB)?.takeIf { it.isNotBlank() }
+    val filters = parseEditorialFilterParam(get<String>(EditorialListHandoff.ARG_FILTER))
+    if (tab == null && filters.isEmpty()) return null
     return EditorialListTarget(list, tab, filters)
-}
-
-/** Apre la destinazione `entry` di un'area e le lascia l'elenco da mostrare già filtrato. */
-internal fun NavHostController.openEditorialList(entry: Any, target: EditorialListTarget) {
-    navigate(entry)
-    currentBackStackEntry?.savedStateHandle?.putEditorialListTarget(target)
 }

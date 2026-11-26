@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import it.fabiodalez.incitta.data.management.OptionChoice
 import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
+import it.fabiodalez.incitta.ui.editorial.common.EditorialListHandoff
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import java.time.ZoneId
@@ -35,7 +36,18 @@ internal data object EventsRoute
 @Serializable internal data class EditorialSubmissionsRoute(val status: String = "")
 @Serializable internal data class EditorialSubmissionRoute(val id: Long)
 
+/**
+ * L'elenco degli eventi apre già filtrato i riquadri del riepilogo (in
+ * attesa, annullati, pubblicati oggi e in settimana, senza locandina,
+ * incompleti, possibili doppioni): scheda e filtri finiscono negli argomenti
+ * di `EditorialEventsListRoute`, che `EventsQueueViewModel` legge.
+ */
+internal fun acceptEventsLists() {
+    EditorialListHandoff.accept("events", { it.eventsView }) { target -> EditorialEventsListRoute(target.tab.orEmpty(), target.filterParam) }
+}
+
 internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
+    acceptEventsLists()
     val nav = context.navController
     composable<EventsRoute> { EventsQueueDestination(context) }
     composable<EditorialEventsListRoute> { EventsQueueDestination(context) }

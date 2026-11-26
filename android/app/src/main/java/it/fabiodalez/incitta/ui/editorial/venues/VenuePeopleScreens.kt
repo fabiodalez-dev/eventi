@@ -33,6 +33,7 @@ import it.fabiodalez.incitta.ui.editorial.common.PagedListController
 import it.fabiodalez.incitta.ui.editorial.common.PagedListScreen
 import it.fabiodalez.incitta.ui.editorial.common.RowAction
 import it.fabiodalez.incitta.ui.editorial.common.abilitiesOf
+import it.fabiodalez.incitta.ui.editorial.events.EditorialEventRoute
 import it.fabiodalez.incitta.ui.management.common.ConfirmDialog
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.Loadable
@@ -313,6 +314,10 @@ internal class VenueEventsViewModel(
     }
 }
 
+/** La scheda nativa di un evento del locale (`EventRecordScreen` di R2), per chi lo può vedere; `null` altrimenti. */
+internal fun venueEventRoute(event: VenueEventRow): EditorialEventRoute? =
+    if (abilitiesOf(event.abilities)["view"] == true) EditorialEventRoute(event.id) else null
+
 @Composable
 internal fun VenueEventsScreen(model: VenueEventsViewModel, context: EditorialGraphContext) {
     val state by model.list.current.collectAsStateWithLifecycle()
@@ -333,7 +338,6 @@ internal fun VenueEventsScreen(model: VenueEventsViewModel, context: EditorialGr
         emptyText = stringResource(R.string.editorial_venue_events_empty),
         header = { Text(stringResource(R.string.editorial_venue_events_lead), color = Muted, style = MaterialTheme.typography.bodySmall) },
     ) { event ->
-        val abilities = abilitiesOf(event.abilities)
         val published = cityLocalDateTime(event.publishedAt, zone)?.format(momentFormat)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -342,9 +346,9 @@ internal fun VenueEventsScreen(model: VenueEventsViewModel, context: EditorialGr
                     published?.let { stringResource(R.string.editorial_venue_published_at, it) }).joinToString(" · "), color = Muted, style = MaterialTheme.typography.bodySmall)
                 StatusLabel(event.status)
             }
-            /* La scheda dell'evento è dell'area Eventi: finché non c'è nell'app si apre quella del pannello. */
-            if (abilities["view"] == true) {
-                TextButton(onClick = { context.openWeb("admin/events/${event.id}" + if (abilities["update"] == true) "/edit" else "") }, modifier = Modifier.heightIn(min = 48.dp)) {
+            /* La scheda dell'evento è quella nativa dell'area Eventi (R2), con le sue decisioni. */
+            venueEventRoute(event)?.let { route ->
+                TextButton(onClick = { context.navController.navigate(route) }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.editorial_venues_open_record))
                 }
             }

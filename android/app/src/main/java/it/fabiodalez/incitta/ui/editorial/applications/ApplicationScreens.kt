@@ -38,6 +38,9 @@ import it.fabiodalez.incitta.ui.editorial.common.PagedListScreen
 import it.fabiodalez.incitta.ui.editorial.common.PagedState
 import it.fabiodalez.incitta.ui.editorial.common.RowAction
 import it.fabiodalez.incitta.ui.editorial.common.abilitiesOf
+import it.fabiodalez.incitta.ui.editorial.common.encodeEditorialFilterParam
+import it.fabiodalez.incitta.ui.editorial.common.parseEditorialFilterParam
+import it.fabiodalez.incitta.ui.editorial.common.takeEditorialListTarget
 import it.fabiodalez.incitta.ui.editorial.venues.ApplicationDetailRoute
 import it.fabiodalez.incitta.ui.editorial.venues.FlowRowActions
 import it.fabiodalez.incitta.ui.editorial.venues.StatusLabel
@@ -93,7 +96,15 @@ internal class ApplicationListViewModel(
     private val source: EditorialVenuesSource,
     private val saved: SavedStateHandle,
 ) : ViewModel() {
-    val list = PagedListController(viewModelScope, ListQuery(tab = saved[KEY_TAB] ?: DEFAULT_TAB)) { query, page ->
+    /* Aperta da un riquadro del riepilogo (`ListHandoff`): la scheda e i filtri diventano i criteri salvati, una volta sola. */
+    private val start: ListQuery = run {
+        saved.takeEditorialListTarget(LIST)?.let { target ->
+            saved[KEY_TAB] = target.tab ?: DEFAULT_TAB
+            saved[KEY_FILTERS] = target.filterParam
+        }
+        ListQuery(tab = saved.get<String>(KEY_TAB)?.takeIf { it.isNotBlank() } ?: DEFAULT_TAB, filters = parseEditorialFilterParam(saved[KEY_FILTERS]))
+    }
+    val list = PagedListController(viewModelScope, start) { query, page ->
         repository.call { source.applications(query.params(page)) }
     }
     private val state = MutableStateFlow(ApplicationListUiState())
@@ -108,6 +119,7 @@ internal class ApplicationListViewModel(
     }
 
     fun selectTab(tab: String?) { saved[KEY_TAB] = tab ?: ALL; list.selectTab(tab ?: ALL) }
+    fun applyFilters(filters: Map<String, String>) { saved[KEY_FILTERS] = encodeEditorialFilterParam(filters); list.applyFilters(filters) }
 
     fun ask(decision: ApplicationDecision) = state.update { it.copy(decision = decision, error = null, message = null) }
     fun dismiss() = state.update { it.copy(decision = null, error = null) }
@@ -133,7 +145,10 @@ internal class ApplicationListViewModel(
     }
 
     companion object {
+        /* Il nome dell'elenco per il riepilogo (`target.area`). */
+        const val LIST = "applications"
         const val KEY_TAB = "tab"
+        const val KEY_FILTERS = "application_filters"
         const val DEFAULT_TAB = "pending"
         const val ALL = "all"
     }
@@ -150,7 +165,7 @@ internal fun ApplicationListScreen(model: ApplicationListViewModel, context: Edi
         onBack = context::back,
         onSearch = model.list::search,
         onTab = model::selectTab,
-        onFilters = model.list::applyFilters,
+        onFilters = model::applyFilters,
         onLoadMore = model.list::loadMore,
         onRetry = model.list::retry,
         onOpen = { context.navController.navigate(it) },

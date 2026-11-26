@@ -153,6 +153,30 @@ class ModerationViewModelsTest {
         assertEquals("reports:page=1&per_page=20&filter[status]=resolved", source.calls.last())
     }
 
+    @Test fun theOpenReportsTileOpensTheListWithItsFilterOnceAndThenTheChosenOnesWin() {
+        val source = FakeModeration()
+        /* Gli argomenti di `ModerationReportsRoute(filter = "open:1")`, la rotta di «Segnalazioni aperte» del riepilogo. */
+        val saved = SavedStateHandle(mapOf("tab" to "", "filter" to "open:1"))
+        val viewModel = ReportsViewModel(repository, source, saved)
+        assertEquals("reports:page=1&per_page=20&filter[open]=1", source.calls.first())
+        assertEquals(mapOf("open" to "1"), viewModel.list.current.value.query.filters)
+        viewModel.applyFilters(mapOf("status" to "resolved"))
+        /* Il sistema riapre l'app: restano i filtri scelti, non quelli del riquadro. */
+        ReportsViewModel(repository, source, saved)
+        assertEquals("reports:page=1&per_page=20&filter[status]=resolved", source.calls.last())
+        /* Dal menu dell'area, senza argomenti: nessun filtro. */
+        ReportsViewModel(repository, source, SavedStateHandle(mapOf("tab" to "", "filter" to "")))
+        assertEquals("reports:page=1&per_page=20", source.calls.last())
+    }
+
+    @Test fun commentsAndReviewsTakeOnlyTheirOwnFiltersFromTheRoute() {
+        val source = FakeModeration()
+        CommentsViewModel(repository, source, SavedStateHandle(mapOf("filter" to "status:hidden,sconosciuto:1")))
+        assertTrue(source.calls.last(), source.calls.last().startsWith("comments:") && source.calls.last().contains("filter[status]=hidden") && !source.calls.last().contains("sconosciuto"))
+        ReviewsViewModel(repository, source, SavedStateHandle(mapOf("filter" to "status:pending,type:venue")))
+        assertTrue(source.calls.last(), source.calls.last().startsWith("reviews:") && source.calls.last().contains("filter[status]=pending") && source.calls.last().contains("filter[type]=venue"))
+    }
+
     @Test fun aReportIsResolvedWithStatusAndNoteAndTheListIsToldToReload() {
         val source = FakeModeration().apply { reports = listOf(EditorialReport(id = 8, status = "pending", resolutionNote = null, abilities = abilities("resolve", "destroy"))) }
         val viewModel = ReportDetailViewModel(repository, source, SavedStateHandle(mapOf("id" to 8L)))

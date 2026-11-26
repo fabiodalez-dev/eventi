@@ -344,3 +344,51 @@ it('senza nessuna città non disegna i riquadri legati alla città', function ()
     expect($data['city'])->toBeNull()
         ->and(array_column($data['sections'], 'key'))->toBe(['registrations']);
 });
+
+/*
+ * I collegamenti fra i pacchetti: l'app apre ogni riquadro nell'elenco
+ * nativo con la scheda e i filtri della destinazione (`ListHandoff` lato
+ * app). Qui l'elenco dell'API con quei criteri deve contare lo stesso numero
+ * del riquadro. Le richieste non hanno un filtro di stato (nel pannello lo
+ * stato è la scheda): l'app trasforma `filter[status]` nella scheda.
+ */
+it('apre ogni riquadro in un elenco dell’API che conta lo stesso numero', function (): void {
+    deskSeed($this->s);
+    $lists = ['events' => 'events', 'venues' => 'venues', 'applications' => 'applications', 'reports' => 'reports', 'users' => 'users'];
+
+    foreach ([$this->s->admin, $this->s->moderator] as $staff) {
+        $api = deskSections(deskDashboard($this, $staff));
+        $stats = collect($api)->flatMap(fn (array $section): array => $section['stats'] ?? [])->filter(fn (array $stat): bool => $stat['target'] !== null);
+        $checked = [];
+
+        foreach ($stats as $stat) {
+            $target = $stat['target'];
+            if (! isset($lists[$target['area']])) {
+                // Gli import falliti restano sul pannello finché l'area Sistema non è nell'app.
+                expect($target['area'])->toBe('import_sources');
+
+                continue;
+            }
+            $filters = $target['filters'];
+            $tab = $target['tab'];
+            if ($target['area'] === 'applications' && isset($filters['status'])) {
+                $tab ??= $filters['status'];
+                unset($filters['status']);
+            }
+            $query = http_build_query(array_filter(['tab' => $tab, 'filter' => $filters, 'per_page' => 50]));
+            $total = EditorialSession::as($this, EditorialSession::token($staff))
+                ->getJson('/api/v1/editorial/'.$lists[$target['area']].'?'.$query)->assertOk()->json('meta.total');
+            expect($total)->toBe($stat['count'], $stat['key']);
+            $checked[] = $stat['key'];
+        }
+
+        expect($checked)->toEqualCanonicalizing(['pending_events', 'pending_venues', 'pending_applications', 'open_reports', 'published_today',
+            'published_this_week', 'cancelled_events', 'missing_poster', 'incomplete', 'possible_duplicates', 'inactive_venues']);
+
+        // «Solo in attesa» delle nuove iscrizioni: la scheda degli utenti conta le persone in attesa.
+        $links = collect($api['registrations']['links'])->keyBy('key');
+        $pending = EditorialSession::as($this, EditorialSession::token($staff))
+            ->getJson('/api/v1/editorial/users?tab='.$links['pending']['target']['tab'])->assertOk()->json('meta.total');
+        expect($pending)->toBe($api['registrations']['counts']['pending']);
+    }
+});

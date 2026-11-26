@@ -57,6 +57,36 @@ class EditorialFoundationsTest {
         assertTrue(EditorialArea.entries.all { it.webPath.startsWith("admin") })
     }
 
+    @Test fun everyPermissionKeyHasItsPropertyAndNoPropertyIsLeftOver() {
+        assertEquals(35, allKeys.size)
+        assertEquals(allKeys.size, allKeys.toSet().size)
+        val getters = EditorialPermissions::class.java.declaredMethods
+            .filter { it.name.startsWith("get") && it.parameterCount == 0 && it.returnType == Boolean::class.javaPrimitiveType }
+        assertEquals(allKeys.size, getters.size)
+        for (key in allKeys) {
+            /* `events_view` → `getEventsView`: una sola proprietà dice sì, ed è quella con il nome della chiave. */
+            val expected = "get" + key.split('_').joinToString("") { part -> part.replaceFirstChar { it.uppercase() } }
+            val yes = getters.filter { it.invoke(EditorialPermissions(mapOf(key to true))) == true }.map { it.name }
+            assertEquals(key, listOf(expected), yes)
+        }
+    }
+
+    @Test fun theNativeAreasOfTheFirstWaveOpenTheirOwnScreens() {
+        val native = EditorialArea.entries.filter { it.native }
+        assertEquals(listOf(EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation), native)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.dashboard.DashboardRoute, EditorialArea.Dashboard.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.events.EventsRoute, EditorialArea.Events.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.venues.VenuesRoute, EditorialArea.Venues.entry)
+        /* Dal menu l'elenco degli utenti parte senza scheda né filtri: «Tutti». */
+        assertEquals(it.fabiodalez.incitta.ui.editorial.users.UsersRoute(), EditorialArea.Users.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationRoute, EditorialArea.Moderation.entry)
+        /* I contatori del menu: le stesse chiavi che le voci dentro l'area mostrano. */
+        assertEquals(listOf("venues_pending", "venue_applications_pending"), EditorialArea.Venues.badges)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationSection.entries.map { it.badge }.toSet(), EditorialArea.Moderation.badges.toSet())
+        assertEquals(listOf("users_registrations"), EditorialArea.Users.badges)
+        assertEquals(listOf("events_pending", "event_submissions_pending"), EditorialArea.Events.badges)
+    }
+
     @Test fun theBadgeOfAnAreaSumsOnlyWhatTheServerShows() {
         val desk = Json.decodeFromString<EditorialDesk>("""{"badges":{"events_pending":3,"event_submissions_pending":2,"reports_open":0,"event_comments_hidden":1,"catalog_reviews_pending":null}}""")
         assertEquals(5, EditorialArea.Events.badgeFor(desk))
@@ -177,7 +207,7 @@ class EditorialFoundationsTest {
     }
 }
 
-/* Tutte le chiavi di `permissions` del contratto (EditorialPermissions::KEYS lato server). */
+/* Tutte le chiavi di `permissions` del contratto, nell'ordine di EditorialPermissions::KEYS lato server (35, con `organizers_manage` di R4). */
 internal val allKeys = listOf(
     "events_view", "events_edit", "events_publish", "events_moderate", "events_feature", "submissions_publish",
     "venues_view", "venues_edit", "venues_moderate", "venues_members", "applications_review",
@@ -186,5 +216,5 @@ internal val allKeys = listOf(
     "community_manage", "cases_manage", "carpool_manage", "messages_read",
     "sponsorships_manage", "social_use", "analytics_view", "search_misses_manage",
     "catalog_manage", "pages_manage", "imports_manage", "notifications_view", "notifications_cancel",
-    "system_view", "system_manage", "mail_manage",
+    "system_view", "system_manage", "mail_manage", "organizers_manage",
 )
