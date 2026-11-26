@@ -132,13 +132,13 @@ class EditorialEventEditorUiTest {
         compose.runOnIdle { assertEquals(listOf("dates:41"), opened.toList()) }
 
         // «Biglietti»: il collegamento alla biglietteria della data si apre nell'app.
-        compose.onNodeWithTag("editor-tab-Tickets").performClick()
+        compose.onNodeWithTag("editor-tab-Tickets").performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.editorial_ee_ticketing), substring = true).assertExists()
         compose.onNode(hasText(text(R.string.editorial_dates_tickets), substring = true)).performScrollTo().performClick()
         compose.runOnIdle { assertTrue(opened.contains("gestione-biglietti/70")) }
 
         // «Pubblicazione»: provenienza, verifica e «Programma pubblicazione».
-        compose.onNodeWithTag("editor-tab-Publish").performClick()
+        compose.onNodeWithTag("editor-tab-Publish").performScrollTo().performClick()
         // La scheda è un elenco che disegna solo ciò che è a schermo: si scende fino al pulsante.
         listOf(R.string.editorial_ee_verification, R.string.editorial_ee_schedule).forEach { id ->
             compose.onAllNodes(hasScrollToNodeAction()).fetchSemanticsNodes().indices.forEach { index ->
