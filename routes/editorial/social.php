@@ -19,12 +19,17 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Editorial\SocialPublicationController;
 use App\Http\Controllers\Api\V1\Editorial\SocialSettingsController;
 use App\Http\Controllers\Api\V1\Editorial\SocialStudioController;
+use App\Http\Middleware\RequireRecentPassword;
 use Illuminate\Support\Facades\Route;
 
 /*
  * Tutte per admin e super admin (`social_use`, come `Social::canAccess`); il
- * moderatore riceve 403. Nessuna è pericolosa secondo la decisione 4:
- * pubblicare chiede una conferma nell'app, come `wire:confirm` della pagina.
+ * moderatore riceve 403. «Pubblica sui canali collegati», «Programma» e
+ * «Riprova» mettono un post visibile a tutti sui canali della città: sono
+ * azioni pericolose (decisione 4) e chiedono la password scritta negli
+ * ultimi 15 minuti (`RequireRecentPassword`, 423 `PASSWORD_REQUIRED`), oltre
+ * alla conferma nell'app come `wire:confirm` della pagina. Riprogrammare e
+ * annullare una programmazione non pubblicano niente.
  * L'anteprima consuma il secchio del sito (`social-preview`).
  */
 Route::prefix('social')->name('social.')->group(function (): void {
@@ -51,11 +56,14 @@ Route::prefix('social')->name('social.')->group(function (): void {
     });
 
     Route::middleware('throttle:20,1,editorial-social-publish')->group(function (): void {
-        Route::post('/batches/{batch}/publish', [SocialPublicationController::class, 'publish'])->whereUuid('batch')->name('batches.publish');
-        Route::post('/batches/{batch}/schedule', [SocialPublicationController::class, 'schedule'])->whereUuid('batch')->name('batches.schedule');
+        Route::post('/batches/{batch}/publish', [SocialPublicationController::class, 'publish'])->whereUuid('batch')
+            ->middleware(RequireRecentPassword::class)->name('batches.publish');
+        Route::post('/batches/{batch}/schedule', [SocialPublicationController::class, 'schedule'])->whereUuid('batch')
+            ->middleware(RequireRecentPassword::class)->name('batches.schedule');
         Route::patch('/publications/{publication}', [SocialPublicationController::class, 'reschedule'])->whereNumber('publication')->name('publications.reschedule');
         Route::post('/publications/{publication}/cancel', [SocialPublicationController::class, 'cancel'])->whereNumber('publication')->name('publications.cancel');
-        Route::post('/publications/{publication}/retry', [SocialPublicationController::class, 'retry'])->whereNumber('publication')->name('publications.retry');
+        Route::post('/publications/{publication}/retry', [SocialPublicationController::class, 'retry'])->whereNumber('publication')
+            ->middleware(RequireRecentPassword::class)->name('publications.retry');
     });
 
     Route::middleware('throttle:20,1,editorial-social-settings')->group(function (): void {

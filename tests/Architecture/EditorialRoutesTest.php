@@ -43,6 +43,10 @@ const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.carpool.cases.hold',
     // R7: la lettura delle evidenze di un caso (nel pannello chiede la password).
     'api.v1.editorial.carpool.cases.evidence',
+    // R14: pubblicare, programmare e ripubblicare un post sui canali della città, visibile a tutti.
+    'api.v1.editorial.social.batches.publish',
+    'api.v1.editorial.social.batches.schedule',
+    'api.v1.editorial.social.publications.retry',
 ];
 
 /** @return Collection<int, RouteDefinition> */

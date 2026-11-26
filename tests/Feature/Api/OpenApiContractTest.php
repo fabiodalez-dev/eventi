@@ -251,6 +251,19 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/social/today'])->toHaveKeys(['get', 'post'])
         ->and($document['paths']['/editorial/social/settings'])->toHaveKeys(['get', 'put'])
         ->and($document['paths']['/editorial/social/publications/{publication}'])->toHaveKey('patch');
+    // R14 della redazione (26/11/2026): calendario, campanella, indirizzi del pannello con lo slug.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/calendar',
+        '/editorial/notifications',
+        '/editorial/notifications/read-all',
+        '/editorial/notifications/clear',
+        '/editorial/notifications/{notification}/read',
+        '/editorial/notifications/{notification}/unread',
+        '/editorial/notifications/{notification}/remove',
+        '/editorial/links/{type}/{slug}',
+    ])
+        ->and(collect($document['paths']['/editorial/calendar']['get']['parameters'])->pluck('name')->all())->toContain('from', 'to')
+        ->and($document['paths']['/editorial/notifications/clear'])->toHaveKey('post');
     // R12 (26/11/2026): sistema della redazione, sorgenti di import, invii previsti, cron.
     expect($document['paths'])->toHaveKeys([
         '/editorial/import-sources',

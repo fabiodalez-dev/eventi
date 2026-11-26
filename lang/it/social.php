@@ -110,4 +110,6 @@ return [
         'submit' => 'Collega la Pagina selezionata',
         'cancel' => 'Annulla',
     ],
+    /* Un errore interno (database, record sparito) al posto del suo messaggio tecnico: `SocialErrorMessage`. */
+    'internal_error' => 'Non è stato possibile completare l\'operazione: riprova fra qualche minuto.',
 ];

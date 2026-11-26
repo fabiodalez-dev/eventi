@@ -11,8 +11,11 @@ use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Services\Social\SocialCatalog;
+use App\Support\Social\SocialErrorMessage;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -26,8 +29,11 @@ use Tests\Support\VenueIsolationScenario;
  * senza dimostrativi, la pubblicazione e lo storico, le impostazioni senza i
  * segreti, «Social di oggi». La griglia: moderatore (dentro la redazione ma
  * 403, come `Social::canAccess`), admin, super admin, referente di un
- * locale e utente comune (404), token non sbloccato (423). Nessuna rotta è
- * pericolosa: con la password vecchia di 16 minuti si pubblica lo stesso.
+ * locale e utente comune (404), token non sbloccato (423). Pubblicare,
+ * programmare e riprovare mettono un post visibile a tutti sui canali della
+ * città: chiedono la password scritta negli ultimi 15 minuti (423
+ * `PASSWORD_REQUIRED`). Lo storico e le risposte non mostrano mai il testo
+ * di un errore del database.
  */
 beforeEach(function (): void {
     Notification::fake();
@@ -206,7 +212,7 @@ it('mostra le serate di oggi e prepara il pacchetto di oggi come il riquadro del
 
 // ----------------------------------------------------------- pubblicazione
 
-it('pubblica subito sui canali verificati, una volta sola, anche senza password recente', function (): void {
+it('pubblica subito sui canali verificati, una volta sola, con la password recente', function (): void {
     $id = r9Batch($this, [$this->s->occurrenceA->id]);
     r9Grid($this, 'POST', $this->url.'/batches/'.$id.'/publish');
 
@@ -215,7 +221,13 @@ it('pubblica subito sui canali verificati, una volta sola, anche senza password 
         ->assertJsonPath('error.fields.publish.0', __('social.not_connected'));
 
     r9Telegram($this);
-    r9As($this, passwordMinutesAgo: 16)->postJson($this->url.'/batches/'.$id.'/publish')->assertOk()
+    // Un post visibile a tutti sui canali della città: senza la password degli ultimi 15 minuti no.
+    r9As($this, passwordMinutesAgo: 16)->postJson($this->url.'/batches/'.$id.'/publish')
+        ->assertStatus(423)->assertJsonPath('error.code', 'PASSWORD_REQUIRED');
+    r9As($this, $this->superAdmin, passwordMinutesAgo: 16)->postJson($this->url.'/batches/'.$id.'/publish')
+        ->assertStatus(423)->assertJsonPath('error.code', 'PASSWORD_REQUIRED');
+    expect(SocialPublication::query()->count())->toBe(0);
+    r9As($this)->postJson($this->url.'/batches/'.$id.'/publish')->assertOk()
         ->assertJsonPath('meta.message', __('social.queued'))
         ->assertJsonPath('data.0.platform', 'telegram')
         ->assertJsonPath('data.0.status.value', 'queued');
@@ -231,6 +243,8 @@ it('programma nel fuso della città, riprogramma e annulla dallo storico', funct
     $url = $this->url.'/batches/'.$id.'/schedule';
     r9Grid($this, 'POST', $url, ['scheduled_at' => '2026-09-10T18:30']);
 
+    r9As($this, passwordMinutesAgo: 16)->postJson($url, ['scheduled_at' => '2026-09-10T18:30'])
+        ->assertStatus(423)->assertJsonPath('error.code', 'PASSWORD_REQUIRED');
     r9As($this)->postJson($url, ['scheduled_at' => '2026-09-10T11:00'])->assertUnprocessable()
         ->assertJsonPath('error.fields.scheduled_at.0', __('social.schedule.future'));
     r9As($this)->postJson($url, ['scheduled_at' => 'domani'])->assertUnprocessable();
@@ -280,6 +294,9 @@ it('riprova una pubblicazione non riuscita solo con il pacchetto, e lo storico l
 
     r9Grid($this, 'POST', $this->url.'/publications/'.$failed->id.'/retry');
     r9As($this)->postJson($this->url.'/publications/'.$published->id.'/retry')->assertUnprocessable();
+    r9As($this, passwordMinutesAgo: 16)->postJson($this->url.'/publications/'.$failed->id.'/retry')
+        ->assertStatus(423)->assertJsonPath('error.code', 'PASSWORD_REQUIRED');
+    // Riprogrammare e annullare non pubblicano niente: la password vecchia basta.
     r9As($this)->postJson($this->url.'/publications/'.$failed->id.'/retry')->assertOk()
         ->assertJsonPath('meta.changed', true)
         ->assertJsonPath('data.status.value', 'queued');
@@ -298,6 +315,35 @@ it('riprova una pubblicazione non riuscita solo con il pacchetto, e lo storico l
     r9As($this)->postJson($this->url.'/publications/'.$failed->id.'/retry')->assertUnprocessable()
         ->assertJsonPath('error.fields.publish.0', __('social.studio.batch_gone'));
     r9As($this)->getJson($this->url.'/publications?filter[status]=published')->assertOk()->assertJsonPath('meta.total', 1);
+});
+
+it('non mostra mai il testo di un errore del database, né nello storico né nelle risposte', function (): void {
+    $connection = r9Telegram($this);
+    $id = r9Batch($this, [$this->s->occurrenceA->id]);
+    $leak = 'SQLSTATE[42S22]: Column not found: 1054 Unknown column \'telegram_chat_id\' (SQL: update `social_publications` set ...)';
+    $old = SocialPublication::create(['social_batch_id' => $id, 'social_connection_id' => $connection->id, 'platform' => 'telegram', 'part' => 0,
+        'dedupe_key' => 'r14:leak', 'status' => Status::Failed->value, 'error' => $leak]);
+    $rule = SocialPublication::create(['social_batch_id' => $id, 'social_connection_id' => $connection->id, 'platform' => 'telegram', 'part' => 1,
+        'dedupe_key' => 'r14:rule', 'status' => Status::Failed->value, 'error' => 'Telegram non ha risposto']);
+
+    $rows = collect(r9As($this)->getJson($this->url.'/publications')->assertOk()->json('data'))->keyBy('id');
+    expect($rows[$old->id]['error'])->toBe(__('social.internal_error'))
+        ->and($rows[$rule->id]['error'])->toBe('Telegram non ha risposto');
+    expect(json_encode(r9As($this)->getJson($this->url.'/publications')->json()))->not->toContain('SQLSTATE');
+
+    // La regola che decide cosa salva il lavoro che pubblica e cosa diventa un 422: la frase di una regola sì, il database no.
+    expect(SocialErrorMessage::forPeople(new QueryException('mysql', 'update social_publications set status = ?', ['failed'], new PDOException($leak))))->toBeNull()
+        ->and(SocialErrorMessage::forPeople(new PDOException($leak)))->toBeNull()
+        ->and(SocialErrorMessage::forPeople(new ModelNotFoundException('No query results for model [App\\Models\\SocialConnection].')))->toBeNull()
+        ->and(SocialErrorMessage::forPeople(new RuntimeException($leak)))->toBeNull()
+        ->and(SocialErrorMessage::forPeople(new RuntimeException(__('social.stale'))))->toBe(__('social.stale'));
+
+    // «Verifica Telegram» senza collegamento salvato: niente «No query results for model».
+    SocialPublication::query()->delete();
+    SocialConnection::query()->delete();
+    $response = r9As($this)->postJson($this->url.'/settings/telegram/verify')->assertUnprocessable()
+        ->assertJsonPath('error.fields.telegram.0', __('social.internal_error'));
+    expect(json_encode($response->json()))->not->toContain('SocialConnection');
 });
 
 // ---------------------------------------------------------- impostazioni

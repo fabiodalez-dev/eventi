@@ -14,7 +14,7 @@ use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Services\Social\EditorialPublishing;
-use Illuminate\Database\QueryException;
+use App\Support\Social\SocialErrorMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -30,7 +30,9 @@ use RuntimeException;
  * Gli errori di `SocialPublisher::enqueue` (collegamento non verificato,
  * storie, didascalia troppo lunga, evento cambiato) sono messaggi per chi
  * pubblica: 422 sul campo, come sotto il pulsante della pagina. Un errore
- * del database invece non diventa un messaggio: va al gestore degli errori.
+ * del database invece non diventa un messaggio: va al gestore degli errori,
+ * e lo storico non mostra mai il testo di un errore del database
+ * (`SocialErrorMessage`).
  */
 final class SocialPublicationController extends Controller
 {
@@ -124,16 +126,20 @@ final class SocialPublicationController extends Controller
 
     /**
      * Un messaggio di `SocialPublisher` diventa un errore sul campo, come
-     * sotto il pulsante della pagina; un errore del database no.
+     * sotto il pulsante della pagina; un errore del database o un record
+     * sparito no (`SocialErrorMessage`): va al gestore degli errori, che
+     * risponde 500 o 404 senza il messaggio tecnico.
      */
     private function enqueue(string $field, callable $action): void
     {
         try {
             $action();
-        } catch (QueryException $e) {
-            throw $e;
         } catch (RuntimeException $e) {
-            throw ValidationException::withMessages([$field => $e->getMessage()]);
+            $message = SocialErrorMessage::forPeople($e);
+            if ($message === null) {
+                throw $e;
+            }
+            throw ValidationException::withMessages([$field => $message]);
         }
     }
 

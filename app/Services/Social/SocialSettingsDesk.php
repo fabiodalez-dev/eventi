@@ -6,6 +6,7 @@ namespace App\Services\Social;
 
 use App\Models\City;
 use App\Models\SocialConnection;
+use App\Support\Social\SocialErrorMessage;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -129,7 +130,13 @@ final class SocialSettingsDesk
 
             return null;
         } catch (RuntimeException $e) {
-            return $e->getMessage();
+            /* Un errore del database o il collegamento che manca non diventano la frase da mostrare. */
+            $message = SocialErrorMessage::forPeople($e);
+            if ($message === null) {
+                report($e);
+            }
+
+            return $message ?? __('social.internal_error');
         }
     }
 

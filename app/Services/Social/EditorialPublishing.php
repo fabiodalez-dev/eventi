@@ -10,6 +10,7 @@ use App\Models\City;
 use App\Models\SocialBatch;
 use App\Models\SocialConnection;
 use App\Models\SocialPublication;
+use App\Support\Social\SocialErrorMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
@@ -172,7 +173,8 @@ final class EditorialPublishing
             'status' => ['value' => $status->value, 'label' => self::statusLabel($status)],
             'scheduled_at' => $publication->scheduled_at?->utc()->toIso8601String(),
             'timezone' => $timezone,
-            'error' => $publication->error !== null ? (string) $publication->error : null,
+            /* Mai il testo di un errore del database, anche se una versione vecchia l'ha salvato. */
+            'error' => SocialErrorMessage::stored($publication->error !== null ? (string) $publication->error : null),
             'batch_id' => $lost ? null : (string) $publication->social_batch_id,
             'batch_gone' => $lost,
             'abilities' => [
