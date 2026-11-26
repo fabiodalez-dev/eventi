@@ -92988,6 +92988,2903 @@
                     }
                 }
             }
+        },
+        "/editorial/reports": {
+            "get": {
+                "operationId": "v1.editorial.reports.index",
+                "summary": "Elenco: tutta la redazione (`reports.view`), tutte le citt\u00e0",
+                "tags": [
+                    "Report"
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 10000
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 120
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "created_at",
+                                "-created_at",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/ReportStatus"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[reason]",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/ReportReason"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[open]",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "reason": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "wrong_info",
+                                                            "duplicate",
+                                                            "spam",
+                                                            "offensive",
+                                                            "cancelled",
+                                                            "copyright"
+                                                        ]
+                                                    },
+                                                    "reason_label": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "enums.report_reason.wrong_info",
+                                                            "enums.report_reason.duplicate",
+                                                            "enums.report_reason.spam",
+                                                            "enums.report_reason.offensive",
+                                                            "enums.report_reason.cancelled",
+                                                            "enums.report_reason.copyright"
+                                                        ]
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "pending",
+                                                            "reviewing",
+                                                            "resolved",
+                                                            "dismissed"
+                                                        ]
+                                                    },
+                                                    "status_label": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "enums.report_status.pending",
+                                                            "enums.report_status.reviewing",
+                                                            "enums.report_status.resolved",
+                                                            "enums.report_status.dismissed"
+                                                        ]
+                                                    },
+                                                    "subject": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "type": {
+                                                                "type": "string"
+                                                            },
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "community": {
+                                                                "type": "boolean",
+                                                                "description": "\u00abModera il soggetto\u00bb del pannello: apre la pagina Community."
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "type",
+                                                            "id",
+                                                            "label",
+                                                            "community"
+                                                        ]
+                                                    },
+                                                    "note": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "resolution_note": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "reviewed_by": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "reviewed_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "abilities": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "resolve": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "destroy": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "resolve",
+                                                            "destroy"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "created_at",
+                                                    "reason",
+                                                    "reason_label",
+                                                    "status",
+                                                    "status_label",
+                                                    "subject",
+                                                    "note",
+                                                    "resolution_note",
+                                                    "reviewed_by",
+                                                    "reviewed_at",
+                                                    "abilities"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/reports/{report}": {
+            "get": {
+                "operationId": "v1.editorial.reports.show",
+                "summary": "Una segnalazione, con l'esito e le azioni permesse",
+                "tags": [
+                    "Report"
+                ],
+                "parameters": [
+                    {
+                        "name": "report",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "wrong_info",
+                                                        "duplicate",
+                                                        "spam",
+                                                        "offensive",
+                                                        "cancelled",
+                                                        "copyright"
+                                                    ]
+                                                },
+                                                "reason_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.report_reason.wrong_info",
+                                                        "enums.report_reason.duplicate",
+                                                        "enums.report_reason.spam",
+                                                        "enums.report_reason.offensive",
+                                                        "enums.report_reason.cancelled",
+                                                        "enums.report_reason.copyright"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "pending",
+                                                        "reviewing",
+                                                        "resolved",
+                                                        "dismissed"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.report_status.pending",
+                                                        "enums.report_status.reviewing",
+                                                        "enums.report_status.resolved",
+                                                        "enums.report_status.dismissed"
+                                                    ]
+                                                },
+                                                "subject": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string"
+                                                        },
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "label": {
+                                                            "type": "string"
+                                                        },
+                                                        "community": {
+                                                            "type": "boolean",
+                                                            "description": "\u00abModera il soggetto\u00bb del pannello: apre la pagina Community."
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "id",
+                                                        "label",
+                                                        "community"
+                                                    ]
+                                                },
+                                                "note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "resolution_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reviewed_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reviewed_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "resolve": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "destroy": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "resolve",
+                                                        "destroy"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "created_at",
+                                                "reason",
+                                                "reason_label",
+                                                "status",
+                                                "status_label",
+                                                "subject",
+                                                "note",
+                                                "resolution_note",
+                                                "reviewed_by",
+                                                "reviewed_at",
+                                                "abilities"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "patch": {
+                "operationId": "v1.editorial.reports.resolve",
+                "summary": "L'esito: `status` e `resolution_note` (`reports.resolve`). Chi e quando li scrive il server",
+                "tags": [
+                    "Report"
+                ],
+                "parameters": [
+                    {
+                        "name": "report",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResolveReportRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "wrong_info",
+                                                        "duplicate",
+                                                        "spam",
+                                                        "offensive",
+                                                        "cancelled",
+                                                        "copyright"
+                                                    ]
+                                                },
+                                                "reason_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.report_reason.wrong_info",
+                                                        "enums.report_reason.duplicate",
+                                                        "enums.report_reason.spam",
+                                                        "enums.report_reason.offensive",
+                                                        "enums.report_reason.cancelled",
+                                                        "enums.report_reason.copyright"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "pending",
+                                                        "reviewing",
+                                                        "resolved",
+                                                        "dismissed"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "enums.report_status.pending",
+                                                        "enums.report_status.reviewing",
+                                                        "enums.report_status.resolved",
+                                                        "enums.report_status.dismissed"
+                                                    ]
+                                                },
+                                                "subject": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string"
+                                                        },
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "label": {
+                                                            "type": "string"
+                                                        },
+                                                        "community": {
+                                                            "type": "boolean",
+                                                            "description": "\u00abModera il soggetto\u00bb del pannello: apre la pagina Community."
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "id",
+                                                        "label",
+                                                        "community"
+                                                    ]
+                                                },
+                                                "note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "resolution_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reviewed_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reviewed_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "resolve": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "destroy": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "resolve",
+                                                        "destroy"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "created_at",
+                                                "reason",
+                                                "reason_label",
+                                                "status",
+                                                "status_label",
+                                                "subject",
+                                                "note",
+                                                "resolution_note",
+                                                "reviewed_by",
+                                                "reviewed_at",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Esito della segnalazione salvato."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "v1.editorial.reports.destroy",
+                "summary": "Elimina la segnalazione (`reports.resolve`), come \u00abElimina\u00bb nel modulo del pannello. Pericolosa: password recente",
+                "tags": [
+                    "Report"
+                ],
+                "parameters": [
+                    {
+                        "name": "report",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "deleted": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "deleted"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Segnalazione eliminata."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/reviews": {
+            "get": {
+                "operationId": "v1.editorial.reviews.index",
+                "tags": [
+                    "CatalogReview"
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 10000
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 120
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "created_at",
+                                "-created_at",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[type]",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "venue",
+                                "organizer",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "pending",
+                                "approved",
+                                "rejected",
+                                null
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "subject": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "type": {
+                                                                "type": "string"
+                                                            },
+                                                            "type_label": {
+                                                                "type": "string"
+                                                            },
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "type",
+                                                            "type_label",
+                                                            "id",
+                                                            "name"
+                                                        ]
+                                                    },
+                                                    "author": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ],
+                                                        "description": "Il pannello mostra alla redazione il nome dell'account: lo stesso qui."
+                                                    },
+                                                    "rating": {
+                                                        "type": [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "body": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "pending",
+                                                            "approved",
+                                                            "rejected"
+                                                        ]
+                                                    },
+                                                    "status_label": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "moderated_by": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "moderated_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "moderation_note": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "revision": {
+                                                        "type": "integer"
+                                                    },
+                                                    "reply": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "body": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "replied_at": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "body",
+                                                            "replied_at"
+                                                        ]
+                                                    },
+                                                    "abilities": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "approve": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "reject": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "remove_reply": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "approve",
+                                                            "reject",
+                                                            "remove_reply"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "subject",
+                                                    "author",
+                                                    "rating",
+                                                    "body",
+                                                    "status",
+                                                    "status_label",
+                                                    "created_at",
+                                                    "moderated_by",
+                                                    "moderated_at",
+                                                    "moderation_note",
+                                                    "revision",
+                                                    "reply",
+                                                    "abilities"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/reviews/{review}/moderate": {
+            "post": {
+                "operationId": "v1.editorial.reviews.moderate",
+                "summary": "Approva (`status=approved`, nota facoltativa) o rifiuta\n(`status=rejected`, nota obbligatoria), con la `revision` letta: se nel\nfrattempo la recensione \u00e8 cambiata, 422 su `revision`",
+                "tags": [
+                    "CatalogReview"
+                ],
+                "parameters": [
+                    {
+                        "name": "review",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ModerateReviewRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "subject": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string"
+                                                        },
+                                                        "type_label": {
+                                                            "type": "string"
+                                                        },
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "type_label",
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "author": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Il pannello mostra alla redazione il nome dell'account: lo stesso qui."
+                                                },
+                                                "rating": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "body": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "pending",
+                                                        "approved",
+                                                        "rejected"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string"
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderation_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "revision": {
+                                                    "type": "integer"
+                                                },
+                                                "reply": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "body": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "replied_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "body",
+                                                        "replied_at"
+                                                    ]
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "approve": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reject": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "remove_reply": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "approve",
+                                                        "reject",
+                                                        "remove_reply"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "subject",
+                                                "author",
+                                                "rating",
+                                                "body",
+                                                "status",
+                                                "status_label",
+                                                "created_at",
+                                                "moderated_by",
+                                                "moderated_at",
+                                                "moderation_note",
+                                                "revision",
+                                                "reply",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "admin.notifications.approved",
+                                                        "admin.notifications.rejected"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/reviews/{review}/reply": {
+            "delete": {
+                "operationId": "v1.editorial.reviews.reply.remove",
+                "summary": "Toglie la risposta pubblica del locale o dell'organizzatore. Senza risposta non c'\u00e8 niente da togliere n\u00e9 da registrare",
+                "tags": [
+                    "CatalogReview"
+                ],
+                "parameters": [
+                    {
+                        "name": "review",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "subject": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string"
+                                                        },
+                                                        "type_label": {
+                                                            "type": "string"
+                                                        },
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "type_label",
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "author": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Il pannello mostra alla redazione il nome dell'account: lo stesso qui."
+                                                },
+                                                "rating": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "body": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "pending",
+                                                        "approved",
+                                                        "rejected"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string"
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderation_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "revision": {
+                                                    "type": "integer"
+                                                },
+                                                "reply": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "body": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "replied_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "body",
+                                                        "replied_at"
+                                                    ]
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "approve": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "reject": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "remove_reply": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "approve",
+                                                        "reject",
+                                                        "remove_reply"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "subject",
+                                                "author",
+                                                "rating",
+                                                "body",
+                                                "status",
+                                                "status_label",
+                                                "created_at",
+                                                "moderated_by",
+                                                "moderated_at",
+                                                "moderation_note",
+                                                "revision",
+                                                "reply",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Risposta tolta."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/comments": {
+            "get": {
+                "operationId": "v1.editorial.comments.index",
+                "tags": [
+                    "EventComment"
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 10000
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 120
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "reactions_count",
+                                "-reactions_count",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/EventCommentStatus"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "event": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "title": {
+                                                                "type": "string"
+                                                            },
+                                                            "slug": {
+                                                                "type": "string"
+                                                            },
+                                                            "poster": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "thumb": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "card": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "full": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "blurhash": {
+                                                                                "type": [
+                                                                                    "string",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "width": {
+                                                                                "type": [
+                                                                                    "integer",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "height": {
+                                                                                "type": [
+                                                                                    "integer",
+                                                                                    "null"
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "thumb",
+                                                                            "card",
+                                                                            "full",
+                                                                            "blurhash",
+                                                                            "width",
+                                                                            "height"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    },
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "thumb": {
+                                                                                "type": [
+                                                                                    "string",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "card": {
+                                                                                "type": [
+                                                                                    "string",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "full": {
+                                                                                "type": [
+                                                                                    "string",
+                                                                                    "null"
+                                                                                ]
+                                                                            },
+                                                                            "blurhash": {
+                                                                                "type": "null"
+                                                                            },
+                                                                            "width": {
+                                                                                "type": "null"
+                                                                            },
+                                                                            "height": {
+                                                                                "type": "null"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "thumb",
+                                                                            "card",
+                                                                            "full",
+                                                                            "blurhash",
+                                                                            "width",
+                                                                            "height"
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "title",
+                                                            "slug",
+                                                            "poster"
+                                                        ]
+                                                    },
+                                                    "author": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "body": {
+                                                        "type": "string"
+                                                    },
+                                                    "is_reply": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "published",
+                                                            "hidden"
+                                                        ]
+                                                    },
+                                                    "status_label": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "Pubblicato",
+                                                            "Nascosto"
+                                                        ]
+                                                    },
+                                                    "created_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "reactions_count": {
+                                                        "type": "integer"
+                                                    },
+                                                    "moderated_by": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "moderated_at": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "moderation_note": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "revision": {
+                                                        "type": "integer"
+                                                    },
+                                                    "abilities": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "show": {
+                                                                "type": "boolean",
+                                                                "description": "\u00abDettagli\u00bb del pannello chiede la stessa policy di \u00abNascondi\u00bb."
+                                                            },
+                                                            "hide": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "restore": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "destroy": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "show",
+                                                            "hide",
+                                                            "restore",
+                                                            "destroy"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "event",
+                                                    "author",
+                                                    "body",
+                                                    "is_reply",
+                                                    "status",
+                                                    "status_label",
+                                                    "created_at",
+                                                    "reactions_count",
+                                                    "moderated_by",
+                                                    "moderated_at",
+                                                    "moderation_note",
+                                                    "revision",
+                                                    "abilities"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer"
+                                                },
+                                                "last_page": {
+                                                    "type": "integer"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "last_page",
+                                                "per_page",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/comments/{comment}": {
+            "get": {
+                "operationId": "v1.editorial.comments.show",
+                "summary": "\u00abDettagli\u00bb: il pannello lo mostra a chi pu\u00f2 nascondere",
+                "tags": [
+                    "EventComment"
+                ],
+                "parameters": [
+                    {
+                        "name": "comment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "event": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "slug": {
+                                                            "type": "string"
+                                                        },
+                                                        "poster": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "thumb": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "card": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "full": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "blurhash": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "width": {
+                                                                            "type": [
+                                                                                "integer",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "height": {
+                                                                            "type": [
+                                                                                "integer",
+                                                                                "null"
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "thumb",
+                                                                        "card",
+                                                                        "full",
+                                                                        "blurhash",
+                                                                        "width",
+                                                                        "height"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "thumb": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "card": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "full": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "blurhash": {
+                                                                            "type": "null"
+                                                                        },
+                                                                        "width": {
+                                                                            "type": "null"
+                                                                        },
+                                                                        "height": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "thumb",
+                                                                        "card",
+                                                                        "full",
+                                                                        "blurhash",
+                                                                        "width",
+                                                                        "height"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "title",
+                                                        "slug",
+                                                        "poster"
+                                                    ]
+                                                },
+                                                "author": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "body": {
+                                                    "type": "string"
+                                                },
+                                                "is_reply": {
+                                                    "type": "boolean"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "published",
+                                                        "hidden"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Pubblicato",
+                                                        "Nascosto"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reactions_count": {
+                                                    "type": "integer"
+                                                },
+                                                "moderated_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderation_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "revision": {
+                                                    "type": "integer"
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "show": {
+                                                            "type": "boolean",
+                                                            "description": "\u00abDettagli\u00bb del pannello chiede la stessa policy di \u00abNascondi\u00bb."
+                                                        },
+                                                        "hide": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "restore": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "destroy": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "show",
+                                                        "hide",
+                                                        "restore",
+                                                        "destroy"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "event",
+                                                "author",
+                                                "body",
+                                                "is_reply",
+                                                "status",
+                                                "status_label",
+                                                "created_at",
+                                                "reactions_count",
+                                                "moderated_by",
+                                                "moderated_at",
+                                                "moderation_note",
+                                                "revision",
+                                                "abilities"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "v1.editorial.comments.destroy",
+                "summary": "Elimina il commento e le sue risposte, come \u00abElimina\u00bb del pannello. Pericolosa: password recente",
+                "tags": [
+                    "EventComment"
+                ],
+                "parameters": [
+                    {
+                        "name": "comment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "deleted": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "deleted"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Commento eliminato."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/comments/{comment}/hide": {
+            "post": {
+                "operationId": "v1.editorial.comments.hide",
+                "summary": "Nasconde un commento pubblicato, con la revisione letta e una nota facoltativa (fino a 1000 caratteri)",
+                "tags": [
+                    "EventComment"
+                ],
+                "parameters": [
+                    {
+                        "name": "comment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ModerateEventCommentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "event": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "slug": {
+                                                            "type": "string"
+                                                        },
+                                                        "poster": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "thumb": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "card": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "full": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "blurhash": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "width": {
+                                                                            "type": [
+                                                                                "integer",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "height": {
+                                                                            "type": [
+                                                                                "integer",
+                                                                                "null"
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "thumb",
+                                                                        "card",
+                                                                        "full",
+                                                                        "blurhash",
+                                                                        "width",
+                                                                        "height"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "thumb": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "card": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "full": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "blurhash": {
+                                                                            "type": "null"
+                                                                        },
+                                                                        "width": {
+                                                                            "type": "null"
+                                                                        },
+                                                                        "height": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "thumb",
+                                                                        "card",
+                                                                        "full",
+                                                                        "blurhash",
+                                                                        "width",
+                                                                        "height"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "title",
+                                                        "slug",
+                                                        "poster"
+                                                    ]
+                                                },
+                                                "author": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "body": {
+                                                    "type": "string"
+                                                },
+                                                "is_reply": {
+                                                    "type": "boolean"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "published",
+                                                        "hidden"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Pubblicato",
+                                                        "Nascosto"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reactions_count": {
+                                                    "type": "integer"
+                                                },
+                                                "moderated_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderation_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "revision": {
+                                                    "type": "integer"
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "show": {
+                                                            "type": "boolean",
+                                                            "description": "\u00abDettagli\u00bb del pannello chiede la stessa policy di \u00abNascondi\u00bb."
+                                                        },
+                                                        "hide": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "restore": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "destroy": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "show",
+                                                        "hide",
+                                                        "restore",
+                                                        "destroy"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "event",
+                                                "author",
+                                                "body",
+                                                "is_reply",
+                                                "status",
+                                                "status_label",
+                                                "created_at",
+                                                "reactions_count",
+                                                "moderated_by",
+                                                "moderated_at",
+                                                "moderation_note",
+                                                "revision",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Commento nascosto."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/editorial/comments/{comment}/restore": {
+            "post": {
+                "operationId": "v1.editorial.comments.restore",
+                "summary": "Rimette in vista un commento nascosto",
+                "tags": [
+                    "EventComment"
+                ],
+                "parameters": [
+                    {
+                        "name": "comment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ModerateEventCommentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "event": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "slug": {
+                                                            "type": "string"
+                                                        },
+                                                        "poster": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "thumb": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "card": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "full": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "blurhash": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "width": {
+                                                                            "type": [
+                                                                                "integer",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "height": {
+                                                                            "type": [
+                                                                                "integer",
+                                                                                "null"
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "thumb",
+                                                                        "card",
+                                                                        "full",
+                                                                        "blurhash",
+                                                                        "width",
+                                                                        "height"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                },
+                                                                {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "thumb": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "card": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "full": {
+                                                                            "type": [
+                                                                                "string",
+                                                                                "null"
+                                                                            ]
+                                                                        },
+                                                                        "blurhash": {
+                                                                            "type": "null"
+                                                                        },
+                                                                        "width": {
+                                                                            "type": "null"
+                                                                        },
+                                                                        "height": {
+                                                                            "type": "null"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "thumb",
+                                                                        "card",
+                                                                        "full",
+                                                                        "blurhash",
+                                                                        "width",
+                                                                        "height"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "title",
+                                                        "slug",
+                                                        "poster"
+                                                    ]
+                                                },
+                                                "author": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "body": {
+                                                    "type": "string"
+                                                },
+                                                "is_reply": {
+                                                    "type": "boolean"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "published",
+                                                        "hidden"
+                                                    ]
+                                                },
+                                                "status_label": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "Pubblicato",
+                                                        "Nascosto"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "reactions_count": {
+                                                    "type": "integer"
+                                                },
+                                                "moderated_by": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "moderation_note": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "revision": {
+                                                    "type": "integer"
+                                                },
+                                                "abilities": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "show": {
+                                                            "type": "boolean",
+                                                            "description": "\u00abDettagli\u00bb del pannello chiede la stessa policy di \u00abNascondi\u00bb."
+                                                        },
+                                                        "hide": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "restore": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "destroy": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "show",
+                                                        "hide",
+                                                        "restore",
+                                                        "destroy"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "event",
+                                                "author",
+                                                "body",
+                                                "is_reply",
+                                                "status",
+                                                "status_label",
+                                                "created_at",
+                                                "reactions_count",
+                                                "moderated_by",
+                                                "moderated_at",
+                                                "moderation_note",
+                                                "revision",
+                                                "abilities"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "const": "Commento di nuovo visibile."
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -97051,6 +99948,87 @@
                     "phone"
                 ],
                 "title": "WhatsappRequest"
+            },
+            "ModerateEventCommentRequest": {
+                "type": "object",
+                "description": "\u00abNascondi\u00bb (`\u2026/hide`, con una nota facoltativa fino a 1000 caratteri) o\n\u00abRipristina\u00bb (`\u2026/restore`) un commento, con la revisione letta\nall'apertura, come i riquadri del pannello. La policy la chiede il\ncontroller e di nuovo `ModerateComment`.",
+                "properties": {
+                    "revision": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "revision"
+                ],
+                "title": "ModerateEventCommentRequest"
+            },
+            "ModerateReviewRequest": {
+                "type": "object",
+                "description": "\u00abApprova\u00bb o \u00abRifiuta\u00bb una recensione, come i due riquadri del pannello: la\nrevisione letta all'apertura (se un altro ha deciso nel frattempo, 422 su\n`revision`) e la nota, da 5 a 1000 caratteri, obbligatoria solo per\nrifiutare. `CatalogReviews::moderate` ricontrolla tutto prima di scrivere.",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "approved",
+                            "rejected"
+                        ]
+                    },
+                    "revision": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "minLength": 5,
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "status",
+                    "revision"
+                ],
+                "title": "ModerateReviewRequest"
+            },
+            "ReportStatus": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "reviewing",
+                    "resolved",
+                    "dismissed"
+                ],
+                "title": "ReportStatus"
+            },
+            "ResolveReportRequest": {
+                "type": "object",
+                "description": "L'esito di una segnalazione: i due campi del modulo \u00abModifica\u00bb del\npannello, stato (obbligatorio) e nota di risoluzione (facoltativa, quanto\nsta nella colonna `text`). Chi decide e quando li scrive `ResolveReport`.",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/ReportStatus"
+                    },
+                    "resolution_note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 65535
+                    }
+                },
+                "required": [
+                    "status"
+                ],
+                "title": "ResolveReportRequest"
             }
         },
         "responses": {

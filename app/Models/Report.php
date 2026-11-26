@@ -13,6 +13,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * Le colonne `created_at` e `updated_at` le crea `datetimes()` nella
+ * migrazione, che l'analisi statica non riconosce: le dichiaro qui.
+ *
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class Report extends Model
 {
     /** @use HasFactory<ReportFactory> */
