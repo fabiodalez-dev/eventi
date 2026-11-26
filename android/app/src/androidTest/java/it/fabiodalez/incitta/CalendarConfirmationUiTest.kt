@@ -31,7 +31,8 @@ class CalendarConfirmationUiTest {
             compose.onNodeWithText("Altre opzioni: calendario del telefono").performScrollTo().performClick()
             compose.onNodeWithText("Collega al calendario del telefono").performScrollTo()
             compose.waitUntil(15_000) { compose.onAllNodes(hasText("Collega al calendario del telefono") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("Collega al calendario del telefono").performClick()
+            // L'avviso sul collegamento Google arriva dopo e sposta il pulsante: si scorre di nuovo subito prima del tocco.
+            compose.onNodeWithText("Collega al calendario del telefono").performScrollTo().performClick()
             // Dialogs use a separate Android window; wait for it to be laid out
             // after the click rather than treating its first frame as a failure.
             compose.waitUntil(5_000) {
