@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **360 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **363 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -731,3 +731,31 @@ Gli avvisi a chi gestisce (`NotificationType::isForVenueStaff`: `event_published
 |---|---|---|
 | `GET S/notifications?cursor=&limit=` | membro del soggetto | gli avvisi a chi gestisce (con Q3 anche ordine deciso, riepilogo della sponsorizzazione, rapporto mensile, locale moderato, accesso concesso, richiesta accolta) con `management` di questo soggetto, dal più recente, con la forma di `GET /me/notifications` (`id`, `type`, `data`, `read`, `read_at`, `created_at`) e `meta{next_cursor, has_more, unread_count}`. Si segnano come letti con `PATCH /me/notifications/{id}/read` |
 | `GET S/events/by-slug/{slug}` | `EventPolicy::view` | `data{id, slug, title}` di un evento del soggetto (`ManagedContent::events()`): gli indirizzi del pannello portano lo slug, l'app apre la scheda per id. 404 per un evento di altri |
+
+## Redazione: fondamenta dell'app (26 novembre 2026)
+
+Le basi dell'area «Redazione» nativa: il pannello `/admin` sotto `/v1/editorial/…` (sigla `E`). Tutte le rotte chiedono il token e rispondono `Cache-Control: private, no-store`; le forme sono anche in `docs/openapi.json`.
+
+### La porta e la città
+
+`ResolveEditorialDesk` sta su ogni rotta `E` (lo verifica `tests/Architecture/EditorialRoutesTest.php`): risponde **404** a chi non è moderatore, admin o super admin (`User::isEditorialStaff`), come un indirizzo che non esiste, e a tutti quando l'interruttore d'emergenza `API_EDITORIAL_ENABLED` è spento. Legge la città di lavoro da `?city=<slug>`, anche di una città non ancora attiva (uno slug che non esiste risponde 404); senza parametro vale la prima città attiva, poi la prima in assoluto, come i riquadri del pannello. Poi lega `App\Support\Editorial\EditorialDesk` (persona, ruolo più alto, città), che i servizi delle statistiche e delle sponsorizzazioni leggono al posto di `Filament::getCurrentPanel()`: nel pannello il banco si ricava come prima. `SponsorshipReport` senza soggetto dà tutte le campagne solo dentro la redazione (pannello o app) e solo ad admin e super admin. Le policy restano il controllo di ogni azione. Le rotte dei pacchetti stanno in `routes/editorial/<pacchetto>.php`.
+
+### Sblocco
+
+Il token dell'app dura 90 giorni; la redazione chiede in più la password dell'account. `POST /v1/editorial/unlock` con `{password}` sblocca **questo token** per 12 ore e conferma le azioni pericolose per 15 minuti (tabella `editorial_unlocks`, una riga per token, cancellata con il token). Password sbagliata: 422 su `error.fields.password`; limite 6 tentativi ogni 15 minuti per persona (`editorial-unlock`); senza un token salvato (accesso dal sito) 423. Ogni tentativo va nel registro di sicurezza (`redazione_sbloccata`, `redazione_sblocco_fallito`).
+
+- Ogni rotta `E` tranne `desk`, `options` e `unlock` passa da `RequireEditorialUnlock`: **423 `EDITORIAL_LOCKED`** se lo sblocco manca o ha più di 12 ore.
+- Le azioni pericolose (unire eventi e tag, eliminare, sospendere, annullare un evento, cambiare i ruoli, modificare una città, conservare le prove) passano anche da `RequireRecentPassword`: **423 `PASSWORD_REQUIRED`** se la password non è stata scritta negli ultimi 15 minuti. L'app chiede la password, chiama `unlock` e ripete la richiesta.
+- Ogni riga del registro attività e di sicurezza scritta da una richiesta `E` porta `canale: app`.
+
+### Rotte
+
+- `GET /v1/editorial/desk?city=`: `data{user{id, name}, role (moderator|admin|super_admin), city{id, slug, name, timezone, is_active}|null, cities[] (tutte, anche le spente), permissions, badges, unlock{unlocked, unlocked_until, password_confirmed_until, unlock_hours, password_minutes, lock_after_minutes}}`. `permissions` ha sempre 34 chiavi booleane, ognuna calcolata dalla policy (o dal controllo di ruolo) che il pannello usa per la stessa pagina o azione: `events_view`, `events_edit`, `events_publish`, `events_moderate`, `events_feature`, `submissions_publish`, `venues_view`, `venues_edit`, `venues_moderate`, `venues_members`, `applications_review`, `users_view`, `users_manage`, `users_roles`, `reports_resolve`, `reviews_moderate`, `comments_moderate`, `comments_delete`, `community_manage`, `cases_manage`, `carpool_manage`, `messages_read`, `sponsorships_manage`, `social_use`, `analytics_view`, `search_misses_manage`, `catalog_manage`, `pages_manage`, `imports_manage`, `notifications_view`, `notifications_cancel`, `system_view`, `system_manage`, `mail_manage`. `badges` sono i contatori del menu con le stesse query e chiavi di cache del pannello (`nav-badge:*`): `events_pending`, `event_submissions_pending`, `venues_pending`, `venue_applications_pending`, `users_registrations`, `reports_open`, `event_comments_hidden`, `catalog_reviews_pending`, `carpool_open`, `sponsorship_orders_awaiting`, `scheduled_notifications_due`; `null` dove la voce non si vede (recensioni e ordini al moderatore). Non chiede lo sblocco.
+- `GET /v1/editorial/options`: stati ed elenchi dei moduli (eventi, provenienze, proposte, locali, tipi di locale, richieste, segnalazioni, commenti, recensioni, casi dei passaggi, invii, posizioni, ritmi e stati delle sponsorizzazioni, ordini), `roles[]` `{value, label, assignable, assignable_in_app}` per chi chiede (solo un super admin conferisce `super_admin`; dall'app al massimo `moderator`), `limits{per_page_default, per_page_max (50), reason_min (5), reason_max (1000), unlock_hours, password_minutes, lock_after_minutes}`. Non chiede lo sblocco.
+- `POST /v1/editorial/unlock`: vedi sopra. Risponde con l'oggetto `unlock` di `desk`.
+
+### Campi nuovi
+
+- `GET /v1/me`: `management.editorial` (booleano), vero per moderatore, admin e super admin.
+- `GET /v1/config`: `features.editorial`, acceso salvo `API_EDITORIAL_ENABLED=false`. L'app apre la redazione nativa solo con tutti e due veri; altrimenti la riga «Amministrazione» apre il pannello sul sito, come prima.
+- Codici d'errore nuovi: `EDITORIAL_LOCKED` e `PASSWORD_REQUIRED`, tutti e due con stato 423.

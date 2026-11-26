@@ -80,6 +80,9 @@ fun InCittaApp(viewModel: MainViewModel) {
         var managementDestination by remember(state.session?.token) { mutableStateOf<it.fabiodalez.incitta.data.management.ManagementDestination?>(null) }
         /* Cambiando account il repository della gestione (e il ritentativo delle letture) della sessione vecchia si chiude. */
         LaunchedEffect(state.session?.token) { it.fabiodalez.incitta.data.management.ManagementGraph.retain(state.session?.token) }
+        /* La redazione nell'app (riga «Amministrazione» del profilo): salvata come la gestione; cambiando account si chiude e il suo sblocco si butta. */
+        var editorialOpen by androidx.compose.runtime.saveable.rememberSaveable(state.session?.token) { mutableStateOf(false) }
+        LaunchedEffect(state.session?.token) { it.fabiodalez.incitta.data.editorial.EditorialGraph.retain(state.session?.token) }
         var collectionsOpen by remember(state.session?.token) { mutableStateOf(false) }
         var organizerSlug by remember { mutableStateOf<String?>(null) }
         var communityRoute by remember { mutableStateOf<String?>(null) }
@@ -128,7 +131,7 @@ fun InCittaApp(viewModel: MainViewModel) {
          * mentre è aperta si va altrove (le icone in alto, un avviso, un'altra
          * scheda), la proposta si chiude: la bozza resta nel suo ViewModel.
          */
-        val submissionOverlays = listOf(managementOpen, collectionsOpen, tonightOpen, organizerSlug, communityRoute, carpoolRoute,
+        val submissionOverlays = listOf(managementOpen, editorialOpen, collectionsOpen, tonightOpen, organizerSlug, communityRoute, carpoolRoute,
             state.selected?.slug, state.selectedVenue?.slug, state.bookingDate?.occurrenceId, state.sharedCollectionToken, state.tab).joinToString("|")
         var submissionBase by remember { mutableStateOf<String?>(null) }
         LaunchedEffect(state.submissionOpen, submissionOverlays) {
@@ -160,7 +163,7 @@ fun InCittaApp(viewModel: MainViewModel) {
         }
         LaunchedEffect(whatsappCode, state.session?.token) {
             if (it.fabiodalez.incitta.community.shouldNavigateToWhatsapp(whatsappCode, state.session?.token, System.currentTimeMillis())) {
-                managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
+                managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp"
             }
         }
         var promptedCommunity by androidx.compose.runtime.saveable.rememberSaveable(state.session?.user?.id) { mutableStateOf(false) }
@@ -183,7 +186,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     runCatching { it.fabiodalez.incitta.data.CommunityApi(it.fabiodalez.incitta.data.ApiClient(it.fabiodalez.incitta.data.LocalStore(appContext).installationId), inviteToken).change("whatsapp/skip") }
                     viewModel.refreshProfile()
                 }
-                if (verify) { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp" }
+                if (verify) { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; communityRoute = "whatsapp" }
             }
             AlertDialog(
                 onDismissRequest = { closeInvite(false) },
@@ -279,10 +282,10 @@ fun InCittaApp(viewModel: MainViewModel) {
                     Icon(Icons.Outlined.BookmarkBorder, if (occurrence.occurrenceId in state.savedIds) "Rimuovi dai salvati" else "Salva questa data", tint = if (occurrence.occurrenceId in state.savedIds) Acid else Paper)
                 }
             }
-            androidx.compose.material3.IconButton(onClick = { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = "feed" }) {
+            androidx.compose.material3.IconButton(onClick = { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = "feed" }) {
                 Icon(androidx.compose.material.icons.Icons.Outlined.People, androidx.compose.ui.res.stringResource(it.fabiodalez.incitta.R.string.community_title), tint = Paper)
             }
-            androidx.compose.material3.IconButton(onClick = { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; communityRoute = null; carpoolRoute = "inbox" }) {
+            androidx.compose.material3.IconButton(onClick = { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; communityRoute = null; carpoolRoute = "inbox" }) {
                 androidx.compose.material3.BadgedBox(badge = { if(communityTotal > 0) androidx.compose.material3.Badge { Text(if(communityTotal > 99) "99+" else communityTotal.toString()) } }) {
                     Icon(androidx.compose.material.icons.Icons.Outlined.Notifications, cpText("notice_summary", "count" to communityTotal), tint = Paper)
                 }
@@ -327,13 +330,13 @@ fun InCittaApp(viewModel: MainViewModel) {
                         windowInsets = WindowInsets(0, 0, 0, 0),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp),
                     ) {
-                        NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.ConfirmationNumber, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.CALENDAR, "Calendario", Icons.Outlined.CalendarMonth, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
-                        NavItem(if (state.tab == AppTab.TICKETS || state.tab == AppTab.ATTENDED) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { managementOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.HOME, "Home", Icons.Outlined.Home, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.EVENTS, "Eventi", Icons.Outlined.ConfirmationNumber, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.CALENDAR, "Calendario", Icons.Outlined.CalendarMonth, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.MAP, "Mappa", Icons.Outlined.Map, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.SEARCH, "Cerca", Icons.Outlined.Search, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(state.tab, AppTab.SAVED, "Salvati", Icons.Outlined.BookmarkBorder, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
+                        NavItem(if (state.tab == AppTab.TICKETS || state.tab == AppTab.ATTENDED) AppTab.ACCOUNT else state.tab, AppTab.ACCOUNT, "Profilo", Icons.Outlined.AccountCircle, { managementOpen = false; editorialOpen = false; collectionsOpen = false; tonightOpen = false; organizerSlug = null; carpoolRoute = null; communityRoute = null; viewModel.selectTab(it) })
                     }
                 }
                 }
@@ -357,6 +360,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     )
                 }
                 managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
+                editorialOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.editorial.EditorialScreen(state.session, padding) { editorialOpen = false; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
                     onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },
@@ -551,6 +555,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                         onInvitations = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Invitations; managementOpen = true },
                         onApplications = { managementDestination = it.fabiodalez.incitta.data.management.ManagementDestination.Registration(it.fabiodalez.incitta.data.management.RegistrationForm.Applications); managementOpen = true },
                         onManagementLink = { url -> openDestination(url) },
+                        onEditorial = { managementOpen = false; editorialOpen = true },
                         onCollections = { collectionsOpen = true },
                         onOpenSavedSearch = viewModel::openSavedSearch,
                         onClearAuthError = viewModel::clearAuthError,

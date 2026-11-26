@@ -29,6 +29,11 @@ enum ApiErrorCode: string
     case InvalidRequest = 'INVALID_REQUEST';
     case RateLimited = 'RATE_LIMITED';
     case ServerError = 'SERVER_ERROR';
+    /* La redazione nell'app: il token non è stato sbloccato con la password
+       nelle ultime 12 ore, oppure l'azione pericolosa chiede la password
+       confermata negli ultimi 15 minuti. L'app chiede la password e ripete. */
+    case EditorialLocked = 'EDITORIAL_LOCKED';
+    case PasswordRequired = 'PASSWORD_REQUIRED';
 
     /**
      * Lo stato HTTP che accompagna il codice: la corrispondenza è fissa,
@@ -45,6 +50,7 @@ enum ApiErrorCode: string
             self::Conflict, self::ReportAlreadyPending => 409,
             self::InvalidCursor, self::InvalidRequest, self::InvalidToken => 400,
             self::RateLimited => 429,
+            self::EditorialLocked, self::PasswordRequired => 423,
             self::ServerError => 500,
         };
     }

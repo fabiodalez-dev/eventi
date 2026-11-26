@@ -92417,6 +92417,577 @@
                     }
                 }
             }
+        },
+        "/editorial/desk": {
+            "get": {
+                "operationId": "v1.editorial.desk",
+                "description": "`role` \u00e8 il ruolo pi\u00f9 alto (`moderator`, `admin`, `super_admin`);\n`city` la citt\u00e0 di lavoro (`?city=`, anche non attiva); `cities` tutte\nle citt\u00e0; `permissions` una chiave per azione, calcolata dalle policy\ndel sito; `badges` i contatori del menu del pannello (`null` dove la\nvoce non si vede); `unlock` lo stato dello sblocco di questo token.",
+                "summary": "Chi lavora, dove e con quali permessi",
+                "tags": [
+                    "Desk"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name"
+                                                    ]
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "user",
+                                                        "venue_owner",
+                                                        "venue_editor",
+                                                        "moderator",
+                                                        "admin",
+                                                        "super_admin"
+                                                    ]
+                                                },
+                                                "city": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "slug": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "timezone": {
+                                                            "type": "string"
+                                                        },
+                                                        "is_active": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "slug",
+                                                        "name",
+                                                        "timezone",
+                                                        "is_active"
+                                                    ]
+                                                },
+                                                "cities": {
+                                                    "type": "array",
+                                                    "description": "Tutte, anche le spente: la redazione prepara una citt\u00e0 prima di accenderla.",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "permissions": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "badges": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "events_pending": {
+                                                            "type": "integer",
+                                                            "description": "`EventResource::getNavigationBadge`."
+                                                        },
+                                                        "event_submissions_pending": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "description": "`EventSubmissionResource::getNavigationBadge`."
+                                                        },
+                                                        "venues_pending": {
+                                                            "type": "integer",
+                                                            "description": "`VenueResource::getNavigationBadge`."
+                                                        },
+                                                        "venue_applications_pending": {
+                                                            "type": "integer",
+                                                            "description": "`VenueApplicationResource::getNavigationBadge`."
+                                                        },
+                                                        "users_registrations": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "description": "`UserResource::getNavigationBadge`: senza cache, come nel pannello.",
+                                                            "minimum": 0
+                                                        },
+                                                        "reports_open": {
+                                                            "type": "integer",
+                                                            "description": "`ReportResource::getNavigationBadge`."
+                                                        },
+                                                        "event_comments_hidden": {
+                                                            "type": "integer",
+                                                            "description": "`EventCommentResource::getNavigationBadge`."
+                                                        },
+                                                        "catalog_reviews_pending": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "description": "`CatalogReviewResource::getNavigationBadge`: la voce c'\u00e8 solo per admin e super admin."
+                                                        },
+                                                        "carpool_open": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "description": "`Carpool::getNavigationBadge`."
+                                                        },
+                                                        "sponsorship_orders_awaiting": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "description": "`SponsorshipOrderResource::getNavigationBadge`: senza cache, solo admin e super admin.",
+                                                            "minimum": 0
+                                                        },
+                                                        "scheduled_notifications_due": {
+                                                            "type": [
+                                                                "integer",
+                                                                "null"
+                                                            ],
+                                                            "description": "`ScheduledNotificationResource::getNavigationBadge`."
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "events_pending",
+                                                        "event_submissions_pending",
+                                                        "venues_pending",
+                                                        "venue_applications_pending",
+                                                        "users_registrations",
+                                                        "reports_open",
+                                                        "event_comments_hidden",
+                                                        "catalog_reviews_pending",
+                                                        "carpool_open",
+                                                        "sponsorship_orders_awaiting",
+                                                        "scheduled_notifications_due"
+                                                    ]
+                                                },
+                                                "unlock": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "unlocked": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "unlocked_until": {
+                                                            "type": "null"
+                                                        },
+                                                        "password_confirmed_until": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "unlock_hours": {
+                                                            "type": "integer",
+                                                            "const": 12
+                                                        },
+                                                        "password_minutes": {
+                                                            "type": "integer",
+                                                            "const": 15
+                                                        },
+                                                        "lock_after_minutes": {
+                                                            "type": "integer",
+                                                            "const": 15
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "unlocked",
+                                                        "unlocked_until",
+                                                        "password_confirmed_until",
+                                                        "unlock_hours",
+                                                        "password_minutes",
+                                                        "lock_after_minutes"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "user",
+                                                "role",
+                                                "city",
+                                                "cities",
+                                                "permissions",
+                                                "badges",
+                                                "unlock"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/options": {
+            "get": {
+                "operationId": "v1.editorial.options",
+                "summary": "Elenchi chiusi e tetti dei moduli della redazione",
+                "tags": [
+                    "Desk"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "event_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "event_sources": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "submission_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "venue_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "venue_types": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "application_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "application_kinds": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "report_reasons": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "report_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "comment_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "review_statuses": {
+                                                    "type": "array",
+                                                    "description": "Il pannello le etichetta con `reviews.<stato>` (l'enum non ha `label()`).",
+                                                    "items": {}
+                                                },
+                                                "carpool_case_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "notification_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "sponsorship_placements": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "sponsorship_pacings": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "sponsorship_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "sponsorship_order_statuses": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "roles": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "limits": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "per_page_default": {
+                                                            "type": "string"
+                                                        },
+                                                        "per_page_max": {
+                                                            "type": "string"
+                                                        },
+                                                        "reason_min": {
+                                                            "type": "integer",
+                                                            "const": 5
+                                                        },
+                                                        "reason_max": {
+                                                            "type": "integer",
+                                                            "const": 1000
+                                                        },
+                                                        "unlock_hours": {
+                                                            "type": "integer",
+                                                            "const": 12
+                                                        },
+                                                        "password_minutes": {
+                                                            "type": "integer",
+                                                            "const": 15
+                                                        },
+                                                        "lock_after_minutes": {
+                                                            "type": "integer",
+                                                            "const": 15
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "per_page_default",
+                                                        "per_page_max",
+                                                        "reason_min",
+                                                        "reason_max",
+                                                        "unlock_hours",
+                                                        "password_minutes",
+                                                        "lock_after_minutes"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "event_statuses",
+                                                "event_sources",
+                                                "submission_statuses",
+                                                "venue_statuses",
+                                                "venue_types",
+                                                "application_statuses",
+                                                "application_kinds",
+                                                "report_reasons",
+                                                "report_statuses",
+                                                "comment_statuses",
+                                                "review_statuses",
+                                                "carpool_case_statuses",
+                                                "notification_statuses",
+                                                "sponsorship_placements",
+                                                "sponsorship_pacings",
+                                                "sponsorship_statuses",
+                                                "sponsorship_order_statuses",
+                                                "roles",
+                                                "limits"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "X-RateLimit-Limit": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "X-RateLimit-Remaining": {
+                                "schema": {
+                                    "type": "integer"
+                                }
+                            },
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Contenuto non modificato."
+                    }
+                },
+                "security": [
+                    {},
+                    {
+                        "http": []
+                    }
+                ]
+            }
+        },
+        "/editorial/unlock": {
+            "post": {
+                "operationId": "v1.editorial.unlock",
+                "description": "Corpo: `{\"password\": \"\u2026\"}`. Risponde con lo stesso oggetto `unlock` di\n`GET desk`. Password sbagliata: 422 su `error.fields.password`. Senza un\ntoken dell'app (un accesso dal sito): 423 `EDITORIAL_LOCKED`, perch\u00e9 lo\nsblocco si lega al token.",
+                "summary": "Sblocca la redazione con la password dell'account",
+                "tags": [
+                    "Unlock"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "unlocked": {
+                                                    "type": "boolean"
+                                                },
+                                                "unlocked_until": {
+                                                    "type": "null"
+                                                },
+                                                "password_confirmed_until": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "unlock_hours": {
+                                                    "type": "integer",
+                                                    "const": 12
+                                                },
+                                                "password_minutes": {
+                                                    "type": "integer",
+                                                    "const": 15
+                                                },
+                                                "lock_after_minutes": {
+                                                    "type": "integer",
+                                                    "const": 15
+                                                }
+                                            },
+                                            "required": [
+                                                "unlocked",
+                                                "unlocked_until",
+                                                "password_confirmed_until",
+                                                "unlock_hours",
+                                                "password_minutes",
+                                                "lock_after_minutes"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "429": {
+                        "description": "Troppe richieste.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {

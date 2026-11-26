@@ -4,16 +4,20 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.fragment.app.FragmentActivity
 import it.fabiodalez.incitta.ui.InCittaApp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 
-class MainActivity : ComponentActivity() {
+/*
+ * Una FragmentActivity (che è una ComponentActivity) perché lo sblocco della
+ * redazione usa il BiometricPrompt di androidx, che vuole i fragment.
+ */
+class MainActivity : FragmentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onResume() {

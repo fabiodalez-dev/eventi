@@ -9,6 +9,7 @@ use App\Models\Organizer;
 use App\Models\Sponsorship;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Editorial\EditorialDesk;
 use App\Support\Management\ManagementSubject;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -18,8 +19,9 @@ use Illuminate\Database\Eloquent\Builder;
  * Per un locale: le campagne sugli eventi del locale, nate da una sua
  * abilitazione o dalla redazione. Per un'organizzazione: lo stesso per gli
  * eventi che firma. Il soggetto è quello di `ManagementSubject`, quindi vale
- * uguale nei pannelli e nell'API di gestione. Nell'amministrazione, dove un
- * soggetto non c'è: tutte, solo per chi ha il ruolo.
+ * uguale nei pannelli e nell'API di gestione. Nella redazione (il pannello
+ * `admin` o l'area dell'app, cioè `EditorialDesk`), dove un soggetto non
+ * c'è: tutte, solo per admin e super admin.
  */
 final class SponsorshipReport
 {
@@ -37,7 +39,12 @@ final class SponsorshipReport
             return $this->ofSponsor($query, $subject->model);
         }
 
-        abort_unless($user->hasAnyRole(['admin', 'super_admin']), 403);
+        /* Senza soggetto vale solo dentro la redazione (pannello `admin` o
+           area dell'app), e solo per chi ha il ruolo: fuori, un admin che
+           chiama il servizio da un'altra strada non riceve tutte le campagne
+           per il solo fatto di esserlo. */
+        $desk = EditorialDesk::current();
+        abort_unless($desk !== null && $desk->user->is($user) && $desk->isAdmin(), 403);
 
         return $query;
     }

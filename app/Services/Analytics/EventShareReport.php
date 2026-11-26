@@ -7,8 +7,8 @@ namespace App\Services\Analytics;
 use App\Enums\StatsPeriod;
 use App\Models\City;
 use App\Models\Event;
+use App\Support\Editorial\EditorialDesk;
 use Carbon\CarbonImmutable;
-use Filament\Facades\Filament;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
@@ -25,8 +25,9 @@ final class EventShareReport
      */
     public function rows(StatsPeriod $period, ?int $page = null): LengthAwarePaginator
     {
-        if (Filament::getCurrentPanel()?->getId() === 'admin') {
-            abort_unless(auth()->user()?->hasAnyRole(['admin', 'super_admin']) === true, 403);
+        $desk = EditorialDesk::current();
+        if ($desk !== null) {
+            abort_unless($desk->isAdmin(), 403);
             $events = Event::query();
         } else {
             $events = app(ManagementAnalytics::class)->eventQuery();

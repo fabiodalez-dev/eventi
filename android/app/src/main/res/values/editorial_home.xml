@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Il menu della redazione: un'area per pacchetto, nell'ordine del pannello. -->
+<resources>
+    <string name="editorial_area_dashboard">Riepilogo</string>
+    <string name="editorial_area_dashboard_help">Code, pubblicazioni, qualità e iscrizioni</string>
+    <string name="editorial_area_events">Eventi e proposte</string>
+    <string name="editorial_area_events_help">Moderazione, pubblicazione e proposte dal pubblico</string>
+    <string name="editorial_area_event_editor">Modulo evento</string>
+    <string name="editorial_area_event_editor_help">Nuovo evento, modifica e date</string>
+    <string name="editorial_area_venues">Locali e richieste</string>
+    <string name="editorial_area_venues_help">Locali, richieste di registrazione e organizzatori</string>
+    <string name="editorial_area_users">Utenti</string>
+    <string name="editorial_area_users_help">Iscrizioni, ruoli e sospensioni</string>
+    <string name="editorial_area_moderation">Moderazione</string>
+    <string name="editorial_area_moderation_help">Segnalazioni, commenti e recensioni</string>
+    <string name="editorial_area_community">Community e passaggi</string>
+    <string name="editorial_area_community_help">Profili, post, casi e passaggi</string>
+    <string name="editorial_area_promotion">Promozione</string>
+    <string name="editorial_area_promotion_help">Campagne, ordini, abilitazioni e listino</string>
+    <string name="editorial_area_social">Social</string>
+    <string name="editorial_area_social_help">Studio della redazione e pubblicazioni</string>
+    <string name="editorial_area_analytics">Statistiche e ricerche</string>
+    <string name="editorial_area_analytics_help">Numeri, SEO e ricerche senza risultati</string>
+    <string name="editorial_area_catalog">Catalogo</string>
+    <string name="editorial_area_catalog_help">Categorie, tag, caratteristiche, città e pagine</string>
+    <string name="editorial_area_system">Sistema</string>
+    <string name="editorial_area_system_help">Import, invii programmati e cron</string>
+    <string name="editorial_area_settings">Configurazione</string>
+    <string name="editorial_area_settings_help">Testi delle email, posta, cache e redirect</string>
+    <string name="editorial_area_calendar">Calendario</string>
+    <string name="editorial_area_calendar_help">Gli eventi del mese</string>
+</resources>

@@ -55,6 +55,11 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/management/venues/{venue}/events/{event}/poster']['post']['requestBody']['content'])->toHaveKey('multipart/form-data')
         ->and($document['paths']['/management/venues/{venue}/media/gallery']['post']['responses'])->toHaveKey('201');
 
+    // Le fondamenta della redazione nell'app (26/11/2026): banco, elenchi, sblocco.
+    expect($document['paths'])->toHaveKeys(['/editorial/desk', '/editorial/options', '/editorial/unlock'])
+        ->and($document['paths']['/editorial/desk'])->toHaveKey('get')
+        ->and($document['paths']['/editorial/unlock'])->toHaveKey('post');
+
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
         '/management/venues/{venue}/members',

@@ -12,6 +12,7 @@ use App\Services\Analytics\AnalyticsWindow;
 use App\Services\Analytics\EventAnalyticsDashboard;
 use App\Services\Analytics\EventAnalyticsExport;
 use App\Services\Analytics\EventShares;
+use App\Support\Editorial\EditorialDesk;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
@@ -174,7 +175,7 @@ abstract class EventAnalyticsPage extends Page
             }
             /* Nei pannelli del locale e dell'organizzatore i filtri «Locale» e
                «Organizzatore» non servono: si guardano già i propri eventi. */
-            if (Filament::getCurrentPanel()?->getId() !== 'admin' && blank($this->filters[$type] ?? null)) {
+            if (! EditorialDesk::active() && blank($this->filters[$type] ?? null)) {
                 continue;
             }
             $components[] = Select::make($type)->label(__('analytics-dashboard.'.$type))->placeholder(__('analytics-dashboard.all_'.$type))
