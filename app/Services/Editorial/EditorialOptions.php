@@ -12,7 +12,10 @@ use App\Enums\CatalogReviewStatus;
 use App\Enums\EventCommentStatus;
 use App\Enums\EventSource;
 use App\Enums\EventStatus;
+use App\Enums\ImportRunStatus;
+use App\Enums\ImportSourceType;
 use App\Enums\NotificationStatus;
+use App\Enums\NotificationType;
 use App\Enums\ReportReason;
 use App\Enums\ReportStatus;
 use App\Enums\RideStatus;
@@ -63,6 +66,10 @@ final class EditorialOptions
             // R7: il filtro «Stato» della sezione «Passaggi» della pagina dei passaggi.
             'ride_statuses' => self::cases(RideStatus::cases()),
             'notification_statuses' => self::cases(NotificationStatus::cases()),
+            // R12: tipi degli invii previsti, tipi e esiti degli import.
+            'notification_types' => self::cases(NotificationType::cases()),
+            'import_source_types' => self::cases(ImportSourceType::cases()),
+            'import_run_statuses' => self::cases(ImportRunStatus::cases()),
             'sponsorship_placements' => self::cases(SponsorshipPlacement::cases()),
             'sponsorship_pacings' => self::cases(SponsorshipPacing::cases()),
             'sponsorship_statuses' => self::cases(SponsorshipStatus::cases()),

@@ -71,17 +71,12 @@ class EditorialFoundationsTest {
         }
     }
 
-    @Test fun theNativeAreasOfTheTwoWavesOpenTheirOwnScreens() {
-        val native = EditorialArea.entries.filter { it.native }
-        assertEquals(
-            listOf(
-                EditorialArea.Dashboard, EditorialArea.Events, EditorialArea.EventEditor, EditorialArea.Venues, EditorialArea.Users, EditorialArea.Moderation,
-                EditorialArea.Community, EditorialArea.Promotion, EditorialArea.Analytics, EditorialArea.Catalog,
-            ),
-            native,
-        )
-        /* Restano sul sito finché i loro pacchetti non arrivano: social (R9), sistema (R12), impostazioni (R13), calendario (R14). */
-        assertEquals(listOf(EditorialArea.Social, EditorialArea.System, EditorialArea.Settings, EditorialArea.Calendar), EditorialArea.entries.filterNot { it.native })
+    @Test fun everyAreaOfTheEditorialDeskIsNativeAndOpensItsOwnScreen() {
+        /* Con R14 tutte le aree della redazione sono nell'app: nessuna voce del menu dice più «sul sito». */
+        assertEquals(EditorialArea.entries.toList(), EditorialArea.entries.filter { it.native })
+        assertEquals(emptyList<EditorialArea>(), EditorialArea.entries.filterNot { it.native })
+        assertEquals(it.fabiodalez.incitta.ui.editorial.calendar.CalendarRoute, EditorialArea.Calendar.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.settings.SettingsRoute, EditorialArea.Settings.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.dashboard.DashboardRoute, EditorialArea.Dashboard.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.events.EventsRoute, EditorialArea.Events.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.eventeditor.EventEditorRoute, EditorialArea.EventEditor.entry)
@@ -89,6 +84,8 @@ class EditorialFoundationsTest {
         /* Dal menu l'elenco degli utenti parte senza scheda né filtri: «Tutti». */
         assertEquals(it.fabiodalez.incitta.ui.editorial.users.UsersRoute(), EditorialArea.Users.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.moderation.ModerationRoute, EditorialArea.Moderation.entry)
+        assertEquals(it.fabiodalez.incitta.ui.editorial.system.SystemRoute, EditorialArea.System.entry)
+        assertEquals(listOf("scheduled_notifications_due"), EditorialArea.System.badges)
         assertEquals(it.fabiodalez.incitta.ui.editorial.community.CommunityRoute, EditorialArea.Community.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.promotion.PromotionRoute, EditorialArea.Promotion.entry)
         assertEquals(it.fabiodalez.incitta.ui.editorial.analytics.AnalyticsRoute, EditorialArea.Analytics.entry)

@@ -10,6 +10,7 @@ use Database\Factories\ImportRunFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Un'esecuzione di import già avvenuta: che cosa ha fatto e come è finita.
@@ -17,6 +18,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * È il registro che permette di rispondere a «da quando non arriva più
  * niente», domanda che le colonne `last_*` della sorgente non sanno affrontare
  * perché conservano solo l'ultima risposta.
+ *
+ * La tabella nasce con `datetimes()`, che l'analisi statica non riconosce
+ * come i soliti `timestamps()`: le due colonne le dichiaro qui.
+ *
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class ImportRun extends Model
 {

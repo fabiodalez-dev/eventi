@@ -5,20 +5,17 @@ declare(strict_types=1);
 namespace App\Filament\Concerns;
 
 use App\Enums\SocialFormat;
-use App\Enums\SocialPublicationStatus;
 use App\Exceptions\SocialStudioException;
 use App\Filament\Support\PanelDate;
-use App\Jobs\Social\PublishSocial;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\EventOccurrence;
 use App\Models\SocialBatch;
-use App\Models\SocialConnection;
 use App\Models\SocialPublication;
 use App\Models\User;
 use App\Queries\EventOccurrenceQuery;
+use App\Services\Social\EditorialPublishing;
 use App\Services\Social\SocialCatalog;
-use App\Services\Social\SocialPublisher;
 use App\Services\Social\SocialStudioDesk;
 use App\Support\RequestMemo;
 use Carbon\CarbonImmutable;
@@ -391,13 +388,7 @@ trait InteractsWithSocialStudio
     {
         abort_unless($this->socialVenue() === null, 403);
 
-        $city = $this->socialCity()->id;
-
-        // Anche le pubblicazioni il cui pacchetto è stato tolto dalla pulizia: la città la dice il collegamento con cui sono uscite.
-        return SocialPublication::query()
-            ->where(fn ($query) => $query->whereIn('social_batch_id', SocialBatch::where('city_id', $city)->select('id'))
-                ->orWhere(fn ($orphan) => $orphan->whereNull('social_batch_id')->whereIn('social_connection_id', SocialConnection::where('city_id', $city)->select('id'))))
-            ->latest()->limit(30)->get();
+        return app(EditorialPublishing::class)->history($this->socialCity())->limit(EditorialPublishing::HISTORY)->get();
     }
 
     public function openBatch(string $id): void
@@ -412,22 +403,21 @@ trait InteractsWithSocialStudio
     {
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
         $this->validate(['scheduledAt' => ['required', 'date_format:Y-m-d\\TH:i']]);
-        $when = CarbonImmutable::parse($this->scheduledAt, $this->socialCity()->timezone)->utc();
-        if ($when->lessThanOrEqualTo(now())) {
-            $this->addError('scheduledAt', __('social.schedule.future'));
+        $publishing = app(EditorialPublishing::class);
+        try {
+            $when = $publishing->when($this->scheduledAt, $this->socialCity()->timezone);
+        } catch (ValidationException $e) {
+            $this->addError('scheduledAt', $this->firstError($e));
 
             return;
         }
         $batch = $this->batch();
         abort_if($batch === null, 404);
-        if (SocialPublication::where('social_batch_id', $batch->id)->exists()) {
-            $this->addError('scheduledAt', __('social.schedule.already'));
-
-            return;
-        }
         try {
-            app(SocialPublisher::class)->enqueue($batch, scheduledAt: $when);
+            $publishing->schedule($batch, $when);
             Notification::make()->title(__('social.schedule.done'))->success()->send();
+        } catch (ValidationException $e) {
+            $this->addError('scheduledAt', $this->firstError($e));
         } catch (\RuntimeException $e) {
             $this->addError('scheduledAt', $e->getMessage());
         }
@@ -436,8 +426,7 @@ trait InteractsWithSocialStudio
     public function cancelScheduledPublication(int $id): void
     {
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
-        SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
-            ->update(['status' => SocialPublicationStatus::Cancelled->value]);
+        app(EditorialPublishing::class)->cancel($id);
         Notification::make()->title(__('social.schedule.cancelled'))->success()->send();
     }
 
@@ -445,17 +434,13 @@ trait InteractsWithSocialStudio
     {
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
         $this->validate(['scheduledAt' => ['required', 'date_format:Y-m-d\\TH:i']]);
-        $publication = SocialPublication::findOrFail($id);
-        // Il fuso è quello della città del collegamento, che resta anche se il pacchetto è stato tolto.
-        $city = City::findOrFail(SocialConnection::findOrFail($publication->social_connection_id)->city_id);
-        $when = CarbonImmutable::parse($this->scheduledAt, $city->timezone)->utc();
-        if ($when->lessThanOrEqualTo(now())) {
-            $this->addError('scheduledAt', __('social.schedule.future'));
+        try {
+            $changed = app(EditorialPublishing::class)->reschedule($id, $this->scheduledAt);
+        } catch (ValidationException $e) {
+            $this->addError('scheduledAt', $this->firstError($e));
 
             return;
         }
-        $changed = SocialPublication::whereKey($id)->where('status', SocialPublicationStatus::Scheduled)
-            ->update(['scheduled_at' => $when]);
         if ($changed) {
             Notification::make()->title(__('social.schedule.updated'))->success()->send();
         }
@@ -467,7 +452,7 @@ trait InteractsWithSocialStudio
         $batch = $this->batch();
         abort_if($batch === null, 404);
         try {
-            app(SocialPublisher::class)->enqueue($batch);
+            app(EditorialPublishing::class)->publish($batch);
             Notification::make()->title(__('social.queued'))->success()->send();
         } catch (\RuntimeException $e) {
             $this->addError('publish', $e->getMessage());
@@ -477,24 +462,25 @@ trait InteractsWithSocialStudio
     public function retryPublication(int $id): void
     {
         abort_unless($this->socialVenue() === null && auth()->user()?->hasAnyRole(['admin', 'super_admin']), 403);
-        $publication = SocialPublication::findOrFail($id);
-        abort_unless(in_array($publication->status, [SocialPublicationStatus::Failed, SocialPublicationStatus::Uncertain], true), 422);
-        $batch = $publication->batch;
-        if ($batch === null) {
-            $this->addError('publish', __('social.studio.batch_gone'));
+        $publishing = app(EditorialPublishing::class);
+        try {
+            $publication = $publishing->retryable($id);
+        } catch (ValidationException $e) {
+            $this->addError('publish', $this->firstError($e));
 
             return;
         }
         try {
-            app(SocialPublisher::class)->assertFresh($batch);
-            $connection = SocialConnection::findOrFail($publication->social_connection_id);
-            $changed = SocialPublication::whereKey($id)->where('status', $publication->status->value)->update(['status' => SocialPublicationStatus::Queued->value, 'error' => null, 'remote_ids' => json_encode(['page_id' => $connection->page_id, 'instagram_id' => $connection->instagram_id, 'telegram_chat_id' => $connection->telegram_chat_id], JSON_THROW_ON_ERROR)]);
-            if ($changed) {
-                PublishSocial::dispatch($id);
-            }
+            $publishing->retry($publication);
         } catch (\RuntimeException $e) {
             $this->addError('publish', $e->getMessage());
         }
+    }
+
+    /** Il primo messaggio di un errore di `EditorialPublishing`, da rimettere sotto il campo della pagina. */
+    private function firstError(ValidationException $e): string
+    {
+        return (string) collect($e->errors())->flatten()->first();
     }
 
     private function applyPeriod(string $period): void

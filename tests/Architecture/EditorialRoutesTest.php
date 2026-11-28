@@ -45,6 +45,19 @@ const EDITORIAL_DANGEROUS_NAMES = [
     'api.v1.editorial.carpool.cases.hold',
     // R7: la lettura delle evidenze di un caso (nel pannello chiede la password).
     'api.v1.editorial.carpool.cases.evidence',
+    // R14: pubblicare, programmare e ripubblicare un post sui canali della città, visibile a tutti.
+    'api.v1.editorial.social.batches.publish',
+    'api.v1.editorial.social.batches.schedule',
+    'api.v1.editorial.social.publications.retry',
+    // Revisione dell'ondata 3: scritture che arrivano a tutti o che pubblicano da sole.
+    'api.v1.editorial.social.settings.update',
+    'api.v1.editorial.social.meta.disconnect',
+    'api.v1.editorial.settings.newsletter.update',
+    'api.v1.editorial.settings.texts.update',
+    'api.v1.editorial.settings.texts.reset',
+    'api.v1.editorial.import-sources.run',
+    'api.v1.editorial.import-sources.store',
+    'api.v1.editorial.import-sources.update',
     // Chi scrive il codice di Search Console diventa proprietario verificato del sito.
     'api.v1.editorial.seo.verification',
     // Revisione di sicurezza dell'ondata 1, punto 3: un account nuovo può nascere con un ruolo della redazione.

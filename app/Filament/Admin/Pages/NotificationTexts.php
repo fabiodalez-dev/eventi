@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Pages;
 
-use App\Enums\UserRole;
-use App\Models\NotificationText;
 use App\Models\User;
+use App\Services\Settings\NotificationTextEditor;
 use App\Support\NotificationTextCatalog;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -60,38 +59,26 @@ class NotificationTexts extends Page implements HasSchemas
     {
         $utente = Auth::user();
 
-        return $utente instanceof User && $utente->hasAnyRole([UserRole::Admin->value, UserRole::SuperAdmin->value]);
+        return NotificationTextEditor::canEdit($utente instanceof User ? $utente : null);
     }
 
     /**
-     * Le chiavi della newsletter si scrivono dalla pagina Newsletter, che è
-     * dell'amministratore di sistema: qui non compaiono a chi non lo è, e
-     * nessun salvataggio o ripristino le tocca.
-     *
-     * @return list<string>
-     */
-    private static function riservate(): array
-    {
-        return Auth::user()?->hasRole(UserRole::SuperAdmin->value) === true ? [] : array_values(Newsletter::texts());
-    }
-
-    /**
-     * Il catalogo per gruppi, senza le chiavi riservate.
+     * Il catalogo per gruppi, senza le chiavi riservate: quelle della
+     * newsletter si scrivono dalla pagina Newsletter, che è
+     * dell'amministratore di sistema (`NotificationTextEditor::reserved`).
      *
      * @return array<string, array{etichetta: string, testi: array<string, array{predefinito: string, attuale: string, modificato: bool}>}>
      */
     private static function gruppi(): array
     {
-        $riservate = self::riservate();
-        $gruppi = [];
-        foreach (NotificationTextCatalog::perGruppo() as $nome => $gruppo) {
-            $gruppo['testi'] = array_diff_key($gruppo['testi'], array_flip($riservate));
-            if ($gruppo['testi'] !== []) {
-                $gruppi[$nome] = $gruppo;
-            }
-        }
+        return NotificationTextEditor::groups(self::utente());
+    }
 
-        return $gruppi;
+    private static function utente(): ?User
+    {
+        $utente = Auth::user();
+
+        return $utente instanceof User ? $utente : null;
     }
 
     public static function getNavigationLabel(): string
@@ -192,48 +179,23 @@ class NotificationTexts extends Page implements HasSchemas
         abort_unless(static::canAccess(), 403);
         /** @var array<string, string> $valori */
         $valori = $this->modulo()->getState();
+        $testi = [];
+        foreach (array_keys(NotificationTextCatalog::predefiniti()) as $key) {
+            $testi[$key] = (string) ($valori[self::campo($key)] ?? '');
+        }
         $errors = [];
-        foreach (array_diff_key(NotificationTextCatalog::predefiniti(), array_flip(self::riservate())) as $key => $default) {
-            $unknown = array_diff(NotificationTextCatalog::variabili((string) ($valori[self::campo($key)] ?? '')), NotificationTextCatalog::variabili($default));
-            if ($unknown !== []) {
-                $errors['data.'.self::campo($key)] = __('notification_texts.invalid', ['tokens' => implode(', ', $unknown)]);
-            }
+        foreach (NotificationTextEditor::unknownVariables(self::utente(), $testi) as $key => $unknown) {
+            $errors['data.'.self::campo($key)] = NotificationTextEditor::invalidMessage($unknown);
         }
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
-        $utente = Auth::id();
-        $scritti = 0;
-        $ripristinati = 0;
-
-        foreach (self::gruppi() as $gruppo) {
-            foreach ($gruppo['testi'] as $chiave => $testo) {
-                $nuovo = trim((string) ($valori[self::campo($chiave)] ?? ''));
-
-                /*
-                 * Un campo svuotato non salva la stringa vuota: torna
-                 * all'originale. Un'email senza oggetto non e' una scelta che
-                 * qualcuno faccia apposta, ed e' un guasto che si scopre solo
-                 * quando e' partita.
-                 */
-                if ($nuovo === '' || $nuovo === $testo['predefinito']) {
-                    $ripristinati += NotificationText::query()->where('key', $chiave)->delete();
-
-                    continue;
-                }
-
-                NotificationText::updateOrCreate(
-                    ['key' => $chiave],
-                    ['value' => $nuovo, 'updated_by' => $utente],
-                );
-                $scritti++;
-            }
-        }
-
-        NotificationText::dimenticaLaCache();
+        $utente = self::utente();
+        abort_if($utente === null, 403);
+        $esito = NotificationTextEditor::save($utente, $testi);
 
         Notification::make()
-            ->title(__('notification_texts.saved', ['scritti' => $scritti, 'ripristinati' => $ripristinati]))
+            ->title(__('notification_texts.saved', ['scritti' => $esito['scritti'], 'ripristinati' => $esito['ripristinati']]))
             ->success()
             ->send();
     }
@@ -241,8 +203,7 @@ class NotificationTexts extends Page implements HasSchemas
     public function ripristinaTutto(): void
     {
         abort_unless(static::canAccess(), 403);
-        NotificationText::query()->whereNotIn('key', self::riservate())->delete();
-        NotificationText::dimenticaLaCache();
+        NotificationTextEditor::resetAll(self::utente());
         $this->mount();
 
         Notification::make()->title(__('notification_texts.reset_done'))->success()->send();
@@ -273,77 +234,17 @@ class NotificationTexts extends Page implements HasSchemas
     /** @return array<string, string> */
     private static function samples(string $key): array
     {
-        $samples = [];
-        foreach (NotificationTextCatalog::predefiniti() as $text) {
-            foreach (NotificationTextCatalog::variabili($text) as $variable) {
-                $samples[':'.$variable] = __('notification_texts.examples.'.$variable) === 'notification_texts.examples.'.$variable
-                    ? '['.$variable.']' : __('notification_texts.examples.'.$variable);
-            }
-        }
-
-        if ($key === 'notifications.moved.previous') {
-            $samples[':when'] = __('notification_texts.previous_example');
-        }
-
-        return $samples;
+        return NotificationTextEditor::samples($key);
     }
-
-    /**
-     * Che pezzo dell'email e' questo testo.
-     *
-     * Non l'ultima parte della chiave cosi' com'e': «Subject», «When hours»,
-     * «Line» sono nomi da programmatore in una pagina che chiede di scrivere
-     * in italiano. Cio' che non e' in elenco mantiene la chiave, perche' un
-     * nome sbagliato inganna piu' di uno tecnico.
-     *
-     * @var array<string, string>
-     */
-    private const PEZZI = [
-        'subject' => 'Oggetto',
-        'heading' => 'Titolo dentro il messaggio',
-        'line' => 'Testo',
-        'lines' => 'Testo',
-        'why' => 'Perché ricevi questa email',
-        'note' => 'Nota',
-        'intro' => 'Apertura',
-        'outro' => 'Chiusura',
-        'empty' => 'Quando non c\'è niente da segnalare',
-        'footer' => 'Piede',
-        'greeting' => 'Saluto',
-        'body' => 'Corpo',
-        'cta' => 'Pulsante',
-        'title' => 'Titolo',
-
-        // etichette dei pulsanti
-        'open_event' => 'Pulsante: apri l\'evento',
-        'open_feed' => 'Pulsante: apri il feed',
-        'open_tonight' => 'Pulsante: cosa c\'è stasera',
-        'open_weekend' => 'Pulsante: il fine settimana',
-        'open_panel' => 'Pulsante: apri il pannello',
-        'open_venue' => 'Pulsante: apri il locale',
-
-        // frammenti
-        'at_venue' => 'Dove si svolge',
-        'when_tomorrow' => 'Quando: domani',
-        'when_hours' => 'Quando: fra N ore',
-        'previous' => 'Com\'era prima',
-        'reason' => 'Motivo',
-        'mandatory' => 'Avviso: email di servizio',
-        'link_fallback' => 'Se il pulsante non funziona',
-        'unsubscribe' => 'Disiscrizione',
-        'preferences' => 'Preferenze',
-    ];
 
     private static function etichetta(string $chiave): string
     {
-        $ultima = (string) last(explode('.', $chiave));
-
-        return self::PEZZI[$ultima] ?? ucfirst(str_replace('_', ' ', $ultima));
+        return NotificationTextEditor::label($chiave);
     }
 
     /** Righe proporzionate al testo: un oggetto non ha bisogno di sei righe. */
     private static function righe(string $predefinito): int
     {
-        return max(2, min(6, (int) ceil(mb_strlen($predefinito) / 70)));
+        return NotificationTextEditor::rows($predefinito);
     }
 }

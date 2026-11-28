@@ -83,6 +83,8 @@ fun InCittaApp(viewModel: MainViewModel) {
         /* La redazione nell'app (riga «Amministrazione» del profilo): salvata come la gestione; cambiando account si chiude e il suo sblocco si butta. */
         var editorialOpen by androidx.compose.runtime.saveable.rememberSaveable(state.session?.token) { mutableStateOf(false) }
         LaunchedEffect(state.session?.token) { it.fabiodalez.incitta.data.editorial.EditorialGraph.retain(state.session?.token) }
+        /* R14: un indirizzo `/admin/…` (avviso, collegamento dell'app) da aprire nell'area appena è sbloccata. */
+        var editorialDestination by remember(state.session?.token) { mutableStateOf<it.fabiodalez.incitta.data.editorial.EditorialDestination?>(null) }
         var collectionsOpen by remember(state.session?.token) { mutableStateOf(false) }
         var organizerSlug by remember { mutableStateOf<String?>(null) }
         var communityRoute by remember { mutableStateOf<String?>(null) }
@@ -95,6 +97,16 @@ fun InCittaApp(viewModel: MainViewModel) {
         fun openDestination(url: String) {
             /* Q1: `/proponi-evento` è la schermata nativa, da ospiti e da collegati. */
             if (it.fabiodalez.incitta.data.isEventSubmissionLink(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)) { viewModel.openSubmission(); return }
+            /* R14: una pagina del pannello della redazione, per chi ne fa parte, si apre nell'area nativa; agli altri resta il browser. */
+            val editorial = it.fabiodalez.incitta.data.editorial.EditorialDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
+            val person = state.session?.user
+            if (editorial != null && person != null && it.fabiodalez.incitta.data.editorial.showsEditorialEntry(person)) {
+                organizerSlug = null; carpoolRoute = null; communityRoute = null; collectionsOpen = false
+                managementOpen = false; managementDestination = null
+                editorialDestination = editorial
+                editorialOpen = true
+                return
+            }
             val target = it.fabiodalez.incitta.data.CommunityDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL)
             val parsed = if (target == null) it.fabiodalez.incitta.data.management.ManagementDestination.parse(url, it.fabiodalez.incitta.BuildConfig.API_BASE_URL) else null
             val management = parsed?.takeIf { state.session != null }
@@ -360,7 +372,7 @@ fun InCittaApp(viewModel: MainViewModel) {
                     )
                 }
                 managementOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.management.ManagementScreen(state.session, padding, destination = managementDestination) { managementOpen = false; managementDestination = null; viewModel.refreshProfile() } }
-                editorialOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.editorial.EditorialScreen(state.session, padding, onOpenInApp = { url -> openDestination(url) }) { editorialOpen = false; viewModel.refreshProfile() } }
+                editorialOpen -> androidx.compose.runtime.key(state.session?.token) { it.fabiodalez.incitta.ui.editorial.EditorialScreen(state.session, padding, onOpenInApp = { url -> openDestination(url) }, destination = editorialDestination, onDestinationOpened = { editorialDestination = null }) { editorialOpen = false; editorialDestination = null; viewModel.refreshProfile() } }
                 carpoolRoute != null -> androidx.compose.runtime.key(state.session?.token) { CarpoolScreen(state.session, padding, carpoolRoute!!,
                     onBack = { carpoolRoute = null },
                     onLogin = { path -> returnCarpool = path; carpoolRoute = null; viewModel.selectTab(AppTab.ACCOUNT) },

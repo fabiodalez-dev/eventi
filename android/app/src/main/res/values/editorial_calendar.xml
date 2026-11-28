@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R14 — Calendario della redazione, campanella, scorciatoie della prima pagina. -->
+<resources>
+    <string name="editorial_calendar_lead">Tutte le città, giorno per giorno. Il colore dice lo stato dell\'evento.</string>
+    <string name="editorial_calendar_previous">Mese precedente</string>
+    <string name="editorial_calendar_next">Mese successivo</string>
+    <string name="editorial_calendar_today">Oggi</string>
+    <string name="editorial_calendar_grid">Calendario del mese</string>
+    <string name="editorial_calendar_day_none">%1$s, nessuna data</string>
+    <plurals name="editorial_calendar_day_count">
+        <item quantity="one">%1$s, una data</item>
+        <item quantity="other">%1$s, %2$d date</item>
+    </plurals>
+    <string name="editorial_calendar_more">+%1$d</string>
+    <string name="editorial_calendar_day_empty">Nessuna data in questo giorno.</string>
+    <string name="editorial_calendar_truncated">Questo mese ha troppe date per mostrarle tutte: ne vedi una parte. Il pannello sul sito le mostra tutte.</string>
+    <string name="editorial_calendar_all_day">Tutto il giorno</string>
+    <string name="editorial_calendar_time_range">%1$s–%2$s</string>
+    <string name="editorial_calendar_item_meta">%1$s · %2$s</string>
+    <string name="editorial_calendar_item_open">Apri la scheda di %1$s</string>
+    <string name="editorial_calendar_date_status">Data: %1$s</string>
+    <string name="editorial_calendar_legend">Legenda</string>
+
+    <string name="editorial_bell_title">Notifiche</string>
+    <string name="editorial_bell_lead">Gli avvisi che il pannello mostra nella campanella. Oggi è l\'avviso del mattino sulle sponsorizzazioni in ritardo, per chi gestisce la promozione.</string>
+    <string name="editorial_bell_open">Notifiche della redazione</string>
+    <plurals name="editorial_bell_unread">
+        <item quantity="one">Notifiche della redazione, una da leggere</item>
+        <item quantity="other">Notifiche della redazione, %1$d da leggere</item>
+    </plurals>
+    <string name="editorial_bell_empty">Nessuna notifica.</string>
+    <string name="editorial_bell_read_all">Segna tutte come lette</string>
+    <string name="editorial_bell_clear">Svuota</string>
+    <string name="editorial_bell_clear_title">Svuotare la campanella?</string>
+    <string name="editorial_bell_clear_text">Le notifiche della campanella si tolgono per sempre, come nel pannello. Gli altri avvisi del tuo account restano.</string>
+    <string name="editorial_bell_mark_read">Segna come letta</string>
+    <string name="editorial_bell_mark_unread">Segna come da leggere</string>
+    <string name="editorial_bell_remove">Togli</string>
+    <string name="editorial_bell_unread_mark">Da leggere</string>
+    <string name="editorial_bell_more">Altre azioni per %1$s</string>
+    <string name="editorial_bell_page_more">Mostra le altre</string>
+
+    <string name="editorial_shortcuts">Scorciatoie</string>
+    <string name="editorial_shortcut_create">Nuovo evento</string>
+    <string name="editorial_shortcut_events">Eventi</string>
+    <string name="editorial_shortcut_analytics">Statistiche</string>
+    <string name="editorial_shortcut_comments">Commenti agli eventi</string>
+    <string name="editorial_shortcut_calendar">Calendario</string>
+    <string name="editorial_shortcut_tickets">Biglietti e partecipanti</string>
+    <string name="editorial_shortcut_site">Vedi il sito</string>
+    <string name="editorial_shortcut_social_today">Social di oggi</string>
+</resources>

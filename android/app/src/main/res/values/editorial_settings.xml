@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R13: la configurazione tecnica nella redazione (testi delle email, posta, newsletter, script di consenso, cookie, indirizzi cambiati, cache). -->
+<resources>
+    <!-- Menu dell'area -->
+    <string name="config_hub_intro">Testi delle email, posta, cookie, indirizzi cambiati e cache del sito. Le credenziali e il codice si cambiano solo dal sito.</string>
+    <string name="config_texts_title">Testi delle email</string>
+    <string name="config_texts_help">Come sono scritte le email che il sito manda</string>
+    <string name="config_mail_title">Configurazione della posta</string>
+    <string name="config_mail_help">Da quale server escono i messaggi, con il messaggio di prova</string>
+    <string name="config_scripts_title">Script e consenso</string>
+    <string name="config_scripts_help">Gli script caricati dopo la scelta sui cookie, in sola lettura</string>
+    <string name="config_cookies_title">Cookie</string>
+    <string name="config_cookies_help">Il registro della Cookie Policy, per finalità</string>
+    <string name="config_redirects_title">Indirizzi cambiati</string>
+    <string name="config_redirects_help">Dove mandare chi arriva da un indirizzo che non esiste più</string>
+    <string name="config_cache_title">Cache e prestazioni</string>
+    <string name="config_cache_help">Svuota le copie del sito pubblico e verifica Redis</string>
+    <string name="config_newsletter_title">Newsletter</string>
+    <string name="config_newsletter_help">Giorno, ora, numero di eventi e testi della newsletter del fine settimana</string>
+    <string name="config_nothing_allowed">Il tuo ruolo non ha voci di configurazione tecnica.</string>
+    <string name="config_edit_on_web">Modifica sul sito</string>
+    <string name="config_web_only">Questa parte si cambia solo dal sito: contiene credenziali o codice.</string>
+    <string name="config_saved">Salvato.</string>
+    <string name="config_yes">Sì</string>
+    <string name="config_no">No</string>
+    <string name="config_none">Nessuno</string>
+    <string name="config_password_saved">Salvata (non si mostra)</string>
+    <string name="config_password_missing">Nessuna</string>
+
+    <!-- Testi delle email -->
+    <string name="config_texts_lead">Quello che non tocchi resta com’è, e puoi sempre tornare indietro.</string>
+    <string name="config_texts_groups">Gruppi di email</string>
+    <string name="config_texts_modified">Riscritto</string>
+    <string name="config_texts_original">Originale</string>
+    <string name="config_texts_open">Modifica: %1$s</string>
+    <string name="config_texts_reset_all">Riporta tutto all’originale</string>
+    <string name="config_texts_reset_confirm">Le riscritture vengono cancellate e le email tornano ai testi di partenza.</string>
+    <string name="config_texts_reset_done">Tutti i testi sono tornati come erano.</string>
+    <string name="config_texts_not_found">Questo testo non c’è più o non è tra quelli che puoi modificare.</string>
+    <string name="config_texts_field">Testo</string>
+    <string name="config_texts_field_help">Svuota il campo o riporta l’originale per tornare al testo di partenza.</string>
+    <string name="config_texts_insert">Inserisci %1$s (%2$s)</string>
+    <string name="config_texts_preview">Esempio con dati dimostrativi, non inviato</string>
+    <string name="config_texts_preview_loading">Aggiorno l’esempio</string>
+    <string name="config_texts_show_original">Mostra il testo originale</string>
+    <string name="config_texts_hide_original">Nascondi il testo originale</string>
+    <string name="config_texts_restore">Rimetti l’originale nel campo</string>
+    <string name="config_texts_unknown">Segnaposti non disponibili in questo campo: %1$s. Usa i pulsanti Inserisci.</string>
+    <string name="config_texts_changed">Questo testo è stato cambiato nel frattempo: ho riletto la versione attuale. Il tuo testo è ancora nel campo, controlla prima di salvare.</string>
+    <string name="config_save">Salva</string>
+
+    <!-- Posta -->
+    <string name="config_mail_server">Server di posta</string>
+    <string name="config_mail_host">Server</string>
+    <string name="config_mail_port">Porta</string>
+    <string name="config_mail_encryption">Cifratura</string>
+    <string name="config_mail_username">Utenza</string>
+    <string name="config_mail_password">Password</string>
+    <string name="config_mail_sender">Mittente</string>
+    <string name="config_mail_from_address">Indirizzo del mittente</string>
+    <string name="config_mail_from_name">Nome del mittente</string>
+    <string name="config_mail_activation">Attivazione</string>
+    <string name="config_mail_enabled">Usa questa configurazione</string>
+    <string name="config_mail_verified">Prova riuscita con queste credenziali</string>
+    <string name="config_mail_not_verified">Nessuna prova riuscita con queste credenziali</string>
+    <string name="config_mail_stale">Attenzione: la prova riuscita riguarda una configurazione diversa da quella salvata. Rifalla prima di attivare.</string>
+    <string name="config_mail_test">Manda un messaggio di prova</string>
+    <string name="config_mail_test_confirm">Mando un messaggio di prova a %1$s con la configurazione salvata. Se arriva, sul sito si può attivarla.</string>
+    <string name="config_mail_test_confirm_no_recipient">Il tuo account non ha un indirizzo email: non saprei dove mandare la prova.</string>
+    <string name="config_mail_test_send">Manda la prova</string>
+    <string name="config_mail_web_only">Server, credenziali, mittente e attivazione si cambiano solo dal sito.</string>
+
+    <!-- Newsletter -->
+    <string name="config_newsletter_lead">Solo agli utenti con email verificata e consenso newsletter. Senza eventi pertinenti non viene inviata alcuna email.</string>
+    <string name="config_newsletter_enabled">Newsletter attiva</string>
+    <string name="config_newsletter_enabled_help">Disattivare ferma anche gli invii già programmati e conserva i consensi.</string>
+    <string name="config_newsletter_weekday">Giorno di invio</string>
+    <string name="config_newsletter_time">Ora di invio (HH:MM)</string>
+    <string name="config_newsletter_time_help">Nel fuso orario del destinatario, rispettando le sue ore di silenzio. Vale per le nuove programmazioni.</string>
+    <string name="config_newsletter_time_invalid">Scrivi l’ora come 18:45.</string>
+    <string name="config_newsletter_max_items">Numero massimo di eventi</string>
+    <string name="config_newsletter_max_items_invalid">Da %1$d a %2$d.</string>
+    <string name="config_newsletter_texts">Testi della newsletter</string>
+    <string name="config_newsletter_texts_help">Valgono anche per gli invii già programmati. I campi vuoti ripristinano il testo originale.</string>
+    <string name="config_newsletter_subject">Oggetto</string>
+    <string name="config_newsletter_heading">Titolo</string>
+    <string name="config_newsletter_line">Testo introduttivo</string>
+    <string name="config_newsletter_action">Testo del pulsante</string>
+    <string name="config_newsletter_count">%1$d su %2$d caratteri</string>
+    <string name="config_newsletter_save">Salva impostazioni newsletter</string>
+
+    <!-- Script di consenso -->
+    <string name="config_scripts_lead">I nuovi script sono spenti. Statistiche e Marketing si caricano solo dopo il consenso alla loro categoria.</string>
+    <string name="config_scripts_empty">Nessuno script.</string>
+    <string name="config_scripts_search">Cerca per nome</string>
+    <string name="config_scripts_enabled">Attivo</string>
+    <string name="config_scripts_disabled">Spento</string>
+    <string name="config_scripts_order">Ordine di esecuzione: %1$d</string>
+    <string name="config_scripts_src">Indirizzo del file JavaScript</string>
+    <string name="config_scripts_code">Codice JavaScript</string>
+    <string name="config_scripts_has_code">Con codice</string>
+    <string name="config_scripts_no_code">Nessun codice</string>
+    <string name="config_scripts_open">Apri lo script %1$s</string>
+    <string name="config_scripts_web_only">Creare, modificare, accendere ed eliminare uno script si fa solo dal sito: è codice eseguito nel browser di ogni visitatore.</string>
+
+    <!-- Cookie -->
+    <string name="config_cookies_lead">Quello che scrivi qui, chi legge lo trova nella Cookie Policy.</string>
+    <string name="config_cookies_empty">Nessun cookie dichiarato in questa finalità. Va bene se il sito non ne deposita.</string>
+    <string name="config_cookies_search">Cerca per nome, fornitore o scopo</string>
+    <string name="config_cookies_own">Questo sito</string>
+    <string name="config_cookies_add">Aggiungi un cookie</string>
+    <string name="config_cookies_added">Cookie aggiunto.</string>
+    <string name="config_cookies_reordered">Ordine salvato.</string>
+    <string name="config_cookies_move_up">Sposta su %1$s</string>
+    <string name="config_cookies_move_down">Sposta giù %1$s</string>
+    <string name="config_cookies_reorder_hint">Per riordinare togli la ricerca e scorri fino in fondo alla scheda.</string>
+    <string name="config_cookies_category">Finalità</string>
+    <string name="config_cookies_name">Nome del cookie</string>
+    <string name="config_cookies_name_help">Come si chiama davvero, per esempio «XSRF-TOKEN».</string>
+    <string name="config_cookies_provider">Chi lo deposita</string>
+    <string name="config_cookies_provider_help">Vuoto se è questo sito.</string>
+    <string name="config_cookies_purpose">A cosa serve</string>
+    <string name="config_cookies_duration">Quanto dura</string>
+    <string name="config_cookies_duration_help">Scritta com’è: «un anno», «la sessione».</string>
+    <string name="config_cookies_duration_value">Dura: %1$s</string>
+    <string name="config_cookie_necessary">Necessari</string>
+    <string name="config_cookie_statistics">Statistiche</string>
+    <string name="config_cookie_marketing">Marketing</string>
+
+    <!-- Indirizzi cambiati -->
+    <string name="config_redirects_lead">Le righe di una rinomina le scrive il sistema da solo: qui si aggiungono quelle che nessuno può indovinare.</string>
+    <string name="config_redirects_empty">Nessun indirizzo cambiato.</string>
+    <string name="config_redirects_search">Cerca negli indirizzi</string>
+    <string name="config_redirects_add">Aggiungi un indirizzo</string>
+    <string name="config_redirects_added">Indirizzo aggiunto.</string>
+    <string name="config_redirects_sort_recent">Passaggio più recente</string>
+    <string name="config_redirects_sort_oldest">Passaggio più vecchio</string>
+    <string name="config_redirects_sort_most">Più passaggi</string>
+    <string name="config_redirects_sort_least">Meno passaggi</string>
+    <string name="config_redirects_sort">Ordine</string>
+    <string name="config_redirects_hits">%1$d passaggi</string>
+    <string name="config_redirects_last_hit">Ultimo passaggio: %1$s</string>
+    <string name="config_redirects_never">Mai attraversato</string>
+    <string name="config_redirects_all_cities">Tutte le città</string>
+    <string name="config_redirects_wildcard_badge">Tutto il ramo</string>
+    <string name="config_redirects_from">Indirizzo vecchio</string>
+    <string name="config_redirects_from_help">Senza il nome della città: «/eventi/vecchio-slug». Con un asterisco in fondo copre tutto quello che c’è sotto.</string>
+    <string name="config_redirects_to">Dove mandarlo</string>
+    <string name="config_redirects_to_help">Sempre senza il nome della città, comincia con una barra.</string>
+    <string name="config_redirects_to_invalid">Inserisci un percorso interno che inizi con una sola barra (/).</string>
+    <string name="config_redirects_city">Città</string>
+    <string name="config_redirects_city_help">Vuoto se vale per tutte.</string>
+    <string name="config_redirects_status">Tipo di spostamento</string>
+    <string name="config_redirects_wildcard">Copre tutto un ramo</string>
+    <string name="config_redirects_wildcard_help">Serve quando cambia il nome di una città.</string>
+
+    <!-- Cache -->
+    <string name="config_cache_intro">Accelera il sito pubblico e aggiorna le copie salvate. Queste impostazioni non cambiano sessioni, accessi o prenotazioni.</string>
+    <string name="config_cache_pages">Pagine pubbliche</string>
+    <string name="config_cache_managed">Usa le impostazioni del pannello al posto della configurazione del server</string>
+    <string name="config_cache_enabled">Cache delle pagine pubbliche attiva</string>
+    <string name="config_cache_store">Dove conservare le copie</string>
+    <string name="config_cache_ttl">Durata delle copie: %1$d minuti</string>
+    <string name="config_cache_redis">Redis</string>
+    <string name="config_cache_redis_host">Indirizzo: %1$s, porta %2$d, database %3$d</string>
+    <string name="config_cache_redis_tls">Connessione cifrata TLS</string>
+    <string name="config_cache_server">Server</string>
+    <string name="config_cache_redis_extension">Estensione PHP Redis</string>
+    <string name="config_cache_available">Disponibile</string>
+    <string name="config_cache_unavailable">Non disponibile</string>
+    <string name="config_cache_server_detected">Server web rilevato: %1$s</string>
+    <string name="config_cache_clear">Pulisci tutte le cache del sito</string>
+    <string name="config_cache_clear_confirm">Invalida pagine pubbliche, calendari, sitemap e filtri; elimina le viste compilate. Le copie saranno ricreate alle prossime visite. Non cancella impostazioni, sessioni, biglietti, file caricati, limiti di sicurezza o lock.</string>
+    <string name="config_cache_clear_action">Pulisci</string>
+    <string name="config_cache_cleared">Cache del sito pulite. Sessioni e prenotazioni conservate.</string>
+    <string name="config_cache_verify">Verifica Redis senza attivarlo</string>
+    <string name="config_cache_redis_ok">Redis risponde: scrittura e lettura verificate.</string>
+    <string name="config_cache_redis_failed">Redis non disponibile o credenziali non valide.</string>
+    <string name="config_cache_web_only">Le impostazioni della cache e le credenziali di Redis si cambiano solo dal sito.</string>
+</resources>

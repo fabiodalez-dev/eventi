@@ -8,7 +8,7 @@ test di integrazione e consumato dall'app Android in `android/` contro dati real
 | Voce | Valore |
 |---|---|
 | Base | `/api/v1` |
-| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **564 operazioni** |
+| Documentazione | `/docs/api` (Scramble) · JSON versionato in `docs/openapi.json` (rigenerato il 26/11/2026 con `php -d memory_limit=2G artisan scramble:export --path=docs/openapi.json`) — OpenAPI **3.1.2**, **627 operazioni** |
 | Autenticazione | Bearer token (Sanctum) per `/me`, `auth/logout` e scritture ticketing; policy aggiuntive per il locale |
 | Formato risposte | `{data, meta{next_cursor, has_more}}` · errori `{error{code, message, fields}}` |
 | Paginazione | catalogo a cursore (`limit` 1–50); cursore illeggibile → **400**. Biglietti: `page`, 30 prenotazioni, `meta.next_page` nullable |
@@ -896,6 +896,144 @@ L'elenco eventi di `/admin/events`, la scheda in sola lettura, le decisioni dell
 - `POST E/submissions/{submission}/publish` con i campi del modulo: le date ISO 8601 con il fuso (o senza fuso nell'ora della città). Chiede `events.publish` e `EventPolicy::create` oltre a `update` (solo admin e super admin; il moderatore riceve 403, come il pulsante che nel pannello non vede). Errori 422 sui campi (`venue_id`, `ends_at`…); 409 su una proposta già rifiutata. Risposta 201 `{data{event_id, submission}, message}`.
 - `POST E/submissions/{submission}/reject` con `notes` obbligatorio fino a 2.000 caratteri (`update`). 409 se non è più in attesa.
 
+## Redazione: configurazione tecnica (R13, 26 novembre 2026)
+
+Le pagine di configurazione del pannello `/admin` (gruppo «Sistema», più la Newsletter) sotto `/v1/editorial/…`, con la porta e lo sblocco delle fondamenta. Diciannove operazioni nuove. Decisione 5 del piano: l'app legge tutto e fa le azioni operative (svuota e verifica la cache, messaggio di prova della posta); scrive testi delle email, newsletter, registro dei cookie e indirizzi cambiati; SMTP, script di consenso, impostazioni della cache e credenziali di Redis si scrivono solo dal sito. Le password (SMTP, Redis) non escono mai: al loro posto `has_password`. La città non filtra: sono impostazioni di tutto il sito. Nessuna rotta è pericolosa (il pannello non elimina niente in queste pagine). Le regole stanno in classi condivise con il pannello: `App\Services\Settings\NotificationTextEditor` (estratta da `NotificationTexts`), `NewsletterConfiguration` (da `Newsletter`), `MailConfigurationTester` (da `MailConfiguration::inviaProva`); le risposte in `App\Services\Editorial\EditorialSettings`.
+
+### Testi delle email (admin e super admin; i testi della newsletter solo il super admin)
+
+- `GET /v1/editorial/notification-texts`: `data{groups[{key, label, texts[{key, label, default, value, modified, variables[{name, label}], preview, rows, revision}]}], newsletter_included}`. `label` è il pezzo dell'email («Oggetto»), `preview` l'esempio con i dati dimostrativi del pannello.
+- `POST /v1/editorial/notification-texts/preview` `{key, value}`: `data{key, preview, unknown[]}` (i segnaposti che l'originale non ha). Non salva niente.
+- `PUT /v1/editorial/notification-texts/{key}` `{value, revision}`: un testo per volta, con la revisione letta (422 su `revision` se nel frattempo è cambiato). Vuoto o uguale all'originale cancella la riscrittura, come il pannello; un segnaposto sconosciuto dà 422 su `value`. Chiave che non esiste o riservata: 404. Risponde con il testo e `meta.message`.
+- `POST /v1/editorial/notification-texts/reset`: «Riporta tutto all'originale» per le chiavi che la persona vede (all'admin restano quelle della newsletter). Solo conferma, come il pannello.
+
+### Posta (solo super admin)
+
+- `GET /v1/editorial/mail`: `enabled, active, host, port, encryption, encryption_label, username, has_password, from_address, from_name, verified, verified_at, stale_check, status{custom, title, detail}, recipient`.
+- `POST /v1/editorial/mail/test`: il messaggio di prova all'indirizzo di chi lo chiede, con la configurazione **salvata** (il pannello prova quella scritta nel modulo). Se parte, l'impronta viene registrata e sul sito si può accendere la configurazione. 200 in tutti e due i casi: `data{result{sent, title, detail}, mail}`; `detail` porta il messaggio del server di posta per esteso. Account senza email: 422 su `recipient`. 5 al minuto.
+
+### Newsletter (solo super admin)
+
+- `GET /v1/editorial/newsletter`: `enabled, weekday, time, max_items, texts{subject|heading|line|action: {value, default, max, variables}}, weekdays[{value, label}], limits{max_items_min, max_items_max}`.
+- `PUT /v1/editorial/newsletter` `{enabled, weekday 1–7, time HH:MM, max_items 1–30, subject ≤200, heading ≤200, line ≤2000, action ≤120}`: le regole del modulo del pannello; i testi vuoti tornano all'originale, un segnaposto sconosciuto dà 422 sul campo.
+
+### Script di consenso (admin e super admin, sola lettura)
+
+- `GET /v1/editorial/consent-scripts` (`q` sul nome, ordine di esecuzione): riga `id, name, category, category_label, enabled, sort_order, src, has_code, abilities{}`; `meta.categories`.
+- `GET /v1/editorial/consent-scripts/{script}`: la riga con `code`. Creare, modificare, accendere ed eliminare: solo dal sito.
+
+### Cookie (admin e super admin)
+
+- `GET /v1/editorial/cookies` (`tab` = finalità, predefinita `necessary`; `q` su nome, fornitore e scopo; ordine `sort_order`): riga `id, category, category_label, name, provider|null («questo sito»), purpose, duration, sort_order, abilities{reorder}`; `meta.tabs{necessary, statistics, marketing}`, `meta.tab`, `meta.categories[{value, label, description}]`.
+- `POST /v1/editorial/cookies` `{category, name ≤255, provider?, purpose ≤255, duration? ≤64}`: 201. Nome già presente nella finalità: 422 su `name` (il vincolo unico del database).
+- `POST /v1/editorial/cookies/order` `{category, ids[]}`: il nuovo ordine della scheda (1, 2, …), come il trascinamento del pannello; un id di un'altra finalità: 422. Il pannello non modifica né elimina queste righe, e nemmeno l'app.
+
+### Indirizzi cambiati (`RedirectPolicy`: `pages.manage`)
+
+- `GET /v1/editorial/redirects` (`q` sui due indirizzi; `sort=hits|-hits|last_hit_at|-last_hit_at`, predefinito dal passaggio più recente): riga `id, from_path, to_path, city{id, name}|null, status, status_label, is_wildcard, hits, last_hit_at, abilities{}`; `meta.abilities.create`.
+- `GET /v1/editorial/redirects/options`: `cities[{id, name}]` (tutte, come il pannello), `statuses[{value, label}]`, `default_status`.
+- `POST /v1/editorial/redirects` `{from_path ≤191, to_path ≤191 (percorso interno, `InternalRedirectTarget`), city_id?, status 301|302, is_wildcard?}`: 201. Lo stesso indirizzo nella stessa città: 422 su `from_path`. Il pannello non modifica né elimina le righe (la policy lo permetterebbe), e nemmeno l'app.
+
+### Cache e prestazioni (admin e super admin)
+
+- `GET /v1/editorial/cache`: `managed, enabled, store, store_label, ttl_minutes, redis{host, port, database, username, tls, has_password}, environment{redis_extension, litespeed, server}`.
+- `POST /v1/editorial/cache/clear`: «Pulisci tutte le cache del sito» (`FrontendCacheConfiguration::clear`, non tocca sessioni, prenotazioni, lock). 10 al minuto.
+- `POST /v1/editorial/cache/verify`: verifica Redis con la configurazione salvata, senza attivarlo: `data{ok}` e `meta.message`.
+
+Limiti di frequenza per persona: letture 60/min, anteprima 120/min, scritture 20–30/min, ripristino dei testi 10/min. Errori: 404 a chi non è della redazione, 403 al ruolo che il pannello non fa entrare (moderatore ovunque; admin su posta e newsletter), 422 con `error.fields`, 423 per lo sblocco.
+
+## Redazione: social (R9, 26 novembre 2026)
+
+La pagina «Social» del pannello `/admin` (lo studio della redazione), lo storico e la pubblicazione sui canali della città, la pagina «Account e pubblicazione social» e il riquadro «Social di oggi» del riepilogo, sotto `E` = `/v1/editorial` (porta, sblocco delle 12 ore e convenzioni delle fondamenta). **23 operazioni** in `routes/editorial/social.php`, controller `SocialStudioController`, `SocialPublicationController`, `SocialSettingsController` di `App\Http\Controllers\Api\V1\Editorial`. Tutte per admin e super admin (`social_use`, come `Social::canAccess`): il moderatore riceve 403, chi non è della redazione 404. Con R14 «Pubblica sui canali collegati», «Programma» e «Riprova» sono **pericolose** (decisione 4): mettono un post visibile a tutti sui canali della città e chiedono la password scritta negli ultimi 15 minuti (`RequireRecentPassword`, 423 `PASSWORD_REQUIRED`), oltre alla conferma nell'app come il `wire:confirm` della pagina; riprogrammare e annullare no.
+
+Una regola sola per pannello e app: lo studio usa `SocialStudioDesk` (già di P10), con in più `today()` e `prepareToday()` per «Social di oggi»; la pubblicazione e lo storico sono in `App\Services\Social\EditorialPublishing` (estratto da `InteractsWithSocialStudio`); le impostazioni in `App\Services\Social\SocialSettingsDesk` (estratto da `SocialSettings`); le forme di card e pacchetti in `App\Services\Social\SocialStudioPayload`, usato anche dallo studio del locale. Lo studio della redazione è quello del locale senza locale (tutte le serate della città) e senza eventi dimostrativi, come la pagina.
+
+### Studio e «Social di oggi» (città di lavoro: `?city=`, anche non attiva)
+
+| Metodo e percorso | Note |
+|---|---|
+| `GET E/social/catalog` | come `GET V/social/catalog` di P10 (`period`, `from`, `until`, `search`, `limit`, `event`), più `meta.city{id, slug, name}`. Con `event` (`update` sull'evento, 404 se non esiste) lo studio si restringe a lui e la città diventa la sua, come la pagina aperta dalla scheda dell'evento |
+| `GET E/social/calendar` | come P10: `month`, `date`, `search`, `event` |
+| `GET E/social/day` | come P10: senza `date` il giorno da cui la pagina si apre; `meta.city` |
+| `GET E/social/today` | R-DB-10: le serate di oggi della città (card), `meta{date, label, timezone, city}` |
+| `POST E/social/today` | «Scarica le grafiche di oggi»: il pacchetto verticale con lo stile predefinito e tutte le serate di oggi. 201 con il pacchetto (lo ZIP si scarica da `batches/{batch}/zip`); senza serate 422 su `generate` |
+| `GET E/social/dates/{occurrence}/preview` | l'anteprima JPEG della grafica di una serata (`EventPolicy::update`), stesso secchio del sito (`social-preview`, 120 al minuto) |
+| `GET E/social/batches` | gli ultimi dodici pacchetti della redazione nella città |
+| `POST E/social/batches` | come P10 (`date`, `occurrences[]` da 1 a 100 del giorno e preparabili, altrimenti 403; `format`, `monochrome`, `show_address`, `show_price`, `image_fit`, `title` solo con una serata, `event`). 201 |
+| `GET E/social/batches/{batch}` | il pacchetto come P10, più `city`, `captions[]` (il testo automatico di ogni parte del carosello, «Anteprima del testo automatico» della pagina) e `in_history` (già nello storico). Qualunque pacchetto, come `openBatch` della pagina (`SocialBatchPolicy::view`) |
+| `GET E/social/batches/{batch}/images/{index}`, `…/zip` | il JPEG e lo ZIP, come P10 |
+
+### Pubblicazione e storico (R-SO-03, R-SO-04)
+
+| Metodo e percorso | Note |
+|---|---|
+| `POST E/social/batches/{batch}/publish` | «Pubblica sui canali collegati». `data[]` le righe dello storico del pacchetto, `meta.message`. Gli errori di `SocialPublisher::enqueue` (collegamento non verificato, storie, didascalia oltre 2.200 o 1.024 caratteri per Telegram, evento cambiato) sono 422 su `publish`; un errore del database o un record sparito non diventa un messaggio (`App\Support\Social\SocialErrorMessage`: 500 o 404 senza il testo tecnico) |
+| `POST E/social/batches/{batch}/schedule` | `scheduled_at` `Y-m-dTH:i` nel fuso della città del pacchetto, nel futuro (422 su `scheduled_at`); un pacchetto già nello storico 422 («si cambia da lì»). 201 |
+| `GET E/social/publications` | lo storico della città, dalla più recente, anche con il pacchetto tolto dalla pulizia; `per_page` predefinito 30 come la pagina (massimo 50), `filter[status]`. Riga `{id, created_at, platform, platform_label, part (da 1), status{value,label}, scheduled_at, timezone, error, batch_id, batch_gone, abilities{reschedule, cancel, retry}}`. `error` non porta mai il testo di un errore del database: uno salvato da una versione vecchia esce come «Non è stato possibile completare l'operazione», e il lavoro che pubblica (`PublishSocial`) non lo salva più |
+| `PATCH E/social/publications/{publication}` | «Usa la nuova data e ora» (`scheduled_at`, fuso della città del collegamento). Solo se ancora programmata: altrimenti la riga com'è con `meta.changed` falso, come la pagina che non fa niente |
+| `POST E/social/publications/{publication}/cancel` | «Annulla programmazione» |
+| `POST E/social/publications/{publication}/retry` | «Riprova dopo aver controllato»: solo una non riuscita o incerta (422 altrimenti), con il pacchetto (422 su `publish` se è stato tolto) e con gli eventi ancora uguali (422 su `publish`) |
+
+### Impostazioni (R-SO-05…07, R-WB-04)
+
+| Metodo e percorso | Note |
+|---|---|
+| `GET E/social/settings` | `values{app_id, city_id, page_id, instagram_id, graph_version, facebook_enabled, instagram_enabled, telegram_chat_id, telegram_enabled, automatic, graphic_options{monochrome, show_address, show_price, image_fit}, publish_time, caption}`, `status{exists, app_secret_saved, access_token_saved, telegram_bot_token_saved, meta_verified_at, telegram_verified_at}`, `cities[]`, `tokens[]{token, label}`, `callback_url`, `limits`, `web_path`. I segreti non escono mai, solo se ci sono |
+| `PUT E/social/settings` | i campi di `values` con le regole del modulo della pagina; segnaposti sconosciuti 422 su `caption`. `app_secret`, `access_token`, `telegram_bot_token` sono **rifiutati** (422, decisione 5: si scrivono dal sito). Un cambio dei dati Meta o Telegram toglie la verifica; con l'automatico acceso e nessun canale verificato l'automatico si spegne e `meta.warning` lo dice |
+| `POST E/social/settings/verify` | «Verifica collegamento» sui valori salvati; non riuscita 422 su `verify` |
+| `POST E/social/settings/telegram/verify` | «Verifica Telegram» senza mandare messaggi; non riuscita 422 su `telegram` con il motivo |
+| `GET E/social/meta/connect` | decisione 14: `{url, callback_url, return_path}`, l'indirizzo del sito (`social.meta.connect`) da aprire nel browser con l'accesso al sito. Senza App ID e App Secret salvati 422 su `meta` |
+| `POST E/social/meta/disconnect` | «Scollega Meta»: via il token della Pagina, la verifica e l'automatico |
+
+Limiti di frequenza per persona: letture `editorial-social` 60/min, preparazione `editorial-social-generate` 10/min, pubblicazione `editorial-social-publish` 20/min, impostazioni `editorial-social-settings` 20/min, verifiche `editorial-social-verify` 10/min, anteprima `social-preview` (il secchio del sito). La pagina e l'API non scrivono nel registro attività per queste azioni (il modello `SocialConnection` non è registrato): l'app fa come il pannello.
+
+## Redazione: sistema, import, invii, cron (R12, 26 novembre 2026)
+
+Tre voci del gruppo «Sistema» del pannello `/admin` (sorgenti di import, notifiche programmate, cron e programmazioni) sotto `E` = `/v1/editorial`, con la porta, lo sblocco e la convenzione degli elenchi delle fondamenta. **Tredici operazioni** nuove (rotte in `routes/editorial/system.php`, controller `ImportSourceController`, `ScheduledNotificationController`, `ScheduledOperationsController`). La città di lavoro non filtra: come il pannello, si vedono le sorgenti e gli invii di tutte le città. Le regole sono quelle del pannello, nello stesso codice: `ImportSourcePolicy` e `ScheduledNotificationPolicy`, le regole del modulo in `App\Support\Import\ImportSourceRules` (usate anche dal modulo del pannello), l'anteprima in `App\Support\Import\ImportPreviewRows::forSource` (spostata da `App\Filament\Support`, la usa anche la finestra del pannello), il soggetto di un invio in `App\Support\Notifications\ScheduledNotificationSubject` (la usa anche la colonna del pannello).
+
+### Sorgenti di import (admin e super admin: `import_sources.manage`; il moderatore riceve 403)
+
+- `GET E/import-sources`: filtri `filter[type]` (`ImportSourceType`), `filter[active]` (`1` o `0`), `filter[failed]=1` («Import falliti»: attive e ferme su un errore, la stessa condizione del riquadro del riepilogo); `sort=last_run_at|-last_run_at` (predefinito dall'ultima eseguita); niente ricerca, come la tabella del pannello. Riga: `id, city{id,name}, venue{id,name}|null, type, type_label, url, has_credentials, mapping|null, default_category{id,name}|null, is_active, last_run_at, last_status, last_status_label, last_error, runnable, web_path, abilities{update, destroy, preview, run, runs}`. Le credenziali non escono mai, nemmeno cifrate: `has_credentials` dice solo se ci sono, `web_path` è la scheda del pannello dove si cambiano. `runnable` è falso per i tipi senza lettore (oggi tutti tranne ICS e CSV): niente anteprima né esecuzione, come i pulsanti del pannello.
+- `GET E/import-sources/form`: le scelte del modulo `{types[{value,label,runnable}], cities[{id,name,slug,is_active}], categories[{id,name}], defaults{city_id,type,is_active}, limits{max_url_length, max_mapping_entries, max_mapping_key_length, max_mapping_value_length}}`. `GET E/import-sources/venues?q=`: i primi venti locali per nome, `{id, name, city}`.
+- `POST E/import-sources` (201) e `PATCH E/import-sources/{source}` con `city_id`, `venue_id` (facoltativo), `type`, `default_category_id` (obbligatorio senza locale), `url` (fino a 1000 caratteri, verificato con `SafeImportUrl` come nel modulo), `mapping` (dizionario di chiavi testuali, valori testo, numero, sì/no o elenco di testi, al più 50 voci), `is_active`. La modifica è parziale: si mandano solo i campi che cambiano, e `{"is_active": false}` da solo è «disattiva». `credentials` è rifiutato con 422: le credenziali si scrivono dal sito (decisione 6). La policy viene prima dei campi: chi non può scrivere riceve 403.
+- `DELETE E/import-sources/{source}`: **pericolosa** (password recente, 423 `PASSWORD_REQUIRED`). Elimina per sempre la sorgente e il suo storico, come «Elimina» del pannello; gli eventi già importati restano.
+- `POST E/import-sources/{source}/preview`: le prime date che entrerebbero, `{rows[{when, title, where, notes[], cancelled}], error, timezone}`, con `when` già scritto nell'ora della città come nella finestra del pannello. Un calendario che non si legge risponde 200 con il motivo in `error`. Non scrive niente e non tocca `last_run_at`.
+- `POST E/import-sources/{source}/run` (202): accoda `ImportSourceJob`, come «Esegui adesso». Per un tipo senza lettore, anteprima ed esecuzione rispondono 422 su `type`.
+- `GET E/import-sources/{source}/runs`: lo storico, solo lettura, `filter[status]` (`ImportRunStatus`), `sort=created_at|-created_at` (predefinito dalla più recente). Riga: `id, created_at, status, status_label, created_count, updated_count, unchanged_count, excluded_count, cancelled_count, error_count, message`.
+
+### Notifiche programmate (tutta la redazione: `notifications.view`; fermare: admin e super admin, `notifications.manage`)
+
+- `GET E/scheduled-notifications`: filtri `filter[status]` (`NotificationStatus`), `filter[type]` (`NotificationType`), `filter[due]=1` («in scadenza»); `q` sull'email del destinatario, l'unica colonna cercabile della tabella; `sort=send_at|-send_at` (predefinito dal più lontano). Riga: `id, send_at, type, type_label, recipient (email), subject («Data · Concerto all'alba»), status, status_label, channel, channel_label, attempts, sent_at, reason (il motivo di un salto in parole, o l'errore), dedupe_key, abilities{cancel}`.
+- `POST E/scheduled-notifications/{notification}/cancel`: ferma un invio ancora in attesa; la riga resta con lo stato «annullata» e torna nella risposta con `meta.message`. Uno già partito, saltato o fermato: 403 (la policy guarda lo stato). Non chiede la password recente: nel pannello chiede solo una conferma.
+
+### Cron e programmazioni (admin e super admin, come `canAccess` della pagina; il moderatore riceve 403)
+
+- `GET E/scheduled-operations`: la pagina di sola lettura del pannello come dati, da `SchedulerOverview`: `installed{readable, scheduler, worker}` (le righe trovate nel crontab), `cron{scheduler, worker}` (le due righe da installare), `queue`, `social[{city_id, city, telegram_verified, verified_at, instagram_enabled, automatic, publish_time}]`, `tasks[{name, explanation, command, expression, next_due_date, last_finished, last_failed, monitored}]` (in UTC). Aprirla non esegue niente.
+
+### Opzioni
+
+`GET E/options` ha tre elenchi in più: `notification_types`, `import_source_types`, `import_run_statuses`, con le etichette del sito.
+
+Limiti di frequenza per persona: letture 60/min (`editorial-import-sources`, `-form`, `-venues`, `-show`, `-runs`, `editorial-scheduled-notifications`), creazione 20/min, modifica 30/min, eliminazione 20/min, anteprima ed esecuzione 10/min (leggono un calendario esterno), annullamento di un invio 30/min, cron 20/min. Errori: 404 a chi non è della redazione o per un id che non esiste, 403 dove la policy dice no, 422 con `error.fields`, 423 per sblocco e password.
+
+### Differenze dal pannello da sapere
+
+- Il modulo del pannello riverifica l'indirizzo a ogni salvataggio, anche quando non cambia: per una sorgente con un CSV caricato da un locale (`upload:…`), per come leggo il codice (la regola `url` del campo), il salvataggio dal pannello fallisce; non l'ho provato nel pannello. La modifica parziale dell'API verifica l'indirizzo solo se arriva, così attivare o disattivare quelle sorgenti dall'app funziona.
+- La mappatura nel pannello è un campo chiave-valore di testi; dall'API accetto anche gli elenchi di testi (`exclude_keywords`), che è la forma che il lettore usa davvero, e rifiuto i dizionari annidati.
+- «Esegui adesso» su una sorgente disattivata accoda il lavoro, che poi non legge niente (`ImportSourceJob` salta le sorgenti spente): è così anche nel pannello. L'app lo dice nella conferma.
+- L'eliminazione in gruppo della tabella del pannello non c'è: nell'app si elimina una sorgente alla volta, con la password.
+
+## Redazione: correzioni della revisione di sicurezza dell'ondata 3 (26 novembre 2026)
+
+Nessuna rotta nuova. Cambiano i permessi di otto rotte, alcune risposte e il registro di sicurezza.
+
+- **Password recente** (`RequireRecentPassword`, 423 `PASSWORD_REQUIRED` oltre i 15 minuti) anche su `PUT E/social/settings`, `POST E/social/meta/disconnect`, `PUT E/newsletter`, `PUT E/notification-texts/{key}`, `POST E/notification-texts/reset`, `POST E/import-sources`, `PATCH E/import-sources/{source}` e `POST E/import-sources/{source}/run`. Mettono qualcosa davanti a tutti (pubblicazione automatica, testo dei post, mail agli iscritti e testi che partono dall'indirizzo del sito, eventi importati che nascono pubblicati) o si rimediano solo dal sito (Meta). Il test di architettura le ha in `EDITORIAL_DANGEROUS_NAMES`.
+- **Credenziali degli import e origine**: `PATCH E/import-sources/{source}` su una sorgente con credenziali risponde 422 su `url` («l'indirizzo di una sorgente con credenziali si cambia dal sito») se schema, host o porta cambiano; un percorso diverso sulla stessa origine va bene. Nel pannello, se l'origine cambia e il campo delle credenziali resta vuoto, le credenziali si cancellano con un avviso.
+- **Indirizzi**: `url` con `utente:password@` è rifiutato (422, anche nel modulo del pannello). La riga di una sorgente ha `url_masked`: quando la sorgente ha credenziali o l'indirizzo apre un calendario privato (`private`, `secret`, `token` nel percorso o nella query, o un gettone di almeno 16 lettere e cifre), `url` è solo `schema://host/…`, e lo stesso vale per gli indirizzi dentro `last_error`, `runs[].message` e `error` dell'anteprima. L'indirizzo mascherato rimandato com'è in un `PATCH` non cambia niente; l'app lo mostra in sola lettura.
+- **Anteprima**: 15 secondi in tutto (redirect compresi), connessione in 5, un solo redirect (`import.preview` in `config/import.php`); l'esecuzione in coda conserva i suoi tempi. Oltre al limite della rotta per persona c'è un tetto per tutto il sito, condiviso con il pannello (`ImportPreviewLimiter`: 12 al minuto, 10 per persona): oltre, 429 `RATE_LIMITED`.
+- **Prova della posta**: `detail` porta il messaggio per esteso solo per un errore del trasporto SMTP; per ogni altro guasto un messaggio generico, e l'eccezione va nel registro degli errori. Lo stesso nella notifica del pannello.
+- **Registro di sicurezza** (`activity_log`, `log_name = sicurezza`, `causer` = chi scrive, `properties.canale = app` dall'app): `social_impostazioni_cambiate`, `meta_scollegato`, `import_sorgente_creata|modificata|eliminata|eseguita`, `testi_email_cambiati`, `testi_email_ripristinati`, `newsletter_cambiata`, `redirect_creato`, `cookie_creato`, `cookie_riordinati`, `cache_svuotata`, `invio_programmato_annullato`, `post_social_riprogrammato`, `post_social_annullato`. Ogni riga ha `oggetto`, `id` dove c'è, `prima` e `dopo`; mai i segreti (dei segreti social solo il nome in `segreti_cambiati`, delle credenziali di un import solo `credenziali: cambiate|tolte`, l'indirizzo segreto mascherato). Le stesse righe le scrive il pannello, perché le scritture passano dalle stesse classi.
+
 ## Redazione: community e passaggi (R7, 26 novembre 2026)
 
 Le pagine «Profili e post» (`/admin/community`) e «Passaggi in auto» (`/admin/carpool`) del pannello sotto `E` = `/v1/editorial` (porta, sblocco e `canale: app` come nelle fondamenta). 19 operazioni in `routes/editorial/community.php`. Le letture delle due pagine stanno in `App\Services\Editorial\CommunityDesk` e `CarpoolDesk`, che usa anche il pannello; le scritture sono le stesse chiamate del pannello (`CommunityModeration::apply` e `restoreRestriction`, `CommunitySafety::manage`, `freezeChat`, `inspect`, `restrict`, `cancelRide`, `retryDelivery`, `RideReviews::moderate`), che ricontrollano permesso, rango e revisione e scrivono il registro dei passaggi (`carpool_audits`) e, per la community, il registro delle attività. Ogni azione chiede `reason` da 5 a 1000 caratteri (422 su `error.fields.reason`). Il pannello vede tutte le città in queste pagine, e così l'API. Elenchi con `page`, `per_page` (fino a 50), `q`, `filter[status]`, dal più recente; righe con `kind` e `abilities{}`.
@@ -1020,6 +1158,26 @@ La logica condivisa con il pannello sta in `app/Services/Editorial/Catalog/` (un
 - `POST E/events/{event}/dates` (`EventOccurrencePolicy::create`, 201) e `PATCH E/events/{event}/dates/{occurrence}` (`update`; le chiavi assenti restano): `venue_id` (approvato), `starts_at` (obbligatorio alla creazione), `ends_at` (dopo l'inizio), `doors_at`, `is_all_day`, `status` fra i cinque, `capacity` e `capacity_left` (0–1.000.000), `highlight` (40), `status_note` (2.000), `practical_details{accessibility (yes/no/unknown), membership, entrance_notes, membership_notes, parking_notes, transit_notes, food_notes, start_notes}`, `cost_breakdown{admission, drink, membership, other}` (0–100.000, due decimali), `ticket_tiers[]` (12 voci; sostituisce il listino della data) e `lineup[{id?, name, role, starts_at, url}]` (100; sostituisce la lineup). Orari con il fuso o nell'ora della città.
 - `POST E/events/{event}/dates/{occurrence}/shift` con `shift_minutes` (anche negativi) e `scope` (`single`, `series`: per una data di una ricorrenza, la serie da lì in avanti senza le date modificate a mano). `POST E/events/{event}/dates/{occurrence}/status` con `action` `cancel` (con `status_note` e `scope`; 422 su una data già annullata) o `sold_out` («Tutto esaurito», o «Rimetti in programma» se lo è già; sempre la sola data). Risposta `{data, meta{changed}, message}`. `EventOccurrencePolicy::update`.
 - Pericolosa, con la password recente (423 `PASSWORD_REQUIRED`): `DELETE E/events/{event}/dates/{occurrence}` (`delete`, nel cestino), 204.
+
+## Redazione: calendario, campanella, chiusura (R14, 26 novembre 2026)
+
+La pagina «Calendario» del pannello `/admin` (R-EV-27), la campanella (R-DB-11) e la traduzione degli indirizzi del pannello con uno slug, sotto `E` = `/v1/editorial` con la porta e lo sblocco delle 12 ore delle fondamenta. **Otto operazioni** in `routes/editorial/calendar.php`, controller `CalendarController`, `EditorialNotificationController`, `EditorialLinkController`. Tutta la redazione (moderatore, admin, super admin), come la pagina e la campanella; nessuna è pericolosa.
+
+Una regola sola per pannello e app: le date del calendario, il titolo «Evento · Locale» e il colore dello stato sono in `App\Services\Editorial\EditorialCalendar`, che usa anche `EventsCalendarWidget`; la campanella è `App\Services\Editorial\EditorialBell`, con la stessa domanda di `DatabaseNotifications` di Filament (le notifiche della persona con `data.format = filament`).
+
+| Metodo e percorso | Note |
+|---|---|
+| `GET E/calendar?from=&to=` | i giorni `AAAA-MM-GG` compresi, nel fuso della città di lavoro (`?city=`), al massimo 62 (422 su `to` oltre, rovesciati o scritti male). Le date di **tutte le città**, come il pannello, che non filtra per città; gli eventi nel cestino no. Riga `{id (la data), event_id, title, event_title, venue, city{id, name, timezone}, date (il giorno nel fuso della città dell'evento), starts_at, ends_at, all_day, event_status{value,label}, status{value,label} (della data), color (lo stato dell'evento, come la casella del pannello), abilities{open, edit}}`; `meta{from, to, timezone, total, truncated (oltre 1.500 date), legend[]{value, label, color}}`. L'app apre la scheda dell'evento (R2) con `event_id`, dove il pannello apre la modifica |
+| `GET E/notifications` | la campanella: le notifiche della persona nella forma di Filament, dalla più recente, 50 per pagina come la tendina (`page`). Oggi è l'avviso del mattino `sponsorships:pacing-check` (`SponsorshipPacingAlert`), che arriva a chi ha `sponsorships.manage` (admin e super admin): il moderatore la trova vuota, come nel pannello. Riga `{id, title, body, status (warning…), category, url (l'indirizzo del pannello, `/admin/sponsorships`), actions[]{label, url}, read, read_at, created_at}`; `meta{current_page, last_page, per_page, total, unread}` |
+| `POST E/notifications/{notification}/read`, `…/unread` | «Segna come letta», «Segna come da leggere»: la riga aggiornata, `meta{message, unread}`. Una notifica di un altro, o che non è della campanella, 404 |
+| `POST E/notifications/{notification}/remove` | la «x» della notifica: la toglie, come il pannello |
+| `POST E/notifications/read-all` | «Segna tutte come lette» (solo quelle della campanella) |
+| `POST E/notifications/clear` | «Svuota»: toglie le notifiche della campanella; gli altri avvisi dell'account restano |
+| `GET E/links/{type}/{slug}` | `type` `events` o `venues`: lo slug di un indirizzo del pannello (`/admin/events/{slug}/edit`) tradotto in `{type, id, title}` per aprire la scheda nativa. Il record si cerca come il pannello (per slug, il primo, anche nel cestino) e risponde solo a chi lo può vedere (`view`); 404 se non c'è |
+
+Limiti per persona: `editorial-calendar` 60/min, `editorial-notifications` 60/min, `editorial-notifications-write` 60/min, `editorial-links` 60/min.
+
+Nell'app (`EditorialDestination`) gli indirizzi `/admin/…` che arrivano da dentro l'app (la campanella, la casella degli avvisi, i collegamenti delle altre schermate, «Impostazioni newsletter» del profilo) o da una notifica dell'app con la prova dell'installazione si aprono nella schermata nativa con lo stesso permesso; da un'altra app vanno nel browser.
 
 ## Redazione: seconda revisione di sicurezza (26 novembre 2026)
 

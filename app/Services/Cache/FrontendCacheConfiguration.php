@@ -6,6 +6,7 @@ namespace App\Services\Cache;
 
 use App\Settings\FrontendCacheSettings;
 use App\Support\ContentVersion;
+use App\Support\SecurityLog;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -44,6 +45,8 @@ class FrontendCacheConfiguration
         Cache::forever('frontend_cache_revision', (string) Str::uuid());
         ContentVersion::bumpTaxonomies();
         Artisan::call('view:clear');
+
+        SecurityLog::configurazione('cache_svuotata', ['oggetto' => 'frontend_cache']);
     }
 
     /**

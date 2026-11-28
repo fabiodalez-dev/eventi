@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Management;
 
 use App\Enums\ApiErrorCode;
-use App\Enums\OccurrenceStatus;
-use App\Enums\SocialFormat;
 use App\Exceptions\ApiException;
 use App\Exceptions\SocialStudioException;
 use App\Http\Controllers\Controller;
@@ -14,7 +12,6 @@ use App\Http\Requests\Api\V1\Management\Social\SocialBatchRequest;
 use App\Http\Requests\Api\V1\Management\Social\SocialBatchStoreRequest;
 use App\Http\Requests\Api\V1\Management\Social\SocialCatalogRequest;
 use App\Http\Requests\Api\V1\Management\Social\SocialPreviewRequest;
-use App\Http\Resources\V1\PosterResource;
 use App\Models\EventOccurrence;
 use App\Models\SocialBatch;
 use App\Queries\EventOccurrenceQuery;
@@ -22,8 +19,8 @@ use App\Services\Management\ManagedAnalytics;
 use App\Services\Management\ManagedContent;
 use App\Services\Social\SocialBatchFiles;
 use App\Services\Social\SocialCatalog;
-use App\Services\Social\SocialStudio;
 use App\Services\Social\SocialStudioDesk;
+use App\Services\Social\SocialStudioPayload;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -69,7 +66,7 @@ final class SocialStudioController extends Controller
         $cards = $this->catalog->period($city, $from, $until, $venueId, $eventId, true, $search, $limit);
 
         return response()->json([
-            'data' => $cards->map(fn (EventOccurrence $date): array => $this->card($date, $city->timezone))->values()->all(),
+            'data' => $cards->map(fn (EventOccurrence $date): array => SocialStudioPayload::card($date, $city->timezone))->values()->all(),
             'meta' => [
                 'period' => $period,
                 'from' => $from,
@@ -129,7 +126,7 @@ final class SocialStudioController extends Controller
         $dates = $this->catalog->events($city, $date, $venueId, $event?->getKey(), true);
 
         return response()->json([
-            'data' => $dates->map(fn (EventOccurrence $occurrence): array => $this->card($occurrence, $city->timezone))->values()->all(),
+            'data' => $dates->map(fn (EventOccurrence $occurrence): array => SocialStudioPayload::card($occurrence, $city->timezone))->values()->all(),
             'meta' => [
                 'date' => $date,
                 'label' => ucfirst(CarbonImmutable::parse($date)->locale('it')->translatedFormat('l j F')),
@@ -175,7 +172,7 @@ final class SocialStudioController extends Controller
             throw ValidationException::withMessages(['generate' => $e->getMessage()]);
         }
 
-        return response()->json(['data' => $this->batch($batch, $request->city()->timezone)], 201);
+        return response()->json(['data' => SocialStudioPayload::batch($batch, $request->city()->timezone)], 201);
     }
 
     /** Gli ultimi dodici pacchetti del locale (W-SO-07). */
@@ -185,7 +182,7 @@ final class SocialStudioController extends Controller
 
         return response()->json([
             'data' => $this->desk->recent($city, (int) $request->venue()->getKey())
-                ->map(fn (SocialBatch $batch): array => $this->summary($batch))->values()->all(),
+                ->map(fn (SocialBatch $batch): array => SocialStudioPayload::summary($batch))->values()->all(),
             'meta' => ['keep' => SocialStudioDesk::RECENT, 'timezone' => $city->timezone],
         ]);
     }
@@ -193,7 +190,7 @@ final class SocialStudioController extends Controller
     /** Un pacchetto: le immagini (con l'indirizzo firmato del sito, valido sette giorni) e la didascalia. */
     public function show(SocialBatchRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->batch($request->batch(), $request->city()->timezone)]);
+        return response()->json(['data' => SocialStudioPayload::batch($request->batch(), $request->city()->timezone)]);
     }
 
     /** Un'immagine del pacchetto, per «Salva nella galleria» e «Condividi» (W-SO-06). */
@@ -235,75 +232,6 @@ final class SocialStudioController extends Controller
         }
 
         return response($bytes, 200, ['Content-Type' => 'image/jpeg']);
-    }
-
-    /**
-     * Una card: la serata con locandina, quando, stato, se è dimostrativa e
-     * se si può preparare (solo le serate in programma).
-     *
-     * @return array<string, mixed>
-     */
-    private function card(EventOccurrence $date, string $timezone): array
-    {
-        $event = $date->event;
-
-        return [
-            'id' => (int) $date->getKey(),
-            'event_id' => (int) $date->event_id,
-            'title' => $event->title,
-            'starts_at' => $date->starts_at->copy()->utc()->toIso8601String(),
-            'timezone' => $timezone,
-            'is_all_day' => (bool) $date->is_all_day,
-            'business_date' => $date->business_date->format('Y-m-d'),
-            'status' => ['value' => $date->status->value, 'label' => $date->status->label()],
-            'selectable' => $date->status === OccurrenceStatus::Scheduled,
-            'demo' => $event->isDemo(),
-            'poster' => PosterResource::toArray($event),
-            'venue' => $date->effectiveVenue()?->name,
-        ];
-    }
-
-    /**
-     * Un pacchetto in breve, per l'elenco dei recenti.
-     *
-     * @return array<string, mixed>
-     */
-    private function summary(SocialBatch $batch): array
-    {
-        $format = SocialFormat::tryFrom($batch->format) ?? SocialFormat::Portrait;
-
-        return [
-            'id' => (string) $batch->getKey(),
-            'date' => $batch->date->format('Y-m-d'),
-            'format' => ['value' => $format->value, 'label' => (string) __('social.'.$format->value), 'width' => 1080, 'height' => $format->height()],
-            'count' => count($batch->items),
-            'created_at' => $batch->created_at?->copy()->utc()->toIso8601String(),
-        ];
-    }
-
-    /**
-     * Un pacchetto intero: le immagini nell'ordine dello ZIP e la didascalia
-     * del post, come la sezione «Grafiche pronte» della pagina.
-     *
-     * @return array<string, mixed>
-     */
-    private function batch(SocialBatch $batch, string $timezone): array
-    {
-        return [
-            ...$this->summary($batch),
-            'timezone' => $timezone,
-            'caption' => (string) $batch->caption,
-            'items' => collect($batch->items)->values()->map(fn (array $item, int $index): array => [
-                'index' => $index,
-                'title' => (string) $item['title'],
-                'filename' => (string) $item['filename'],
-                'occurrence_id' => (int) $item['occurrence_id'],
-                'event_id' => (int) $item['event_id'],
-                'time' => isset($item['time']) ? (string) $item['time'] : null,
-                'venue' => isset($item['venue']) ? (string) $item['venue'] : null,
-                'url' => SocialStudio::imageUrl($batch, $index),
-            ])->all(),
-        ];
     }
 
     /** @return array{id: int, title: string}|null */

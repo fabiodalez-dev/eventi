@@ -26,8 +26,12 @@ class NativeCalendarTest {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         automation.grantRuntimePermission(context.packageName, Manifest.permission.READ_CALENDAR)
         automation.grantRuntimePermission(context.packageName, Manifest.permission.WRITE_CALENDAR)
-        // Un lavoro pianificato rimasto da un test precedente può scollegare il calendario a metà prova.
+        /* I test precedenti girano nello stesso processo: un lavoro pianificato, un `onResume` arrivato tardi
+           o un 401 dell'API su una sessione finta chiudono la sessione e scollegano il calendario a metà prova.
+           Prima di partire si fermano i lavori e si lascia finire quello che è già in corso. */
         context.getSystemService(android.app.job.JobScheduler::class.java).cancelAll()
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        Thread.sleep(2_000)
         NativeCalendar.disconnect(context); store.writeSession(session)
     }
     @After fun after() { store.clearSession() }

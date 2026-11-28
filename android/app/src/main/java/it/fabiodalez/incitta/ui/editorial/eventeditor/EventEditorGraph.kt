@@ -12,6 +12,7 @@ import it.fabiodalez.incitta.ui.editorial.EditorialGraphContext
 import it.fabiodalez.incitta.ui.editorial.catalog.CatalogFormRoute
 import it.fabiodalez.incitta.ui.editorial.catalog.catalogPickedKey
 import it.fabiodalez.incitta.ui.editorial.editorialViewModel
+import it.fabiodalez.incitta.ui.editorial.social.EditorialSocialStudioRoute
 import kotlinx.serialization.Serializable
 
 /*
@@ -82,8 +83,8 @@ private fun EditorDestination(context: EditorialGraphContext, entry: NavBackStac
         links = EditorLinks(
             onDates = { id -> context.navController.navigate(EditorialEventDatesRoute(id)) },
             onOpenInApp = context::openInApp,
-            // «Anteprima grafica social» resta sul sito finché lo studio social (R9) non è nell'app.
-            onSocial = if (desk?.can?.socialUse == true) { { id: Long -> context.openWeb("admin/social?event=$id") } } else null,
+            // «Anteprima grafica social»: lo studio social della redazione nell'app, ristretto all'evento (R9, collegato da R14).
+            onSocial = if (desk?.can?.socialUse == true) { { id: Long -> context.navController.navigate(EditorialSocialStudioRoute(event = id)) } } else null,
             onCreateFeature = if (EditorialArea.Catalog.native) { { context.navController.navigate(CatalogFormRoute(CatalogKind.Features.key, pick = true)) } } else null,
         ),
     )

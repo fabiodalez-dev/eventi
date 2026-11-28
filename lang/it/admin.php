@@ -508,6 +508,14 @@ return [
         'history_description' => 'Le ultime esecuzioni di questa sorgente: quando, com\'è finita, e che cosa ha portato.',
         'history_empty' => 'Questa sorgente non è mai stata eseguita.',
         'no_venue_hint' => 'Lascia vuoto per un calendario che non appartiene a un locale iscritto — il Comune, un teatro non ancora sul sito. In quel caso la categoria predefinita è obbligatoria: gli eventi nascono senza locale e senza di essa non avrebbero come essere classificati.',
+        /* Le risposte dell'API della redazione nell'app (R12). */
+        'mapping_invalid' => 'La mappatura accetta chiavi di testo con un valore di testo, un numero o un elenco di parole.',
+        'not_runnable' => 'Questo tipo di sorgente non ha un lettore: si censisce, ma non si esegue e non ha un\'anteprima.',
+        'credentials_origin_app' => 'L\'indirizzo di una sorgente con credenziali si cambia dal sito: con un\'origine nuova (schema, host o porta) le credenziali andrebbero al nuovo indirizzo.',
+        'credentials_forgotten' => 'L\'indirizzo ora punta a un\'altra origine: le credenziali salvate sono state cancellate. Se servono anche lì, scrivile di nuovo.',
+        'url_userinfo' => 'Togli utente e password dall\'indirizzo: le credenziali si scrivono nel loro campo, che le conserva cifrate.',
+        'saved' => 'Sorgente salvata.',
+        'deleted' => 'Sorgente eliminata. Gli eventi già importati restano.',
     ],
 
     'confirmations' => [

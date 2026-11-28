@@ -50,12 +50,12 @@ internal enum class EditorialArea(
     Moderation(R.string.editorial_area_moderation, R.string.editorial_area_moderation_help, "admin/reports", ModerationRoute, native = true, badges = listOf("reports_open", "event_comments_hidden", "catalog_reviews_pending")),
     Community(R.string.editorial_area_community, R.string.editorial_area_community_help, "admin/community", CommunityRoute, native = true, badges = listOf("carpool_open")),
     Promotion(R.string.editorial_area_promotion, R.string.editorial_area_promotion_help, "admin/sponsorships", PromotionRoute, native = true, badges = listOf("sponsorship_orders_awaiting")),
-    Social(R.string.editorial_area_social, R.string.editorial_area_social_help, "admin/social", SocialRoute),
+    Social(R.string.editorial_area_social, R.string.editorial_area_social_help, "admin/social", SocialRoute, native = true),
     Analytics(R.string.editorial_area_analytics, R.string.editorial_area_analytics_help, "admin/statistiche-condivisioni", AnalyticsRoute, native = true),
     Catalog(R.string.editorial_area_catalog, R.string.editorial_area_catalog_help, "admin/categories", CatalogRoute, native = true),
-    System(R.string.editorial_area_system, R.string.editorial_area_system_help, "admin/scheduled-notifications", SystemRoute, badges = listOf("scheduled_notifications_due")),
-    Settings(R.string.editorial_area_settings, R.string.editorial_area_settings_help, "admin/cache-performance", SettingsRoute),
-    Calendar(R.string.editorial_area_calendar, R.string.editorial_area_calendar_help, "admin/calendario", CalendarRoute);
+    System(R.string.editorial_area_system, R.string.editorial_area_system_help, "admin/scheduled-notifications", SystemRoute, native = true, badges = listOf("scheduled_notifications_due")),
+    Settings(R.string.editorial_area_settings, R.string.editorial_area_settings_help, "admin/cache-performance", SettingsRoute, native = true),
+    Calendar(R.string.editorial_area_calendar, R.string.editorial_area_calendar_help, "admin/calendario", CalendarRoute, native = true);
 
     /**
      * Se la persona, secondo i `permissions` del banco, apre quest'area: la
@@ -79,7 +79,8 @@ internal enum class EditorialArea(
         /* Categorie, tag, città e caratteristiche si leggono da tutta la redazione; scriverli chiede `catalog_manage`. */
         Catalog -> can.eventsView || can.catalogManage
         System -> can.any("imports_manage", "notifications_view", "system_view")
-        Settings -> can.any("system_manage", "mail_manage")
+        /* Testi, posta, newsletter, script, cookie e cache chiedono il ruolo; gli indirizzi cambiati `pages.manage`. */
+        Settings -> can.any("system_manage", "mail_manage", "pages_manage")
     }
 
     /** La somma dei contatori dell'area; `null` se nessuno si vede. */

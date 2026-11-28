@@ -25,6 +25,7 @@ import it.fabiodalez.incitta.ui.management.analytics.LineChart
 import it.fabiodalez.incitta.ui.management.analytics.LineSeries
 import it.fabiodalez.incitta.ui.management.common.LoadState
 import it.fabiodalez.incitta.ui.management.common.Loadable
+import it.fabiodalez.incitta.ui.management.common.ManagementRow
 import it.fabiodalez.incitta.ui.management.common.ManagementScaffold
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -49,6 +50,8 @@ internal fun DashboardScreen(
     onCity: (String) -> Unit,
     onTarget: (DashboardTarget) -> Unit,
     onRegistration: (DashboardRegistration) -> Unit,
+    /* «Social di oggi» (R-DB-10), il primo riquadro della pagina iniziale del pannello per admin e super admin; `null`: non si vede. */
+    onSocialToday: (() -> Unit)? = null,
 ) {
     val loaded = (state as? Loadable.Ready)?.value
     val city = loaded?.city ?: desk?.city
@@ -64,6 +67,9 @@ internal fun DashboardScreen(
             if (dashboard.city == null) Text(stringResource(R.string.editorial_dashboard_no_city), color = Muted)
             if (dashboard.sections.isEmpty()) Text(stringResource(R.string.editorial_dashboard_empty), color = Muted)
             val zone = dashboard.city?.zone ?: ZoneId.of("Europe/Rome")
+            onSocialToday?.let { open ->
+                ManagementRow(stringResource(R.string.editorial_social_today_card), stringResource(R.string.editorial_social_today_card_help), onClick = open)
+            }
             dashboard.sections.forEach { section ->
                 when {
                     section.chart != null -> TrendSection(section)

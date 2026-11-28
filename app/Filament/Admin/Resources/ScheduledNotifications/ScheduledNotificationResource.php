@@ -10,8 +10,9 @@ use App\Enums\NotificationStatus;
 use App\Enums\NotificationType;
 use App\Filament\Admin\Resources\ScheduledNotifications\Pages\ListScheduledNotifications;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
-use App\Models\EventOccurrence;
 use App\Models\ScheduledNotification;
+use App\Services\Editorial\EditorialScheduledNotifications;
+use App\Support\Notifications\ScheduledNotificationSubject;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
@@ -22,9 +23,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -93,14 +91,7 @@ class ScheduledNotificationResource extends Resource
             ->description(__('admin.notifications.lead'))
             /* Il soggetto di ogni riga (la data e il suo evento) arriva con
                l'elenco: senza, ogni riga faceva due query per conto proprio. */
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'user',
-                'notifiable' => static function (Relation $morph): void {
-                    if ($morph instanceof MorphTo) {
-                        $morph->morphWith([EventOccurrence::class => ['event']]);
-                    }
-                },
-            ]))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(ScheduledNotificationSubject::relations()))
             ->columns([
                 TextColumn::make('send_at')
                     ->label(__('admin.notifications.send_at'))
@@ -119,7 +110,7 @@ class ScheduledNotificationResource extends Resource
 
                 TextColumn::make('notifiable_type')
                     ->label(__('admin.notifications.subject'))
-                    ->formatStateUsing(fn (ScheduledNotification $record): string => self::describeSubject($record))
+                    ->formatStateUsing(fn (ScheduledNotification $record): string => ScheduledNotificationSubject::describe($record))
                     ->placeholder(__('admin.placeholders.none'))
                     ->wrap(),
 
@@ -191,7 +182,8 @@ class ScheduledNotificationResource extends Resource
                     ->modalDescription(__('admin.confirmations.cancel_notification'))
                     ->visible(fn (ScheduledNotification $record): bool => auth()->user()?->can('cancel', $record) ?? false)
                     ->action(function (ScheduledNotification $record): void {
-                        $record->markCancelled();
+                        // Lo stesso dell'app: annulla e scrive nel registro di sicurezza.
+                        app(EditorialScheduledNotifications::class)->cancel($record);
                     })
                     ->successNotificationTitle(__('admin.notifications.notification_cancelled')),
             ]);
@@ -205,35 +197,5 @@ class ScheduledNotificationResource extends Resource
         return [
             'index' => ListScheduledNotifications::route('/'),
         ];
-    }
-
-    /**
-     * La colonna morph porta un alias breve (`event_occurrence`), non un nome
-     * di classe: si traduce, invece di mostrare a chi legge una stringa da
-     * programmatori.
-     */
-    private static function describeSubject(ScheduledNotification $notification): string
-    {
-        $type = $notification->notifiable_type;
-
-        if (! is_string($type) || $type === '') {
-            return '';
-        }
-
-        $key = 'admin.resources.'.$type.'.label';
-        $label = __($key);
-        $label = $label === $key ? $type : $label;
-
-        $subject = $notification->notifiable;
-
-        if (! $subject instanceof Model) {
-            return $label;
-        }
-
-        $title = $subject instanceof EventOccurrence
-            ? $subject->event->title
-            : $subject->getAttribute('title') ?? $subject->getAttribute('name') ?? $subject->getKey();
-
-        return $label.' '.__('common.separator').' '.(string) $title;
     }
 }

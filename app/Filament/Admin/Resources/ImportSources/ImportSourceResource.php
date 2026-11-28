@@ -6,21 +6,23 @@ namespace App\Filament\Admin\Resources\ImportSources;
 
 use App\Enums\ImportRunStatus;
 use App\Enums\ImportSourceType;
-use App\Exceptions\ImportException;
 use App\Filament\Admin\Resources\ImportSources\Pages\CreateImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\EditImportSource;
 use App\Filament\Admin\Resources\ImportSources\Pages\ListImportSources;
 use App\Filament\Admin\Resources\ImportSources\RelationManagers\RunsRelationManager;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
-use App\Filament\Support\ImportPreviewRows;
-use App\Jobs\Import\ImportSourceJob;
 use App\Models\City;
 use App\Models\ImportSource;
+use App\Models\User;
 use App\Queries\EditorialDashboardQuery;
 use App\Rules\SafeImportUrl;
+use App\Rules\UrlWithoutUserInfo;
+use App\Services\Editorial\EditorialImportSources;
 use App\Services\Import\ImportDriverFactory;
-use App\Services\Import\ImportRunner;
+use App\Support\Import\ImportPreviewLimiter;
+use App\Support\Import\ImportPreviewRows;
+use App\Support\Import\ImportSourceRules;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -120,18 +122,23 @@ class ImportSourceResource extends Resource
                             ->relationship('defaultCategory', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(fn (Get $get): bool => blank($get('venue_id'))),
+                            ->required(fn (Get $get): bool => ImportSourceRules::needsDefaultCategory($get('venue_id'))),
 
                         /*
                          * `SafeImportUrl` è la stessa difesa che il driver
                          * applica prima di scaricare: qui serve a dirlo mentre
                          * si scrive l'indirizzo, invece di lasciarlo scoprire
-                         * alla prima esecuzione.
+                         * alla prima esecuzione. Niente `utente:password@`:
+                         * le credenziali hanno il loro campo, cifrato. Se
+                         * l'origine (schema, host, porta) cambia e le
+                         * credenziali non vengono riscritte, si cancellano
+                         * (`EditImportSource`): partirebbero verso il nuovo host.
                          */
                         TextInput::make('url')
                             ->label(__('admin.fields.url'))
                             ->url()
-                            ->maxLength(1000)
+                            ->maxLength(ImportSourceRules::MAX_URL_LENGTH)
+                            ->rule(new UrlWithoutUserInfo)
                             ->rule(new SafeImportUrl)
                             ->columnSpanFull(),
 
@@ -239,6 +246,9 @@ class ImportSourceResource extends Resource
      * esclusione già applicato, fusi già risolti.
      *
      * Non scrive niente e non tocca `last_run_at`: guardare non è eseguire.
+     * Legge il calendario dentro la richiesta, quindi ha i tempi corti di
+     * `ImportRunner::preview` e il tetto per persona e per tutto il sito di
+     * `ImportPreviewLimiter`, lo stesso dell'app.
      */
     private static function previewAction(): Action
     {
@@ -252,19 +262,12 @@ class ImportSourceResource extends Resource
             ->modalCancelActionLabel(__('admin.actions.close'))
             ->visible(fn (ImportSource $record): bool => app(ImportDriverFactory::class)->supports($record))
             ->modalContent(function (ImportSource $record): View {
-                $rows = [];
-                $error = null;
+                $user = auth()->user();
+                $preview = ImportPreviewLimiter::attempt($user instanceof User ? $user : null)
+                    ? ImportPreviewRows::forSource($record)
+                    : ['rows' => [], 'error' => __('import.preview.busy')];
 
-                try {
-                    $rows = ImportPreviewRows::make(
-                        app(ImportRunner::class)->preview($record),
-                        $record->city->timezone,
-                    );
-                } catch (ImportException $exception) {
-                    $error = $exception->getMessage();
-                }
-
-                return view('filament.import.preview', ['rows' => $rows, 'error' => $error]);
+                return view('filament.import.preview', $preview);
             });
     }
 
@@ -284,7 +287,8 @@ class ImportSourceResource extends Resource
             ->modalDescription(__('admin.import.run_confirm'))
             ->visible(fn (ImportSource $record): bool => app(ImportDriverFactory::class)->supports($record))
             ->action(function (ImportSource $record): void {
-                ImportSourceJob::dispatch((int) $record->getKey());
+                // Lo stesso «Esegui adesso» dell'app: accoda e scrive nel registro di sicurezza.
+                app(EditorialImportSources::class)->run($record);
 
                 Notification::make()
                     ->title(__('admin.notifications.import_queued'))

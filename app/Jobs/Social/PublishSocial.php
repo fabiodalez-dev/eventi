@@ -11,6 +11,7 @@ use App\Models\SocialPublication;
 use App\Services\Social\SocialPublisher;
 use App\Services\Social\SocialStudio;
 use App\Services\Social\TelegramPublisher;
+use App\Support\Social\SocialErrorMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -128,7 +129,15 @@ class PublishSocial implements ShouldQueue
             $publication->update(['status' => Status::Published, 'external_id' => (string) $result['id'], 'error' => null]);
         } catch (Throwable $e) {
             if ($publication->fresh()->status !== Status::Uncertain) {
-                $publication->update(['status' => Status::Failed, 'error' => $e instanceof \RuntimeException ? $e->getMessage() : __('social.verify_failed')]);
+                /* Il messaggio di una regola sì; quello di un errore del database no: lo storico lo mostra a chi pubblica. */
+                $message = SocialErrorMessage::forPeople($e);
+                if ($message === null && ! $e instanceof \RuntimeException) {
+                    $message = __('social.verify_failed');
+                } elseif ($message === null) {
+                    report($e);
+                    $message = __('social.internal_error');
+                }
+                $publication->update(['status' => Status::Failed, 'error' => $message]);
             }
         }
     }

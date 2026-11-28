@@ -16,6 +16,7 @@ import it.fabiodalez.incitta.ui.editorial.editorialViewModel
 import it.fabiodalez.incitta.ui.editorial.eventeditor.EditorialEventDatesRoute
 import it.fabiodalez.incitta.ui.editorial.eventeditor.EditorialEventEditorRoute
 import it.fabiodalez.incitta.ui.editorial.promotion.CampaignWizardRoute
+import it.fabiodalez.incitta.ui.editorial.social.EditorialSocialStudioRoute
 import it.fabiodalez.incitta.ui.management.common.Loadable
 import java.time.ZoneId
 import kotlinx.serialization.Serializable
@@ -62,11 +63,14 @@ internal fun acceptEventsLists() {
 internal class EventLinkRoutes(
     val statistics: ((Long) -> Any)? = null,
     val sponsor: ((Long) -> Any)? = null,
+    /* «Grafiche social»: lo studio social della redazione ristretto all'evento (R9, collegato da R14). */
+    val social: ((Long) -> Any)? = null,
 )
 
 internal fun eventLinkRoutes(can: EditorialPermissions?): EventLinkRoutes = EventLinkRoutes(
     statistics = if (EditorialArea.Analytics.native && can?.analyticsView == true) { id -> AnalyticsReportRoute(type = "event", id = id) } else null,
     sponsor = if (EditorialArea.Promotion.native && can?.sponsorshipsManage == true) { id -> CampaignWizardRoute(event = id) } else null,
+    social = if (EditorialArea.Social.native && can?.socialUse == true) { id -> EditorialSocialStudioRoute(event = id) } else null,
 )
 
 internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
@@ -94,6 +98,7 @@ internal fun NavGraphBuilder.eventsGraph(context: EditorialGraphContext) {
             onDates = { id -> nav.navigate(EditorialEventDatesRoute(id)) },
             onStatistics = links.statistics?.let { route -> { id: Long -> nav.navigate(route(id)) } },
             onSponsor = links.sponsor?.let { route -> { id: Long -> nav.navigate(route(id)) } },
+            onSocial = links.social?.let { route -> { id: Long -> nav.navigate(route(id)) } },
         )
     }
     composable<EditorialEventActivityRoute> { entry ->

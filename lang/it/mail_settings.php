@@ -55,6 +55,7 @@ return [
         'sent' => 'Messaggio spedito a :email',
         'sent_body' => 'Se arriva, la configurazione funziona e puoi attivarla. Se non arriva entro qualche minuto, controlla anche la posta indesiderata.',
         'failed' => 'Il server ha rifiutato il messaggio',
+        'internal_error' => 'La prova non è partita per un errore interno del sito, non del server di posta. Il dettaglio è nel registro degli errori.',
         'no_recipient' => 'Il tuo account non ha un indirizzo email: non saprei dove mandare la prova.',
         'mail_title' => 'La configurazione funziona',
         'mail_body' => 'Questo messaggio è partito dal server di posta che hai appena configurato. Se lo stai leggendo, le credenziali sono corrette e puoi attivare la configurazione dal pannello.',

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Pages;
 
-use App\Models\NotificationText;
-use App\Settings\NewsletterSettings;
-use App\Support\Features;
-use App\Support\NotificationTextCatalog;
+use App\Models\User;
+use App\Services\Settings\NewsletterConfiguration;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -18,9 +16,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Laravel\Pennant\Feature;
 
 class Newsletter extends Page
 {
@@ -35,7 +31,9 @@ class Newsletter extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('super_admin') === true;
+        $user = auth()->user();
+
+        return NewsletterConfiguration::canManage($user instanceof User ? $user : null);
     }
 
     public static function getNavigationGroup(): ?string
@@ -46,12 +44,7 @@ class Newsletter extends Page
     public function mount(): void
     {
         abort_unless(static::canAccess(), 403);
-        $values = app(NewsletterSettings::class)->toArray();
-        $values['enabled'] = Features::newsletterActive();
-        foreach (self::texts() as $field => $key) {
-            $values[$field] = NotificationText::tutte()[$key] ?? NotificationTextCatalog::predefiniti()[$key];
-        }
-        $this->getSchema('form')->fill($values);
+        $this->getSchema('form')->fill(NewsletterConfiguration::values());
     }
 
     public function form(Schema $schema): Schema
@@ -76,36 +69,22 @@ class Newsletter extends Page
     {
         abort_unless(static::canAccess(), 403);
         $values = $this->getSchema('form')->getState();
-        $defaults = NotificationTextCatalog::predefiniti();
-        foreach (self::texts() as $field => $key) {
-            $unknown = array_diff(NotificationTextCatalog::variabili((string) ($values[$field] ?? '')), NotificationTextCatalog::variabili($defaults[$key]));
-            if ($unknown !== []) {
-                throw ValidationException::withMessages(['data.'.$field => 'Variabili non riconosciute: '.implode(', ', $unknown)]);
-            }
+        foreach (NewsletterConfiguration::unknownVariables($values) as $field => $unknown) {
+            throw ValidationException::withMessages(['data.'.$field => 'Variabili non riconosciute: '.implode(', ', $unknown)]);
         }
-        DB::transaction(function () use ($values, $defaults): void {
-            $settings = app(NewsletterSettings::class);
-            $settings->weekday = (int) $values['weekday'];
-            $settings->time = $values['time'];
-            $settings->max_items = (int) $values['max_items'];
-            $settings->save();
-            Feature::for(Features::globalScope())->activate(Features::NEWSLETTER, (bool) $values['enabled']);
-            foreach (self::texts() as $field => $key) {
-                $value = trim((string) ($values[$field] ?? ''));
-                if ($value === '' || $value === $defaults[$key]) {
-                    NotificationText::where('key', $key)->delete();
-                } else {
-                    NotificationText::updateOrCreate(['key' => $key], ['value' => $value, 'updated_by' => auth()->id()]);
-                }
-            }
-        });
-        NotificationText::dimenticaLaCache();
+        $user = auth()->user();
+        NewsletterConfiguration::save($values, $user instanceof User ? $user : null);
         Notification::make()->title('Impostazioni newsletter salvate')->success()->send();
     }
 
-    /** @return array<string, string> */
+    /**
+     * Il campo del modulo e la chiave del testo dell'email
+     * (`NewsletterConfiguration::TEXTS`).
+     *
+     * @return array<string, string>
+     */
     public static function texts(): array
     {
-        return ['subject' => 'notifications.weekend.subject', 'heading' => 'notifications.weekend.heading', 'line' => 'notifications.weekend.line', 'action' => 'notifications.actions.open_weekend'];
+        return NewsletterConfiguration::TEXTS;
     }
 }

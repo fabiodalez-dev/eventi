@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Actions\Account\SaveOccurrences;
 use App\Enums\NotificationStatus;
 use App\Enums\UserRole;
+use App\Http\Middleware\RequireEditorialUnlock;
+use App\Http\Middleware\ResolveEditorialDesk;
 use App\Models\ScheduledNotification;
 use App\Models\User;
 use Carbon\Carbon;
@@ -49,7 +51,15 @@ it('non fa vedere a una persona gli invii previsti di un altra', function (): vo
 });
 
 it('non espone gli invii previsti su nessuna rotta pubblica o di API', function (): void {
+    /*
+     * Fuori dal pannello li vede solo la redazione nell'app (R12): rotte
+     * `api/v1/editorial/…`, chiuse a chi non è moderatore, admin o super
+     * admin (`ResolveEditorialDesk`, 404) e senza lo sblocco con la password
+     * (`RequireEditorialUnlock`, 423), con la stessa policy del pannello.
+     */
+    $redazione = static fn (Illuminate\Routing\Route $route): bool => str_starts_with($route->uri(), 'api/v1/editorial/');
     $percorsi = collect(Route::getRoutes()->getRoutes())
+        ->reject($redazione)
         ->map(static fn (Illuminate\Routing\Route $route): string => $route->uri())
         ->filter(static fn (string $uri): bool => ! str_starts_with($uri, 'admin'))
         ->filter(static fn (string $uri): bool => str_contains($uri, 'scheduled') || str_contains($uri, 'programmate'))
@@ -57,6 +67,14 @@ it('non espone gli invii previsti su nessuna rotta pubblica o di API', function 
         ->all();
 
     expect($percorsi)->toBe([]);
+
+    $dellaRedazione = collect(Route::getRoutes()->getRoutes())
+        ->filter($redazione)
+        ->filter(static fn (Illuminate\Routing\Route $route): bool => str_contains($route->uri(), 'scheduled'));
+    expect($dellaRedazione)->not->toBeEmpty();
+    foreach ($dellaRedazione as $route) {
+        expect($route->gatherMiddleware())->toContain(ResolveEditorialDesk::class, RequireEditorialUnlock::class);
+    }
 });
 
 it('chiude a un utente semplice la pagina del pannello che li elenca', function (): void {

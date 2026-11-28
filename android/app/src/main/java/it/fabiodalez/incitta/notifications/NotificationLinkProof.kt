@@ -32,6 +32,18 @@ internal object NotificationLinkProof {
     fun stamp(context: Context, intent: Intent, userId: Long): Intent =
         intent.putExtra(EXTRA_USER, userId).putExtra(EXTRA_PROOF, LocalStore(context).notificationLinkSecret())
 
+    /**
+     * R14: se l'intent porta la prova di una notifica di questa app per la
+     * persona collegata. Un indirizzo del pannello della redazione
+     * (`/admin/…`) si apre nell'area nativa solo così; senza prova va nel
+     * browser, dove vale l'accesso del sito.
+     */
+    fun proven(context: Context, intent: Intent): Boolean {
+        val store = LocalStore(context)
+        val claimed = if (intent.hasExtra(EXTRA_USER)) intent.getLongExtra(EXTRA_USER, -1) else null
+        return notificationProofMatches(claimed, intent.getStringExtra(EXTRA_PROOF), store.readSession()?.user?.id) { store.notificationLinkSecret() }
+    }
+
     /** Se l'indirizzo dell'intent si può aprire, con la sessione di adesso. */
     fun accepts(context: Context, intent: Intent): Boolean {
         val store = LocalStore(context)
@@ -62,6 +74,11 @@ internal fun isInternalManagementLink(uri: String?): Boolean {
 internal fun notificationLinkAllowed(uri: String?, claimedUser: Long?, proof: String?, sessionUser: Long?, secret: () -> String): Boolean {
     if (claimedUser != null && claimedUser != sessionUser) return false
     if (!isInternalManagementLink(uri)) return true
-    if (claimedUser == null || sessionUser == null || proof.isNullOrEmpty()) return false
+    return notificationProofMatches(claimedUser, proof, sessionUser, secret)
+}
+
+/** La persona della notifica è quella collegata e il segreto dell'installazione è quello giusto. */
+internal fun notificationProofMatches(claimedUser: Long?, proof: String?, sessionUser: Long?, secret: () -> String): Boolean {
+    if (claimedUser == null || sessionUser == null || claimedUser != sessionUser || proof.isNullOrEmpty()) return false
     return MessageDigest.isEqual(proof.toByteArray(Charsets.UTF_8), secret().toByteArray(Charsets.UTF_8))
 }

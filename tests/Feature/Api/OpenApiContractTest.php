@@ -205,6 +205,84 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
         ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
+    // R13 della redazione (26/11/2026): la configurazione tecnica.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/notification-texts',
+        '/editorial/notification-texts/preview',
+        '/editorial/notification-texts/reset',
+        '/editorial/notification-texts/{key}',
+        '/editorial/mail',
+        '/editorial/mail/test',
+        '/editorial/newsletter',
+        '/editorial/consent-scripts',
+        '/editorial/consent-scripts/{script}',
+        '/editorial/cookies',
+        '/editorial/cookies/order',
+        '/editorial/redirects',
+        '/editorial/redirects/options',
+        '/editorial/cache',
+        '/editorial/cache/clear',
+        '/editorial/cache/verify',
+    ])
+        ->and($document['paths']['/editorial/newsletter'])->toHaveKeys(['get', 'put'])
+        ->and($document['paths']['/editorial/cookies'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/redirects'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/consent-scripts/{script}'])->not->toHaveKeys(['patch', 'put', 'delete']);
+    // R9 della redazione (26/11/2026): studio, pubblicazione, storico e impostazioni dei social.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/social/catalog',
+        '/editorial/social/calendar',
+        '/editorial/social/day',
+        '/editorial/social/today',
+        '/editorial/social/dates/{occurrence}/preview',
+        '/editorial/social/batches',
+        '/editorial/social/batches/{batch}',
+        '/editorial/social/batches/{batch}/images/{index}',
+        '/editorial/social/batches/{batch}/zip',
+        '/editorial/social/batches/{batch}/publish',
+        '/editorial/social/batches/{batch}/schedule',
+        '/editorial/social/publications',
+        '/editorial/social/publications/{publication}',
+        '/editorial/social/publications/{publication}/cancel',
+        '/editorial/social/publications/{publication}/retry',
+        '/editorial/social/settings',
+        '/editorial/social/settings/verify',
+        '/editorial/social/settings/telegram/verify',
+        '/editorial/social/meta/connect',
+        '/editorial/social/meta/disconnect',
+    ])
+        ->and($document['paths']['/editorial/social/today'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/social/settings'])->toHaveKeys(['get', 'put'])
+        ->and($document['paths']['/editorial/social/publications/{publication}'])->toHaveKey('patch');
+    // R14 della redazione (26/11/2026): calendario, campanella, indirizzi del pannello con lo slug.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/calendar',
+        '/editorial/notifications',
+        '/editorial/notifications/read-all',
+        '/editorial/notifications/clear',
+        '/editorial/notifications/{notification}/read',
+        '/editorial/notifications/{notification}/unread',
+        '/editorial/notifications/{notification}/remove',
+        '/editorial/links/{type}/{slug}',
+    ])
+        ->and(collect($document['paths']['/editorial/calendar']['get']['parameters'])->pluck('name')->all())->toContain('from', 'to')
+        ->and($document['paths']['/editorial/notifications/clear'])->toHaveKey('post');
+    // R12 (26/11/2026): sistema della redazione, sorgenti di import, invii previsti, cron.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/import-sources',
+        '/editorial/import-sources/form',
+        '/editorial/import-sources/venues',
+        '/editorial/import-sources/{source}',
+        '/editorial/import-sources/{source}/preview',
+        '/editorial/import-sources/{source}/run',
+        '/editorial/import-sources/{source}/runs',
+        '/editorial/scheduled-notifications',
+        '/editorial/scheduled-notifications/{notification}/cancel',
+        '/editorial/scheduled-operations',
+    ])
+        ->and($document['paths']['/editorial/import-sources'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/import-sources/{source}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/scheduled-notifications/{notification}/cancel'])->toHaveKey('post');
     // R7 della redazione (26/11/2026): community e passaggi.
     expect($document['paths'])->toHaveKeys([
         '/editorial/community/{section}',
