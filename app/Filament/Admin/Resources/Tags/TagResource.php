@@ -12,6 +12,7 @@ use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Support\BulkActions;
 use App\Filament\Support\EditorialFields;
 use App\Models\Tag;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -28,6 +29,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 /**
  * §9.2 — i tag, con l'unione dei doppioni. Il lavoro vero lo fa
@@ -157,8 +159,23 @@ class TagResource extends Resource
             ->action(function (Tag $record, array $data): void {
                 /** @var Tag $absorbed */
                 $absorbed = Tag::query()->findOrFail($data['absorbed']);
+                $user = auth()->user();
 
-                $moved = app(MergeTagsAction::class)->execute($record, $absorbed);
+                /* Il doppione viene eliminato: serve `delete` anche su di lui, come nell'app. */
+                if (! $user instanceof User || ! MergeTagsAction::allows($user, $record, $absorbed)) {
+                    Notification::make()->title(__('admin.notifications.merge_forbidden'))->danger()->send();
+
+                    return;
+                }
+
+                try {
+                    $moved = app(MergeTagsAction::class)->execute($record, $absorbed);
+                } catch (ValidationException) {
+                    /* Un'altra unione o un'eliminazione è arrivata prima: uno dei due tag non c'è più. */
+                    Notification::make()->title(__('admin.notifications.merge_gone'))->danger()->send();
+
+                    return;
+                }
 
                 Notification::make()
                     ->title(__('admin.notifications.merged', ['count' => $moved]))

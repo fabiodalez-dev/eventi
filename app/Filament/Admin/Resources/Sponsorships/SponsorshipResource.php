@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Sponsorships;
 
+use App\Actions\Sponsorship\ToggleSponsorship;
 use App\Enums\EventStatus;
 use App\Enums\SponsorshipPacing;
 use App\Enums\SponsorshipPlacement;
@@ -11,7 +12,6 @@ use App\Enums\SponsorshipStatus;
 use App\Filament\Admin\Resources\Sponsorships\Pages\CreateSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\EditSponsorship;
 use App\Filament\Admin\Resources\Sponsorships\Pages\ListSponsorships;
-use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipProgress;
 use App\Filament\Admin\Resources\Sponsorships\Support\SponsorshipWizard;
 use App\Filament\Concerns\HasSentenceCaseNavigationLabel;
 use App\Filament\Forms\Components\EventPicker;
@@ -21,7 +21,10 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Sponsorship;
 use App\Models\SponsorshipGrant;
+use App\Services\Editorial\Promotion\EditorialSponsorships;
 use App\Services\Sponsorship\Delivery\PacingState;
+use App\Services\Sponsorship\Editorial\ProgressDetail;
+use App\Services\Sponsorship\Editorial\SponsorshipProgress;
 use App\Support\RequestMemo;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -228,14 +231,16 @@ class SponsorshipResource extends Resource
                              */
                                     TextInput::make('impressions_cap')
                                         ->label(__('sponsorships.admin.fields.impressions_cap'))
-                                        ->numeric()
+                                        ->integer()
                                         ->minValue(1)
+                                        ->maxValue(EditorialSponsorships::CAP_MAX)
                                         ->helperText(__('sponsorships.admin.help.impressions_cap')),
 
                                     TextInput::make('clicks_cap')
                                         ->label(__('sponsorships.admin.fields.clicks_cap'))
-                                        ->numeric()
+                                        ->integer()
                                         ->minValue(1)
+                                        ->maxValue(EditorialSponsorships::CAP_MAX)
                                         ->helperText(__('sponsorships.admin.help.clicks_cap')),
                                 ]),
                         ]),
@@ -297,7 +302,10 @@ class SponsorshipResource extends Resource
                                     TextInput::make('amount_cents')
                                         ->label(__('sponsorships.admin.fields.amount'))
                                         ->numeric()
+                                        ->step(0.01)
+                                        ->rules(['decimal:0,2'])
                                         ->minValue(0)
+                                        ->maxValue(EditorialSponsorships::AMOUNT_MAX)
                                         /* In centesimi nel database, in euro nel modulo: i
                                    decimali in virgola mobile sommati mille volte non
                                    tornano, e chi compila un modulo non scrive
@@ -478,9 +486,7 @@ class SponsorshipResource extends Resource
                 : Heroicon::OutlinedPlay)
             ->requiresConfirmation()
             ->action(function (Sponsorship $record): void {
-                $attiva = $record->status !== SponsorshipStatus::Active;
-
-                $record->update(['status' => $attiva ? SponsorshipStatus::Active : SponsorshipStatus::Paused]);
+                $attiva = app(ToggleSponsorship::class)->handle($record);
 
                 Notification::make()
                     ->title($attiva ? __('sponsorships.admin.actions.activated') : __('sponsorships.admin.actions.paused'))
@@ -509,41 +515,7 @@ class SponsorshipResource extends Resource
      */
     public static function progressData(Sponsorship|SponsorshipGrant|null $record): array
     {
-        $service = app(SponsorshipProgress::class);
-
-        if ($record === null) {
-            return ['progress' => null];
-        }
-
-        $grant = $record instanceof SponsorshipGrant ? $record : $record->grant;
-
-        if ($grant instanceof SponsorshipGrant) {
-            $unit = $service->forGrant($grant);
-            $city = City::query()->find($grant->sponsorCityId());
-            $placement = $grant->placement;
-            $ids = Sponsorship::withTrashed()->where('sponsorship_grant_id', $grant->getKey())->pluck('id')->map(fn ($id): int => (int) $id)->all();
-        } else {
-            /* Senza abilitazione l'unità è la riga stessa. */
-            $unit = $service->forSponsorship($record);
-            $city = $record->city;
-            $placement = $record->placement;
-            $ids = [(int) $record->getKey()];
-        }
-
-        if ($unit === null) {
-            return ['progress' => null];
-        }
-
-        $forecast = $city instanceof City ? $service->forecast($city, $placement) : null;
-
-        return [
-            'progress' => $unit,
-            'daily' => $forecast === null ? [] : $service->daily($unit, $ids, $forecast),
-            'events' => $grant instanceof SponsorshipGrant ? $service->grantEvents($grant) : [],
-            'quotaMax' => $service->quotaMax(),
-            'minDays' => (int) config('sponsorship.forecast_min_days', 14),
-            'provisional' => $forecast?->isProvisional() ?? true,
-        ];
+        return app(ProgressDetail::class)->for($record);
     }
 
     /**

@@ -16,6 +16,9 @@ use Spatie\Sluggable\SlugOptions;
 
 class City extends Model
 {
+    /** Le lingue predefinite che una città può avere, nel modulo del pannello e dell'app. */
+    public const LOCALES = ['it', 'en', 'de'];
+
     /**
      * Identificativo e fuso di ogni città, letti una volta per richiesta.
      *

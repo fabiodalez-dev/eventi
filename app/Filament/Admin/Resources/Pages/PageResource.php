@@ -103,6 +103,7 @@ class PageResource extends Resource
                             ->label(__('admin.fields.body'))
                             ->helperText(__('admin.hints.page_body'))
                             ->required()
+                            ->maxLength(Page::BODY_MAX)
                             ->columnSpanFull(),
                     ]),
 

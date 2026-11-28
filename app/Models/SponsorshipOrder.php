@@ -131,6 +131,15 @@ class SponsorshipOrder extends Model
         $this->status = $next;
     }
 
+    /**
+     * Pagato online con Stripe: rifiutarlo rimborsa il pagamento, e un
+     * rimborso non si annulla (`SponsorshipOrders::reject`).
+     */
+    public function refundsOnReject(): bool
+    {
+        return $this->payment_intent_id !== null;
+    }
+
     public function formattedAmount(): string
     {
         return (string) Number::currency($this->amount_cents / 100, in: $this->currency ?: 'EUR', locale: app()->getLocale());

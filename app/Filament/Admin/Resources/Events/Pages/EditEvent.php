@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Events\Pages;
 
-use App\Actions\GenerateOccurrencesAction;
 use App\Filament\Admin\Pages\Social;
 use App\Filament\Admin\Resources\Events\EventResource;
 use App\Filament\Admin\Support\EventModeration;
 use App\Filament\Support\PublicationActions;
 use App\Models\Event;
-use App\Models\EventRecurrence;
+use App\Services\Events\EditorialEventDates;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Validation\ValidationException;
 
 class EditEvent extends EditRecord
 {
@@ -44,7 +44,8 @@ class EditEvent extends EditRecord
      * L'azione è idempotente per costruzione (D20, D22): rieseguirla non
      * aggiunge doppioni e non tocca le date già modificate a mano. È lo stesso
      * comportamento del comando pianificato mensile, chiamato dallo stesso
-     * punto — non una seconda implementazione per il pannello.
+     * punto — non una seconda implementazione per il pannello. Il ciclo sulle
+     * ricorrenze sta in `EditorialEventDates::generate`, che usa anche l'app.
      */
     private function generateOccurrencesAction(): Action
     {
@@ -55,12 +56,13 @@ class EditEvent extends EditRecord
             ->authorize(fn (Event $record): bool => auth()->user()?->can('update', $record) ?? false)
             ->visible(fn (Event $record): bool => $record->recurrences()->exists())
             ->action(function (Event $record): void {
-                $action = app(GenerateOccurrencesAction::class);
-                $created = 0;
+                try {
+                    $created = app(EditorialEventDates::class)->generate($record);
+                } catch (ValidationException $exception) {
+                    Notification::make()->title(__('admin.actions.generate_occurrences'))
+                        ->body(collect($exception->errors())->flatten()->first())->danger()->send();
 
-                foreach ($record->recurrences as $recurrence) {
-                    /** @var EventRecurrence $recurrence */
-                    $created += $action($recurrence);
+                    return;
                 }
 
                 Notification::make()

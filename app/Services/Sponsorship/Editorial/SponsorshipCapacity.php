@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Admin\Resources\Sponsorships\Support;
+namespace App\Services\Sponsorship\Editorial;
 
 use App\Enums\OccurrenceStatus;
 use App\Enums\SponsorshipPlacement;

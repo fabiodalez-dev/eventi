@@ -6,7 +6,7 @@
     Variabili: `progress` (`UnitProgress` o null).
 --}}
 @php
-    /** @var \App\Filament\Admin\Resources\Sponsorships\Support\UnitProgress|null $progress */
+    /** @var \App\Services\Sponsorship\Editorial\UnitProgress|null $progress */
     $progress ??= null;
     $percent = $progress?->percent();
     $expected = $progress?->expectedPercent();

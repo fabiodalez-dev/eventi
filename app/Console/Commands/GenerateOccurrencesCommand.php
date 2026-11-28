@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Actions\GenerateOccurrencesAction;
 use App\Enums\EventStatus;
+use App\Exceptions\InvalidRecurrenceRule;
 use App\Models\EventRecurrence;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
@@ -59,7 +60,12 @@ final class GenerateOccurrencesCommand extends Command
         $query->orderBy('id')->chunkById(self::CHUNK, function (Collection $chunk) use ($action, $horizon, &$processed, &$created): void {
             /** @var EventRecurrence $item */
             foreach ($chunk as $item) {
-                $created += $action($item, $horizon);
+                try {
+                    $created += $action($item, $horizon);
+                } catch (InvalidRecurrenceRule $exception) {
+                    // Una regola che il generatore rifiuta non ferma le altre.
+                    $this->warn('#'.$item->getKey().': '.$exception->getMessage());
+                }
                 $processed++;
             }
         });

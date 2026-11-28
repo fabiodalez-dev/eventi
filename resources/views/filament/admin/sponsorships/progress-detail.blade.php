@@ -10,7 +10,7 @@
 @php
     use App\Filament\Support\PanelDate;
 
-    /** @var \App\Filament\Admin\Resources\Sponsorships\Support\UnitProgress|null $progress */
+    /** @var \App\Services\Sponsorship\Editorial\UnitProgress|null $progress */
     $progress ??= null;
     $daily ??= [];
     $events ??= [];

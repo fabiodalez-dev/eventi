@@ -113,8 +113,7 @@ class SponsorshipOrderResource extends Resource
                         if (! $admin instanceof User) {
                             return;
                         }
-                        app(SponsorshipOrders::class)->approve($record, $admin);
-                        Notification::make()->title(__('promotions.orders.approved'))->success()->send();
+                        self::decide($record, fn () => app(SponsorshipOrders::class)->approve($record, $admin), __('promotions.orders.approved'));
                     }),
                 /* Una richiesta senza pagamento online: si dice come e' stata
                    saldata, e l'abilitazione nasce con quei dati. */
@@ -143,11 +142,10 @@ class SponsorshipOrderResource extends Resource
                             return;
                         }
                         $free = ($data['settlement'] ?? 'paid') === 'free';
-                        app(SponsorshipOrders::class)->approve($record, $admin, $free
+                        self::decide($record, fn () => app(SponsorshipOrders::class)->approve($record, $admin, $free
                             ? ['complimentary' => true, 'notes' => (string) ($data['reason'] ?? '')]
                             : ['amount_cents' => (int) round((float) ($data['amount'] ?? 0) * 100), 'payment_method' => (string) ($data['payment_method'] ?? 'other'),
-                                'payment_reference' => filled($data['payment_reference'] ?? null) ? (string) $data['payment_reference'] : null]);
-                        Notification::make()->title(__('promotions.orders.approved'))->success()->send();
+                                'payment_reference' => filled($data['payment_reference'] ?? null) ? (string) $data['payment_reference'] : null]), __('promotions.orders.approved'));
                     }),
                 Action::make('reject')->label(__('promotions.orders.reject'))->icon(Heroicon::OutlinedXCircle)->color('danger')
                     ->modalDescription(fn (SponsorshipOrder $record): string => $record->status === SponsorshipOrderStatus::Requested
@@ -159,10 +157,30 @@ class SponsorshipOrderResource extends Resource
                         if (! $admin instanceof User) {
                             return;
                         }
-                        app(SponsorshipOrders::class)->reject($record, $admin, (string) $data['reason']);
-                        Notification::make()->title(__('promotions.orders.rejected'))->success()->send();
+                        self::decide($record, fn () => app(SponsorshipOrders::class)->reject($record, $admin, (string) $data['reason']), __('promotions.orders.rejected'));
                     }),
             ]);
+    }
+
+    /**
+     * Una decisione presa mentre un'altra persona decideva lo stesso ordine:
+     * `transitionTo` rifiuta il passaggio sulla riga riletta e bloccata. Lo
+     * dice una notifica con lo stato di adesso, invece di una pagina
+     * d'errore.
+     *
+     * @param  \Closure(): mixed  $decision
+     */
+    private static function decide(SponsorshipOrder $record, \Closure $decision, string $done): void
+    {
+        try {
+            $decision();
+        } catch (\InvalidArgumentException) {
+            $status = $record->refresh()->status;
+            Notification::make()->title(__('promotions.orders.decided_meanwhile', ['status' => $status->label()]))->danger()->send();
+
+            return;
+        }
+        Notification::make()->title($done)->success()->send();
     }
 
     public static function getPages(): array

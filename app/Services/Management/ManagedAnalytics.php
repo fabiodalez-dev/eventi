@@ -143,16 +143,18 @@ final class ManagedAnalytics
     // ------------------------------------------------- «Statistiche in dettaglio»
 
     /**
-     * Il periodo scelto, nel fuso del soggetto: un periodo con nome
-     * (`AnalyticsWindow`) oppure due date scelte a mano («custom», come
-     * quando nel pannello si tocca «Dal» o «Al»).
+     * Il periodo scelto, nel fuso del soggetto (o della città su cui lavora
+     * la redazione, R10): un periodo con nome (`AnalyticsWindow`) oppure due
+     * date scelte a mano («custom», come quando nel pannello si tocca «Dal»
+     * o «Al»). Il fuso lo dà `EventAnalyticsDashboard::timezone`, la stessa
+     * domanda della pagina del pannello.
      *
      * @param  array<string, mixed>  $input
      * @return array{period: string, from: ?string, until: string}
      */
     public function window(array $input): array
     {
-        $timezone = $this->analytics->subject()->city->timezone;
+        $timezone = $this->dashboard->timezone();
         if (($input['period'] ?? null) === 'custom' || (! isset($input['period']) && filled($input['until'] ?? null))) {
             return ['period' => 'custom', 'from' => $input['from'] ?? null, 'until' => (string) ($input['until'] ?? CarbonImmutable::now($timezone)->toDateString())];
         }

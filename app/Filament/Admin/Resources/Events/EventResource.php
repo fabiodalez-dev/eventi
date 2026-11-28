@@ -35,7 +35,9 @@ use App\Filament\Support\TicketTiersField;
 use App\Models\City;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Rules\RecurrenceRuleText;
 use App\Services\Editorial\EditorialEvents;
+use App\Services\Management\ManagementOptions;
 use App\Support\BeforeGoingDefaults;
 use App\Support\CurrentCity;
 use App\Support\VideoEmbed;
@@ -235,6 +237,8 @@ class EventResource extends Resource
                                             ->label(__('admin.fields.gallery'))
                                             ->collection('gallery')
                                             ->multiple()
+                                            // Lo stesso tetto della gestione e dell'app (`EditorialEventMedia::addToGallery`).
+                                            ->maxFiles(ManagementOptions::GALLERY_MAX)
                                             ->reorderable(),
 
                                         TextInput::make('video_url')
@@ -303,6 +307,8 @@ class EventResource extends Resource
                                                     ->helperText(__('admin.hints.rrule'))
                                                     ->required()
                                                     ->maxLength(500)
+                                                    // La stessa regola dell'app e di «Genera date»: al più una volta al giorno, con un tetto di date.
+                                                    ->rule(new RecurrenceRuleText)
                                                     ->columnSpanFull(),
 
                                                 DateTimePicker::make('until')

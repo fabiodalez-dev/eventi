@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources\Events\RelationManagers;
 
-use App\Actions\UpdateOccurrencesAction;
 use App\Enums\LineupRole;
 use App\Enums\OccurrenceScope;
 use App\Enums\OccurrenceStatus;
@@ -17,6 +16,7 @@ use App\Filament\Support\TicketTiersField;
 use App\Models\Booking;
 use App\Models\Event;
 use App\Models\EventOccurrence;
+use App\Services\Events\EditorialEventDates;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
@@ -65,7 +65,8 @@ class OccurrencesRelationManager extends RelationManager
         return $schema->columns(1)
             ->components([
                 ...OccurrenceDecisionFields::make(),
-                Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved())->searchable()->placeholder('Usa il locale principale'),
+                // Un locale approvato della città dell'evento, la stessa regola di `EditorialEventDates::rules` per l'app.
+                Select::make('venue_id')->label('Locale di questa data')->relationship('venue', 'name', fn ($query) => $query->approved()->where('city_id', $this->getOwnerRecord()->getAttribute('city_id')))->searchable()->placeholder('Usa il locale principale'),
                 DateTimePicker::make('starts_at')
                     ->label(__('admin.fields.starts_at'))
                     ->seconds(false)
@@ -277,7 +278,7 @@ class OccurrencesRelationManager extends RelationManager
                             ...self::scopeField($record),
                         ])
                         ->action(function (EventOccurrence $record, array $data): void {
-                            $changed = app(UpdateOccurrencesAction::class)->shift(
+                            $changed = app(EditorialEventDates::class)->shift(
                                 $record,
                                 (int) $data['shift_minutes'],
                                 self::scopeFrom($data),
@@ -299,9 +300,8 @@ class OccurrencesRelationManager extends RelationManager
                             ...self::scopeField($record),
                         ])
                         ->action(function (EventOccurrence $record, array $data): void {
-                            $changed = app(UpdateOccurrencesAction::class)->changeStatus(
+                            $changed = app(EditorialEventDates::class)->cancel(
                                 $record,
-                                OccurrenceStatus::Cancelled,
                                 $data['status_note'] ?? null,
                                 self::scopeFrom($data),
                             );
@@ -317,14 +317,7 @@ class OccurrencesRelationManager extends RelationManager
                         ->requiresConfirmation()
                         ->authorize(fn (EventOccurrence $record): bool => auth()->user()?->can('update', $record) ?? false)
                         ->action(function (EventOccurrence $record): void {
-                            $changed = app(UpdateOccurrencesAction::class)->changeStatus(
-                                $record,
-                                $record->status === OccurrenceStatus::SoldOut
-                                    ? OccurrenceStatus::Scheduled
-                                    : OccurrenceStatus::SoldOut,
-                                null,
-                                OccurrenceScope::Single,
-                            );
+                            $changed = app(EditorialEventDates::class)->toggleSoldOut($record);
 
                             self::notifyChanged($changed);
                         }),

@@ -134,6 +134,51 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
         ->and($document['paths']['/editorial/venues'])->toHaveKeys(['get', 'post'])
         ->and($document['paths']['/editorial/organizers/{organizer}'])->toHaveKeys(['get', 'patch'])
         ->and($document['paths']['/editorial/organizers/{organizer}'])->not->toHaveKey('delete');
+    // R10 della redazione (26/11/2026): statistiche, SEO, ricerche senza risultati.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/analytics/report',
+        '/editorial/analytics/report/table',
+        '/editorial/analytics/report/export',
+        '/editorial/analytics/events',
+        '/editorial/analytics/venues',
+        '/editorial/analytics/organizers',
+        '/editorial/analytics/subjects/{type}/{id}',
+        '/editorial/analytics/subjects/{type}/{id}/table',
+        '/editorial/analytics/subjects/{type}/{id}/export',
+        '/editorial/seo',
+        '/editorial/seo/audit',
+        '/editorial/seo/verification',
+        '/editorial/search-misses',
+        '/editorial/search-misses/bulk-delete',
+        '/editorial/search-misses/{miss}',
+    ])
+        ->and($document['paths']['/editorial/seo/verification'])->toHaveKey('put')
+        ->and($document['paths']['/editorial/search-misses/{miss}'])->toHaveKey('delete')
+        ->and($document['paths']['/editorial/search-misses/bulk-delete'])->toHaveKey('post');
+    // R11 della redazione (26/11/2026): il catalogo, categorie, tag, caratteristiche, città, pagine.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/catalog',
+        '/editorial/catalog/choices',
+        '/editorial/categories',
+        '/editorial/categories/{id}',
+        '/editorial/tags',
+        '/editorial/tags/{id}',
+        '/editorial/tags/{id}/merge',
+        '/editorial/event-features',
+        '/editorial/event-features/{id}',
+        '/editorial/cities',
+        '/editorial/cities/{id}',
+        '/editorial/pages',
+        '/editorial/pages/{id}',
+        '/editorial/pages/preview',
+    ])
+        ->and($document['paths']['/editorial/categories'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/cities/{id}'])->toHaveKeys(['get', 'patch'])
+        // L'eliminazione definitiva del catalogo resta solo sul sito (seconda revisione di sicurezza).
+        ->and($document['paths']['/editorial/cities/{id}'])->not->toHaveKey('delete')
+        ->and($document['paths']['/editorial/tags/{id}'])->not->toHaveKey('delete')
+        ->and($document['paths']['/editorial/tags/{id}/merge'])->toHaveKey('post')
+        ->and($document['paths']['/editorial/pages/preview'])->toHaveKey('post');
     // R2 della redazione (26/11/2026): eventi, decisioni, cronologia, proposte dal pubblico.
     expect($document['paths'])->toHaveKeys([
         '/editorial/events',
@@ -160,6 +205,84 @@ it('espone un contratto OpenAPI utilizzabile da un generatore Android', function
     ])
         ->and($document['paths']['/editorial/events/{event}'])->toHaveKeys(['get', 'delete'])
         ->and($document['paths']['/editorial/events/{event}/merge'])->toHaveKey('post');
+    // R7 della redazione (26/11/2026): community e passaggi.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/community/{section}',
+        '/editorial/community/profiles/{profile}/feature',
+        '/editorial/community/users/{user}/suspend',
+        '/editorial/community/users/{user}/unsuspend',
+        '/editorial/community/{kind}/{id}/hide',
+        '/editorial/community/{kind}/{id}/restore',
+        '/editorial/community/restrictions/{restriction}',
+        '/editorial/carpool/{section}',
+        '/editorial/carpool/cases/{case}',
+        '/editorial/carpool/cases/{case}/manage',
+        '/editorial/carpool/cases/{case}/reply',
+        '/editorial/carpool/cases/{case}/hold',
+        '/editorial/carpool/cases/{case}/freeze',
+        '/editorial/carpool/cases/{case}/evidence',
+        '/editorial/carpool/rides/{offer}/cancel',
+        '/editorial/carpool/reviews/{review}/moderate',
+        '/editorial/carpool/users/{user}/suspend',
+        '/editorial/carpool/users/{user}/restore',
+        '/editorial/carpool/deliveries/{delivery}/retry',
+    ])
+        ->and($document['paths']['/editorial/community/restrictions/{restriction}'])->toHaveKey('delete')
+        ->and($document['paths']['/editorial/carpool/cases/{case}'])->toHaveKey('get');
+
+    // R8 della redazione (26/11/2026): campagne, nuova sponsorizzazione, ordini, abilitazioni, listino, banner, statistiche.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/sponsorships',
+        '/editorial/sponsorships/export',
+        '/editorial/sponsorships/sponsors',
+        '/editorial/sponsorships/events',
+        '/editorial/sponsorships/prefill',
+        '/editorial/sponsorships/estimate',
+        '/editorial/sponsorships/bulk-destroy',
+        '/editorial/sponsorships/analytics',
+        '/editorial/sponsorships/analytics/clicks',
+        '/editorial/sponsorships/analytics/campaigns',
+        '/editorial/sponsorships/analytics/campaigns/{campaign}',
+        '/editorial/sponsorships/{sponsorship}',
+        '/editorial/sponsorships/{sponsorship}/toggle',
+        '/editorial/sponsorship-orders',
+        '/editorial/sponsorship-orders/{order}/approve',
+        '/editorial/sponsorship-orders/{order}/reject',
+        '/editorial/sponsorship-grants',
+        '/editorial/sponsorship-grants/{grant}',
+        '/editorial/sponsorship-prices',
+        '/editorial/sponsorship-prices/{price}',
+        '/editorial/sponsorship-banners',
+    ])
+        ->and($document['paths']['/editorial/sponsorships'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/sponsorships/{sponsorship}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/sponsorship-grants/{grant}'])->toHaveKeys(['get', 'patch'])
+        ->and($document['paths']['/editorial/sponsorship-grants/{grant}'])->not->toHaveKey('delete')
+        ->and($document['paths']['/editorial/sponsorship-prices/{price}'])->toHaveKeys(['patch', 'delete'])
+        ->and($document['paths']['/editorial/sponsorship-banners'])->toHaveKeys(['get', 'put']);
+    // R3 della redazione (26/11/2026): modulo evento, locandina e galleria, programmazione, date.
+    expect($document['paths'])->toHaveKeys([
+        '/editorial/events/form',
+        '/editorial/events/{event}/form',
+        '/editorial/events/before-going',
+        '/editorial/events/lookup/venues',
+        '/editorial/events/lookup/organizers',
+        '/editorial/events/lookup/tags',
+        '/editorial/events/{event}/poster',
+        '/editorial/events/{event}/gallery',
+        '/editorial/events/{event}/gallery/order',
+        '/editorial/events/{event}/gallery/{media}',
+        '/editorial/events/{event}/schedule',
+        '/editorial/events/{event}/occurrences/generate',
+        '/editorial/events/{event}/dates',
+        '/editorial/events/{event}/dates/{occurrence}',
+        '/editorial/events/{event}/dates/{occurrence}/shift',
+        '/editorial/events/{event}/dates/{occurrence}/status',
+    ])
+        ->and($document['paths']['/editorial/events'])->toHaveKeys(['get', 'post'])
+        ->and($document['paths']['/editorial/events/{event}'])->toHaveKey('patch')
+        ->and($document['paths']['/editorial/events/{event}/dates/{occurrence}'])->toHaveKeys(['get', 'patch', 'delete'])
+        ->and($document['paths']['/editorial/events/{event}/schedule'])->toHaveKeys(['put', 'delete']);
 
     // P8 (25/11/2026): collaboratori del locale, «Il tuo accesso», inviti ricevuti.
     expect($document['paths'])->toHaveKeys([
